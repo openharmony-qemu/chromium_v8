@@ -5,3 +5,4 @@
 *.png binary
 # Don't include minified JS in git grep/diff output
 test/mjsunit/asm/sqlite3/*.js -diff
+tools/builtins-pgo/profiles/ohos.profile filter=lfs diff=lfs merge=lfs -text
