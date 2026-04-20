@@ -77,6 +77,9 @@
 #include "src/init/icu_util.h"
 #include "src/init/startup-data-util.h"
 #include "src/init/v8.h"
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+#include "arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h"
+#endif
 #include "src/json/json-parser.h"
 #include "src/json/json-stringifier.h"
 #include "src/logging/counters-scopes.h"
@@ -288,6 +291,24 @@ void Utils::ReportApiFailure(const char* location, const char* message) {
 
 void Utils::ReportOOMFailure(i::Isolate* i_isolate, const char* location,
                              const OOMDetails& details) {
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+  if (dfx::V8OOMReportCallbackWithData report = dfx::GetOOMReportCallback();
+      report) {
+    report(location, details, nullptr);
+  }
+#endif
+
+#ifdef OHOS_JS_ENGINE
+  // First check for JSVM OOM callback with isolate parameter
+  // Ensure that oom_callback_with_isolate does not crash
+  if (auto oom_callback_with_isolate = i_isolate->oom_behavior_with_isolate()) {
+    v8::Isolate* v8_isolate = reinterpret_cast<v8::Isolate*>(i_isolate);
+    std::stringstream stream;
+    i_isolate->heap()->DumpJSONHeapStatistics(stream);
+    std::string heap_stat = stream.str();
+    oom_callback_with_isolate(v8_isolate, location, details, heap_stat.c_str());
+  }
+#endif
   if (auto oom_callback = i_isolate->oom_behavior()) {
     oom_callback(location, details, i_isolate->oom_callback_data());
   } else {
@@ -10917,6 +10938,13 @@ void Isolate::SetOOMErrorHandler(OOMErrorCallbackWithData callback,
   i_isolate->set_oom_behavior(callback);
   i_isolate->set_oom_callback_data(data);
 }
+
+#ifdef OHOS_JS_ENGINE
+void Isolate::SetOOMErrorHandlerWithIsolate(OOMErrorCallbackWithIsolate callback) {
+  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
+  i_isolate->set_oom_behavior_with_isolate(callback);
+}
+#endif
 
 void Isolate::AddNearHeapLimitCallback(v8::NearHeapLimitCallback callback,
                                        void* data) {
