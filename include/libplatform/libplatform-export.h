@@ -13,6 +13,7 @@
 #define V8_PLATFORM_EXPORT __declspec(dllimport)
 #else
 #define V8_PLATFORM_EXPORT
+#define JSVM_PLATFORM_EXPORT
 #endif  // BUILDING_V8_PLATFORM_SHARED
 
 #else  // defined(_WIN32)

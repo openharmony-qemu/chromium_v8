@@ -130,7 +130,7 @@ const char* g_gc_fake_mmap = nullptr;
 #endif
 #endif
 
-#ifdef V8_HOST_ARCH_ARM64
+#if defined(V8_HOST_ARCH_ARM64) && !defined(V8_OS_DARWIN)
 static long Syscall(unsigned long n, unsigned long a,
                     unsigned long b, unsigned long c,
                     unsigned long d, unsigned long e,
@@ -152,7 +152,7 @@ static long Syscall(unsigned long n, unsigned long a,
 
 static inline void* InlineMmap(void *addr, size_t len, int prot, int flags, int fd,
                                off_t offset) {
-#ifdef V8_HOST_ARCH_ARM64
+#if defined(V8_HOST_ARCH_ARM64) && !defined(V8_OS_DARWIN)
   long res =
       Syscall(SYS_mmap, (unsigned long)addr, len, prot, flags, fd, offset);
   if (res < 0) {
@@ -167,7 +167,7 @@ static inline void* InlineMmap(void *addr, size_t len, int prot, int flags, int 
 }
 
 static inline int InlineMprotect(void *addr, size_t len, int prot) {
-#ifdef V8_HOST_ARCH_ARM64
+#if defined(V8_HOST_ARCH_ARM64) && !defined(V8_OS_DARWIN)
   return (int)Syscall(SYS_mprotect, (unsigned long)addr, len, prot, 0, 0, 0);
 #else
   return mprotect(addr, len, prot);

@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import("../../gni/v8.gni")
+import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 
 v8_executable("cctest") {
   testonly = true
@@ -93,6 +94,26 @@ v8_source_set("cctest_sources") {
     "heap/heap-tester.h",
     "heap/heap-utils.cc",
     "heap/heap-utils.h",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/heap-dump-test-utils.h",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-basic.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-builtins-buffers-typedarrays.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-builtins-core.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-builtins-iterators-collections.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-builtins-temporal.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-objects-arrays-elements.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-objects-core.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-objects-functions-contexts.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-js-objects-strings.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-offheap-tables.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-properties.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-weak-references.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-dump-categories.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-extract-references.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-serializer.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-visitor-ids.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-visitor-ids-shared.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-visitor-ids-torque.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/tests/cctest/test-heap-dump-visitor-ids-wasm.cc",
     "heap/test-alloc.cc",
     "heap/test-array-buffer-sweeper.cc",
     "heap/test-compaction.cc",
