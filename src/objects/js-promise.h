@@ -57,6 +57,10 @@ class JSPromise
   V8_EXPORT_PRIVATE Promise::PromiseState status() const;
   void set_status(Promise::PromiseState status);
 
+  // Returns true if v8::Resolver::Resolve() or Reject() was already invoked
+  // for this native promise.
+  DECL_BOOLEAN_ACCESSORS(is_native_resolver_invoked)
+
   // ES section #sec-fulfillpromise
   V8_EXPORT_PRIVATE static Handle<Object> Fulfill(
       DirectHandle<JSPromise> promise, DirectHandle<Object> value);
