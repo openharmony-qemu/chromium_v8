@@ -153,9 +153,10 @@ V8_INLINE static T* ReadCppHeapPointerField(v8::Isolate* isolate,
       reinterpret_cast<const std::atomic<Address>*>(&table[index]);
   Address entry = std::atomic_load_explicit(ptr, std::memory_order_relaxed);
 
-  Address pointer = entry;
+  // Avoid DCE of the entry logic using volatile.
+  volatile Address safe_entry;
   if (V8_LIKELY(tag_range.CheckTagOf(entry))) {
-    pointer = entry >> kCppHeapPointerPayloadShift;
+    safe_entry = entry >> kCppHeapPointerPayloadShift;
   } else {
     // If the type check failed, we simply return nullptr here. That way:
     //  1. The null handle always results in nullptr being returned here, which
@@ -174,9 +175,9 @@ V8_INLINE static T* ReadCppHeapPointerField(v8::Isolate* isolate,
     //     between returning nullptr or the original entry, since it will
     //     simply compile to a `csel x0, x8, xzr, lo` instead of a
     //     `csel x0, x10, x8, lo` instruction.
-    pointer = 0;
+    safe_entry = 0;
   }
-  return reinterpret_cast<T*>(pointer);
+  return reinterpret_cast<T*>(safe_entry);
 #else   // !V8_COMPRESS_POINTERS
   return reinterpret_cast<T*>(
       Internals::ReadRawField<Address>(heap_object_ptr, offset));
