@@ -355,19 +355,15 @@ class ContextAccess final {
  public:
   ContextAccess(size_t depth, size_t index, bool immutable);
 
-  size_t depth() const { return DepthField::decode(immutable_and_depth_); }
+  size_t depth() const { return depth_; }
   size_t index() const { return index_; }
-  bool immutable() const {
-    return ImmutableField::decode(immutable_and_depth_);
-  }
+  bool immutable() const { return immutable_; }
 
  private:
-  using ImmutableField = base::BitField<bool, 0, 1>;
-  using DepthField = ImmutableField::Next<uint32_t, 31>;
-
   // For space reasons, we keep this tightly packed, otherwise we could just use
   // a simple int/int/bool POD.
-  uint32_t immutable_and_depth_;
+  const bool immutable_;
+  const uint16_t depth_;
   const uint32_t index_;
 };
 
