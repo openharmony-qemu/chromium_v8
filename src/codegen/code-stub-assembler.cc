@@ -18426,9 +18426,9 @@ TNode<Code> CodeStubAssembler::GetSharedFunctionInfoCode(
 #if V8_ENABLE_WEBASSEMBLY
   // IsWasmFunctionData: Use the wrapper code
   BIND(&check_is_wasm_function_data);
-  sfi_code = CAST(LoadTrustedPointerFromObject(
-      CAST(sfi_data_out.value()), WasmExportedFunctionData::kWrapperCodeOffset,
-      kCodeIndirectPointerTag));
+  sfi_code =
+      CAST(LoadObjectField(CAST(sfi_data_out.value()),
+                           WasmExportedFunctionData::kWrapperCodeOffset));
   Goto(&done);
 #endif  // V8_ENABLE_WEBASSEMBLY
 
