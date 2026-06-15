@@ -17,6 +17,7 @@ namespace v8 {
 #ifdef OH_ENABLE_HEAP_TRANSLATE
 namespace dfx {
 class ObjectTranslator;
+class ObjectDetailVisitor;
 }
 #endif
 namespace internal {
@@ -193,6 +194,10 @@ V8_OBJECT class AllocationSiteWithWeakNext : public AllocationSite {
   template <typename T>
   friend struct WeakListVisitor;
   friend class V8HeapExplorer;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+  friend class dfx::ObjectDetailVisitor;
+#endif
 
   TaggedMember<UnionOf<Undefined, AllocationSiteWithWeakNext>> weak_next_;
 } V8_OBJECT_END;

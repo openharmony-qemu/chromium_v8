@@ -858,6 +858,7 @@ V8 shared library set USING_V8_SHARED.
 # define V8_EXPORT __declspec(dllimport)
 #else
 # define V8_EXPORT
+# define JSVM_EXPORT
 #endif  // BUILDING_V8_SHARED
 
 #else  // V8_OS_WIN
