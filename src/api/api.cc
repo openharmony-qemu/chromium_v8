@@ -879,7 +879,7 @@ void Context::Enter() {
   i::Tagged<i::NativeContext> env = *Utils::OpenDirectHandle(this);
 #ifdef OHOS_JS_ENGINE
   i::Isolate* i_isolate = GetIsolateFromNativeContext(env);
-#elif
+#else
   i::Isolate* i_isolate = i::Isolate::Current();
 #endif
   EnterV8NoScriptNoExceptionScope api_scope(i_isolate);
@@ -894,7 +894,7 @@ void Context::Exit() {
 #ifdef OHOS_JS_ENGINE
   i::Isolate* i_isolate = GetIsolateFromNativeContext(
       i::Cast<i::NativeContext>(*env));
-#elif
+#else
   i::Isolate* i_isolate = i::Isolate::Current();
 #endif
   EnterV8NoScriptNoExceptionScope api_scope(i_isolate);
