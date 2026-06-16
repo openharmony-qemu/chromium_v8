@@ -123,11 +123,8 @@ const pthread_t kNoThread = static_cast<pthread_t>(0);
 const char* g_gc_fake_mmap = nullptr;
 
 #if OHOS_JS_ENGINE
-#if V8_ENABLE_JITFORT
-#define MAP_JIT 0x1000
-#else
+#define MAP_JIT_PROTECTED 0x1000
 #define MAP_JIT 0x1040
-#endif
 #endif
 
 #if defined(V8_HOST_ARCH_ARM64) && !defined(V8_OS_DARWIN)
@@ -225,7 +222,15 @@ int GetFlagsForMemoryPermission(OS::MemoryPermission access, PageType page_type,
   // https://developer.apple.com/documentation/apple-silicon/porting-just-in-time-compilers-to-apple-silicon.
   if (access == OS::MemoryPermission::kNoAccessWillJitLater ||
       access == OS::MemoryPermission::kReadWriteExecute) {
+#if V8_ENABLE_JITFORT
+    if (JITFort::IsSupported()) {
+      flags |= MAP_JIT_PROTECTED;
+    } else {
+      flags |= MAP_JIT;
+    }
+#else
     flags |= MAP_JIT;
+#endif
   }
 #endif  // V8_OS_DARWIN
   return flags;
