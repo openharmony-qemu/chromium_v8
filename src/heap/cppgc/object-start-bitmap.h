@@ -129,6 +129,7 @@ HeapObjectHeader* ObjectStartBitmap::FindHeader(
     DCHECK_LT(0u, cell_index);
     byte = load<mode>(--cell_index);
   }
+  CHECK_NE(0, byte);
   const int leading_zeroes = v8::base::bits::CountLeadingZeros(byte);
   object_start_number =
       (cell_index * kBitsPerCell) + (kBitsPerCell - 1) - leading_zeroes;
@@ -166,8 +167,8 @@ void ObjectStartBitmap::store(size_t cell_index, uint8_t value) {
     object_start_bit_map_[cell_index] = value;
     return;
   }
-  v8::base::AsAtomicPtr(&object_start_bit_map_[cell_index])
-      ->store(value, std::memory_order_release);
+  std::atomic_ref<uint8_t>(object_start_bit_map_[cell_index])
+      .store(value, std::memory_order_seq_cst);
 }
 
 template <AccessMode mode>
