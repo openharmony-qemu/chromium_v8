@@ -25,6 +25,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#include "include/v8-data.h"
+#include "include/v8-external.h"
 #include "include/v8-function.h"
 #include "include/v8-locker.h"
 #include "src/api/api-inl.h"
@@ -796,12 +798,12 @@ TEST_F(ThreadTerminationTest, TerminateInMicrotask) {
   CHECK(!isolate()->IsExecutionTerminating());
 }
 
-void TerminationMicrotask(void* data) {
+void TerminationMicrotask(v8::Local<v8::Data> data) {
   Isolate::GetCurrent()->TerminateExecution();
   CompileRun(Isolate::GetCurrent()->GetCurrentContext(), "");
 }
 
-void UnreachableMicrotask(void* data) { UNREACHABLE(); }
+void UnreachableMicrotask(v8::Local<v8::Data> data) { UNREACHABLE(); }
 
 TEST_F(ThreadTerminationTest, TerminateInApiMicrotask) {
   Locker locker(isolate());
@@ -814,8 +816,10 @@ TEST_F(ThreadTerminationTest, TerminateInApiMicrotask) {
     TryCatch try_catch(isolate());
     Context::Scope context_scope(context);
     CHECK(!isolate()->IsExecutionTerminating());
-    isolate()->EnqueueMicrotask(TerminationMicrotask);
-    isolate()->EnqueueMicrotask(UnreachableMicrotask);
+    isolate()->EnqueueMicrotask(TerminationMicrotask,
+                                v8::Undefined(isolate()));
+    isolate()->EnqueueMicrotask(UnreachableMicrotask,
+                                v8::Undefined(isolate()));
     isolate()->PerformMicrotaskCheckpoint();
     CHECK(try_catch.HasCaught());
     CHECK(try_catch.HasTerminated());
