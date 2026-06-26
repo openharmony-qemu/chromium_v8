@@ -6136,6 +6136,7 @@ inline constexpr RegisterRepresentation RegisterRepresentationForArrayType(
     case kExternalBigUint64Array:
       return RegisterRepresentation::Word64();
   }
+  UNREACHABLE();
 }
 
 inline base::Vector<const RegisterRepresentation> VectorForRep(
