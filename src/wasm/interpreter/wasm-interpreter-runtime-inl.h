@@ -76,7 +76,12 @@ inline void WasmInterpreterRuntime::SetGlobalRef(
 }
 
 inline void WasmInterpreterRuntime::InitMemoryAddresses() {
-  memory_start_ = wasm_trusted_instance_data()->memory0_start();
+  DirectHandle<WasmTrustedInstanceData> trusted_data =
+      wasm_trusted_instance_data();
+  DCHECK_LE(module_->memories.size(), kV8MaxWasmMemories);
+  memory_start_ = trusted_data->memory0_start();
+  // SBXCHECK bounds added to detect corruption early.
+  SBXCHECK_LT(0u, module_->memories.size());
 }
 
 inline uint64_t WasmInterpreterRuntime::MemorySize() const {
