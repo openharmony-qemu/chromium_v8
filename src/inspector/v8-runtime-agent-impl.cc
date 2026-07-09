@@ -1123,14 +1123,17 @@ Response V8RuntimeAgentImpl::enable() {
   // and that JavaScript could add more log messages, invalidating iterators
   // used here, hence we need to guard against that.
   // See http://crbug.com/446941355 for more details.
-  const auto& messages = storage->messages();
-  const size_t size = messages.size();
+  // Also, the storage itself can be destroyed and recreated, so re-fetch the
+  // storage on each iteration.
+  size_t size = storage->messages().size();
   for (size_t i = 0; i < size; ++i) {
-    if (size < messages.size()) {
-      // Also guard against the case where the message queue was cleared.
+    if (m_inspector->consoleMessageStorage(m_session->contextGroupId()) !=
+        storage) {
       break;
     }
-    if (!reportMessage(messages[i].get(), false)) {
+    if (i >= storage->messages().size()) break;
+    V8ConsoleMessage message = *storage->messages()[i];
+    if (!reportMessage(&message, false)) {
       break;
     }
   }
