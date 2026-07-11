@@ -17042,8 +17042,7 @@ std::optional<Float64> MaglevGraphBuilder::TryGetFloat64OrHoleyFloat64Constant(
 
 MaybeHandle<String> MaglevGraphBuilder::TryGetStringConstant(ValueNode* value) {
   if (Constant* constant = value->TryCast<Constant>()) {
-    if (constant->object().IsString() &&
-        constant->object().AsString().IsContentAccessible()) {
+    if (constant->object().IsString()) {
       return handle(Cast<String>(*constant->object().object()),
                     local_isolate());
     }
