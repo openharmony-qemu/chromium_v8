@@ -33,10 +33,6 @@ struct TrustedPointerTableEntry {
   inline void MakeTrustedPointerEntry(Address pointer, IndirectPointerTag tag,
                                       bool mark_as_alive);
 
-  // Returns the currently set tag of the entry. Used by TrustedPointerTable
-  // for in-place updates that preserve the existing tag.
-  inline IndirectPointerTag GetTag() const;
-
   // Make this entry a freelist entry, containing the index of the next entry
   // on the freelist.
   inline void MakeFreelistEntry(uint32_t next_entry_index);
@@ -173,12 +169,6 @@ class V8_EXPORT_PRIVATE TrustedPointerTable
   // This method is atomic and can be called from background threads.
   inline void Set(TrustedPointerHandle handle, Address pointer,
                   IndirectPointerTag tag);
-
-  // Sets the content of the entry referenced by the given handle. Will preserve
-  // the currently set tag.
-  //
-  // This method is atomic and can be called from background threads.
-  inline void Update(TrustedPointerHandle handle, Address pointer);
 
   // Allocates a new entry in the table and initialize it.
   //
