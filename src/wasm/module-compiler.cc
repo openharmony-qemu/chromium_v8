@@ -2587,6 +2587,7 @@ class ValidateFunctionsStreamingJob final : public JobTask {
 class AsyncStreamingProcessor final : public StreamingProcessor {
  public:
   explicit AsyncStreamingProcessor(AsyncCompileJob* job);
+  ~AsyncStreamingProcessor() override;
 
   void InitializeIsolateSpecificInfo(Isolate* isolate) override {
     job_->InitializeIsolateSpecificInfo(isolate);
@@ -3180,6 +3181,15 @@ AsyncStreamingProcessor::AsyncStreamingProcessor(AsyncCompileJob* job)
     : decoder_(job->enabled_features_, &job->detected_features_),
       job_(job),
       compilation_unit_builder_(nullptr) {}
+
+AsyncStreamingProcessor::~AsyncStreamingProcessor() {
+  // When we receive a ContextDisposedNotification before the stream ends,
+  // we might still have a running validation job. Terminate that before
+  // freeing {validate_functions_job_data_}.
+  if (validate_functions_job_handle_) {
+    validate_functions_job_handle_->Cancel();
+  }
+}
 
 // Process the module header.
 bool AsyncStreamingProcessor::ProcessModuleHeader(
