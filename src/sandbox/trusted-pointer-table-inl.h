@@ -156,6 +156,18 @@ void TrustedPointerTable::Set(TrustedPointerHandle handle, Address pointer,
   at(index).SetPointer(pointer, tag);
 }
 
+void TrustedPointerTable::Update(TrustedPointerHandle handle, Address pointer) {
+  DCHECK_NE(kNullTrustedPointerHandle, handle);
+  uint32_t index = HandleToIndex(handle);
+  const auto tag = at(index).GetTag();
+  Validate(pointer, tag);
+  at(index).SetPointer(pointer, tag);
+}
+
+IndirectPointerTag TrustedPointerTableEntry::GetTag() const {
+  return payload_.load(std::memory_order_relaxed).ExtractTag();
+}
+
 TrustedPointerHandle TrustedPointerTable::AllocateAndInitializeEntry(
     Space* space, Address pointer, IndirectPointerTag tag,
     TrustedPointerPublishingScope* scope) {
