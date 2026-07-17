@@ -3395,12 +3395,25 @@ class TypedElementsAccessor
   // Conversion of scalar value to handlified object.
   static Handle<Object> ToHandle(Isolate* isolate, ElementType value);
 
+  static size_t ComputeStoreOffset(size_t offset) {
+#if V8_ENABLE_SANDBOX
+    // If the ElementsKind is concurrently modified between the bound check and
+    // the store, we might write outside of the sandbox. To prevent this
+    // ElementsKind switcheroo, mask the offset such that it is at most
+    // kMaxSafeBufferSizeForSandbox.
+    if constexpr (kRequiresTypedArrayAccessMasks && sizeof(ElementType) > 1) {
+      return offset & (kBoundedSizeMask / sizeof(ElementType));
+    }
+#endif
+    return offset;
+  }
+
   static void SetImpl(DirectHandle<JSObject> holder, InternalIndex entry,
                       Tagged<Object> value) {
     auto typed_array = Cast<JSTypedArray>(holder);
     DCHECK_LE(entry.raw_value(), typed_array->GetLength());
-    auto* entry_ptr =
-        static_cast<ElementType*>(typed_array->DataPtr()) + entry.raw_value();
+    auto* entry_ptr = static_cast<ElementType*>(typed_array->DataPtr()) +
+                      ComputeStoreOffset(entry.raw_value());
     auto is_shared = typed_array->buffer()->is_shared() ? kShared : kUnshared;
     SetImpl(entry_ptr, FromObject(value), is_shared);
   }
@@ -4139,7 +4152,8 @@ class TypedElementsAccessor
 
     Tagged<Oddball> undefined = ReadOnlyRoots(isolate).undefined_value();
     ElementType* dest_data =
-        reinterpret_cast<ElementType*>(destination->DataPtr()) + offset;
+        reinterpret_cast<ElementType*>(destination->DataPtr()) +
+        ComputeStoreOffset(offset);
 
     // Fast-path for packed Smi kind.
     if (kind == PACKED_SMI_ELEMENTS) {
