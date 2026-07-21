@@ -9096,6 +9096,7 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceArrayIteratorPrototypeNext(
     for (auto map : *possible_maps) {
       maps.push_back(map);
     }
+    RETURN_IF_ABORT(BuildCheckMaps(iterated_object, base::VectorOf(maps)));
   }
 
   // TODO(victorgomes): Support typed arrays.
