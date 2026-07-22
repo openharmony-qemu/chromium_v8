@@ -44,6 +44,9 @@ struct JSDispatchEntry {
 
   inline void SetCodeAndEntrypointPointer(Address new_object,
                                           Address new_entrypoint);
+  inline void SetCodeAndEntrypointPointer(Address new_object,
+                                          Address new_entrypoint,
+                                          Isolate* isolate);
   inline void SetEntrypointPointer(Address new_entrypoint);
 
   // Make this entry a freelist entry, containing the index of the next entry
@@ -218,6 +221,8 @@ class V8_EXPORT_PRIVATE JSDispatchTable
   // NB: Callee must emit JS_DISPATCH_HANDLE_WRITE_BARRIER if needed!
   inline void SetCodeNoWriteBarrier(JSDispatchHandle handle,
                                     Tagged<Code> new_code);
+  inline void SetCodeNoWriteBarrier(JSDispatchHandle handle,
+                                    Tagged<Code> new_code, Isolate* isolate);
 
   // Execute a tiering builtin instead of the actual code. Leaves the Code
   // pointer untouched and changes only the entrypoint.
@@ -225,12 +230,16 @@ class V8_EXPORT_PRIVATE JSDispatchTable
                                 Isolate* isolate);
   inline void SetCodeKeepTieringRequestNoWriteBarrier(JSDispatchHandle handle,
                                                       Tagged<Code> new_code);
+  inline void SetCodeKeepTieringRequestNoWriteBarrier(JSDispatchHandle handle,
+                                                      Tagged<Code> new_code,
+                                                      Isolate* isolate);
   // Resets the entrypoint to the code's entrypoint.
   inline void ResetTieringRequest(JSDispatchHandle handle);
   // Check if and/or which tiering builtin is installed.
   inline bool IsTieringRequested(JSDispatchHandle handle);
   inline bool IsTieringRequested(JSDispatchHandle handle,
                                  TieringBuiltin builtin, Isolate* isolate);
+  // Whether the dispatch handle lives in the read-only segment of the table.
 
   // Allocates a new entry in the table and initialize it.
   //
@@ -302,9 +311,7 @@ class V8_EXPORT_PRIVATE JSDispatchTable
 
   void PrintEntry(JSDispatchHandle handle);
   void PrintCurrentTieringRequest(JSDispatchHandle handle, Isolate* isolate,
-                                  std::ostream& os);
-
-  static constexpr bool kWriteBarrierSetsEntryMarkBit = true;
+                                   std::ostream& os);
 
   static bool MaybeValidJSDispatchHandle(uint32_t handle) {
     return ((handle >> kJSDispatchHandleShift) << kJSDispatchHandleShift) ==
@@ -318,6 +325,10 @@ class V8_EXPORT_PRIVATE JSDispatchTable
   inline void SetCodeAndEntrypointNoWriteBarrier(JSDispatchHandle handle,
                                                  Tagged<Code> new_code,
                                                  Address entrypoint);
+  inline void SetCodeAndEntrypointNoWriteBarrier(JSDispatchHandle handle,
+                                                 Tagged<Code> new_code,
+                                                 Address entrypoint,
+                                                 Isolate* isolate);
 
   static uint32_t HandleToIndex(JSDispatchHandle handle) {
     uint32_t index = handle.value() >> kJSDispatchHandleShift;

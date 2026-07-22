@@ -146,9 +146,9 @@ class V8_EXPORT_PRIVATE WriteBarrier final {
   template <typename T>
   static inline bool IsRequired(const HeapObjectLayout* host, T value);
 
-  static bool VerifyDispatchHandleMarkingState(Tagged<HeapObject> host,
-                                               JSDispatchHandle value,
-                                               WriteBarrierMode mode);
+  static void VerifyDispatchHandleWriteBarrier(Tagged<HeapObject> host,
+                                              JSDispatchHandle value,
+                                              WriteBarrierMode mode);
 #endif  // V8_VERIFY_WRITE_BARRIERS
 
   // In native code we skip any further write barrier processing if the hosts

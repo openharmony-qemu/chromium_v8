@@ -16,6 +16,7 @@
 // clang-format from merging that include into the following ones).
 #include "src/debug/debug.h"
 #include "src/diagnostics/code-tracer.h"
+#include "src/execution/isolate-utils-inl.h"
 #include "src/ic/ic.h"
 #include "src/init/bootstrapper.h"
 #include "src/objects/abstract-code-inl.h"
@@ -181,16 +182,20 @@ void JSFunction::set_dispatch_handle(JSDispatchHandle handle,
 void JSFunction::UpdateDispatchEntry(Tagged<Code> new_code,
                                      WriteBarrierMode mode) {
   JSDispatchHandle handle = dispatch_handle();
-  IsolateGroup::current()->js_dispatch_table()->SetCodeNoWriteBarrier(handle,
-                                                                      new_code);
+  Isolate* isolate;
+  CHECK(GetIsolateFromHeapObject(*this, &isolate));
+  IsolateGroup::current()->js_dispatch_table()->SetCodeNoWriteBarrier(
+      handle, new_code, isolate);
   CONDITIONAL_JS_DISPATCH_HANDLE_WRITE_BARRIER(*this, handle, mode);
 }
 void JSFunction::UpdateDispatchEntryKeepTieringRequest(Tagged<Code> new_code,
                                                        WriteBarrierMode mode) {
   JSDispatchHandle handle = dispatch_handle();
+  Isolate* isolate;
+  CHECK(GetIsolateFromHeapObject(*this, &isolate));
   IsolateGroup::current()
       ->js_dispatch_table()
-      ->SetCodeKeepTieringRequestNoWriteBarrier(handle, new_code);
+      ->SetCodeKeepTieringRequestNoWriteBarrier(handle, new_code, isolate);
   CONDITIONAL_JS_DISPATCH_HANDLE_WRITE_BARRIER(*this, handle, mode);
 }
 JSDispatchHandle JSFunction::dispatch_handle() const {
