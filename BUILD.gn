@@ -38,6 +38,8 @@ import("//arkweb/chromium_ext/v8/build.gni")
 
 import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 
+import("//arkweb/build/features/features.gni")
+
 
 if (is_clang) {
   import("//build/config/clang/clang.gni")
@@ -544,7 +546,7 @@ declare_args() {
 
 declare_args() {
   # Enable jit memroy W^X protection.
-  v8_enable_jitfort = false
+  v8_enable_jitfort = arkweb_enable_jitfort
 
   v8_enable_hitrace_runtime_call_stats = v8_enable_ohos_js_engine
 }
@@ -916,6 +918,8 @@ config("internal_config_base") {
   cflags = []
   if (v8_component_build) {
     cflags += [ "-U_FORTIFY_SOURCE" ]
+  }
+  if (v8_component_build || v8_enable_jitfort) {
     include_dirs += [
       "//arkweb/chromium_ext/v8"
     ]
@@ -1608,6 +1612,9 @@ config("features") {
   }
   if (is_ohos && v8_enable_jitfort) {
     defines += [ "V8_ENABLE_JITFORT" ]
+  }
+  if (is_ohos && arkweb_enable_jitfort) {
+    defines += [ "ARKWEB_ENABLE_JITFORT" ]
   }
 }
 
@@ -6703,7 +6710,14 @@ v8_source_set("v8_base_without_compiler") {
       "//arkweb/chromium_ext/v8/src/base/platform/jitfort.cc",
     ]
   }
-  
+
+  if (v8_enable_jitfort && arkweb_enable_jitfort) {
+    sources += [
+      "//arkweb/chromium_ext/v8/jitfort_feature.h",
+      "//arkweb/chromium_ext/v8/jitfort_feature.cc",
+    ]
+  }
+
   configs = [
     ":internal_config",
     ":cppgc_base_config",
@@ -6724,6 +6738,12 @@ v8_source_set("v8_base_without_compiler") {
     "//third_party/fast_float",
     "//third_party/highway:libhwy",
   ]
+  if (arkweb_enable_jitfort) {
+    deps += [
+      "//base",
+      "//arkweb/build/features:features",
+    ]
+  }
 
   public_deps = [
     ":cppgc_base",
