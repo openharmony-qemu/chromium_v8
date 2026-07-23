@@ -320,6 +320,8 @@ bool Builtins::IsJSTrampoline(Builtin builtin) {
     case Builtin::kJSToJSWrapper:
     case Builtin::kJSToJSWrapperInvalidSig:
     case Builtin::kWasmPromising:
+    case Builtin::kWasmResume:
+    case Builtin::kWasmReject:
 #if V8_ENABLE_DRUMBRAKE
     case Builtin::kGenericJSToWasmInterpreterWrapper:
 #endif
