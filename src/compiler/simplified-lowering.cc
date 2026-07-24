@@ -4334,7 +4334,8 @@ class RepresentationSelector {
           if (lower<T>()) {
             ChangeOp(node, simplified()->StringToNumber());
           }
-        } else if (truncation.IsUsedAsWord32()) {
+        } else if (truncation.IsUsedAsWord32() &&
+                   !truncation.check_safe_integer()) {
           if (InputIs(node, Type::NumberOrOddball())) {
             VisitUnop<T>(node, UseInfo::TruncatingWord32(),
                          MachineRepresentation::kWord32);
