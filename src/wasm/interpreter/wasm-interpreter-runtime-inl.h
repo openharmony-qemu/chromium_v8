@@ -24,6 +24,7 @@ namespace wasm {
 inline Address WasmInterpreterRuntime::EffectiveAddress(uint64_t index) const {
   DirectHandle<WasmTrustedInstanceData> trusted_data =
       wasm_trusted_instance_data();
+  SBXCHECK_LT(memory_index, module_->memories.size());
   DCHECK_GE(std::numeric_limits<uintptr_t>::max(),
             trusted_data->memory0_size());
   DCHECK_GE(trusted_data->memory0_size(), index);
@@ -36,6 +37,7 @@ inline bool WasmInterpreterRuntime::BoundsCheckMemRange(
     uint64_t index, uint64_t* size, Address* out_address) const {
   DirectHandle<WasmTrustedInstanceData> trusted_data =
       wasm_trusted_instance_data();
+  SBXCHECK_LT(memory_index, module_->memories.size());
   DCHECK_GE(std::numeric_limits<uintptr_t>::max(),
             trusted_data->memory0_size());
   if (!base::ClampToBounds<uint64_t>(index, size,
