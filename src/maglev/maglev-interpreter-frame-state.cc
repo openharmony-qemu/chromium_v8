@@ -1013,12 +1013,13 @@ void MergePointInterpreterFrameState::MergeLoopValue(
     return;
   }
   DCHECK_EQ(result->owner(), owner);
-  NodeType type = unmerged_aspects.GetType(builder->broker(), unmerged);
+  NodeType unmerged_type =
+      unmerged_aspects.GetType(builder->broker(), unmerged);
   unmerged = EnsureTagged(builder, unmerged_aspects, unmerged,
                           predecessors_[predecessors_so_far_]);
   result->set_input(predecessor_count_ - 1, unmerged);
 
-  result->merge_post_loop_type(type);
+  result->merge_post_loop_type(unmerged_type);
   // We've just merged the backedge, which means that future uses of this Phi
   // will be after the loop, so we can now promote `post_loop_type` to the
   // regular `type`.
@@ -1029,10 +1030,15 @@ void MergePointInterpreterFrameState::MergeLoopValue(
     // Propagating the `use_repr` from {result} to {unmerged_phi}.
     unmerged_phi->RecordUseReprHint(result->use_repr_hints());
 
-    // Soundness of the loop phi Smi type relies on the back-edge static types
-    // sminess.
+    // Soundness of the loop phi 31-bit type relies on the back-edge KNA type.
     if (result->uses_require_31_bit_value()) {
       unmerged_phi->SetUseRequires31BitValue();
+    } else if (NodeTypeIs(unmerged_type, NodeType::kSmi)) {
+      // The backedge has Smi type, but this can be known only through KNA
+      // rather than the phi's static type.
+      unmerged_phi->SetUseRequires31BitValue();
+    } else {
+      DCHECK(!NodeTypeIs(unmerged_phi->type(), NodeType::kSmi));
     }
   } else if (CallKnownJSFunction* call =
                  unmerged->TryCast<CallKnownJSFunction>()) {
