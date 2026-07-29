@@ -500,7 +500,8 @@ class V8_EXPORT_PRIVATE InterpreterHandle {
   InterpreterHandle(const InterpreterHandle&) = delete;
   InterpreterHandle& operator=(const InterpreterHandle&) = delete;
 
-  static ModuleWireBytes GetBytes(Tagged<Tuple2> interpreter_object);
+  static ModuleWireBytes GetBytes(Isolate* isolate,
+                                  Tagged<Tuple2> interpreter_object);
 
   inline WasmInterpreterThread::State RunExecutionLoop(
       WasmInterpreterThread* thread, bool called_from_js);

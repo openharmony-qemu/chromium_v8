@@ -277,7 +277,8 @@ V8_EXPORT_PRIVATE InterpreterHandle* GetOrCreateInterpreterHandle(
 // WasmDispatchTable::kInvalidFunctionIndex otherwise.
 class IndirectFunctionTableEntry {
  public:
-  inline IndirectFunctionTableEntry(DirectHandle<WasmInstanceObject>,
+  inline IndirectFunctionTableEntry(Isolate* isolate,
+                                    DirectHandle<WasmTrustedInstanceData>,
                                     int table_index, int entry_index);
 
   inline Tagged<Object> implicit_arg() const {
@@ -449,7 +450,7 @@ void WasmInterpreterRuntime::TableInit(const uint8_t*& current_code,
 
   std::optional<MessageTemplate> msg_template =
       WasmTrustedInstanceData::InitTableEntries(
-          Isolate::Current(), trusted_data, trusted_data, table_index,
+          isolate_, trusted_data, trusted_data, table_index,
           element_segment_index, dst, src, size);
   // See WasmInstanceObject::InitTableEntries.
   if (msg_template == MessageTemplate::kWasmTrapTableOutOfBounds) {
@@ -1923,6 +1924,12 @@ void WasmInterpreterRuntime::ExecuteCallRef(
     const uint8_t*& current_code, WasmRef func_ref, uint32_t sig_index,
     uint32_t stack_pos, uint32_t* sp, uint32_t ref_stack_fp_offset,
     uint32_t slot_offset, uint32_t return_slot_offset, bool is_tail_call) {
+  // {func_ref} is read from the in-cage reference stack and can be replaced by
+  // an attacker with any non-null in-cage object. The cast below is unchecked
+  // in release builds, so verify the type before dereferencing its (trusted-
+  // pointer) internal function. Null is already trapped by the s2s_CallRef /
+  // s2s_ReturnCallRef handlers before we get here.
+  SBXCHECK(Is<WasmFuncRef>(*func_ref));
   DirectHandle<WasmFuncRef> wasm_func_ref = Cast<WasmFuncRef>(func_ref);
   Tagged<WasmInternalFunction> internal = wasm_func_ref->internal(isolate_);
   DirectHandle<Object> object_implicit_arg{internal->implicit_arg(), isolate_};
@@ -2852,7 +2859,7 @@ InterpreterHandle::InterpreterHandle(Isolate* isolate,
     : isolate_(isolate),
       module_(WasmInterpreterObject::get_wasm_instance(*interpreter_object)
                   ->module()),
-      interpreter_(isolate, module_, GetBytes(*interpreter_object),
+      interpreter_(isolate, module_, GetBytes(isolate, *interpreter_object),
                    direct_handle(WasmInterpreterObject::get_wasm_instance(
                                      *interpreter_object),
                                  isolate)) {}
@@ -2904,10 +2911,10 @@ V8_EXPORT_PRIVATE bool InterpreterHandle::Execute(
     WasmInterpreterThread* thread, Address frame_pointer, uint32_t func_index,
     const std::vector<WasmValue>& argument_values,
     std::vector<WasmValue>& return_values) {
-  DCHECK_GT(module()->functions.size(), func_index);
+  SBXCHECK_GT(module()->functions.size(), func_index);
   const FunctionSig* sig = module()->functions[func_index].sig;
-  DCHECK_EQ(sig->parameter_count(), argument_values.size());
-  DCHECK_EQ(sig->return_count(), return_values.size());
+  SBXCHECK_EQ(sig->parameter_count(), argument_values.size());
+  SBXCHECK_EQ(sig->return_count(), return_values.size());
 
   thread->StartExecutionTimer();
   interpreter_.BeginExecution(thread, func_index, frame_pointer,
@@ -2942,7 +2949,7 @@ V8_EXPORT_PRIVATE bool InterpreterHandle::Execute(
 bool InterpreterHandle::Execute(WasmInterpreterThread* thread,
                                 Address frame_pointer, uint32_t func_index,
                                 uint8_t* interpreter_fp) {
-  DCHECK_GT(module()->functions.size(), func_index);
+  SBXCHECK_GT(module()->functions.size(), func_index);
 
   interpreter_.BeginExecution(thread, func_index, frame_pointer,
                               interpreter_fp);
