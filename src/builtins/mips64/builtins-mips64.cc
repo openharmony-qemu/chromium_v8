@@ -301,7 +301,7 @@ static void GetSharedFunctionInfoBytecodeOrBaseline(
   Register data = bytecode;
   __ Ld(data,
         FieldMemOperand(sfi, SharedFunctionInfo::kTrustedFunctionDataOffset));
-
+  __ JumpIfSmi(data, is_unavailable);
 
   __ GetObjectType(data, scratch1, scratch1);
 
@@ -1265,7 +1265,7 @@ void Builtins::Generate_InterpreterEntryTrampoline(
 #endif  // !V8_JITLESS
 
   __ bind(&compile_lazy);
-  __ GenerateTailCallToReturnedCode(Runtime::kCompileLazy);
+  __ TailCallBuiltin(Builtin::kCompileLazy);
   // Unreachable code.
   __ break_(0xCC);
 
