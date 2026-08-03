@@ -78,6 +78,9 @@
 #include "src/init/bootstrapper.h"
 #include "src/init/setup-isolate.h"
 #include "src/init/v8.h"
+#ifdef V8_ENABLE_LONGQUE_API
+#include "../../../arkweb/chromium_ext/v8/builtins-longque.h"
+#endif  // V8_ENABLE_LONGQUE_API
 #include "src/interpreter/bytecode-array-iterator.h"
 #include "src/interpreter/bytecodes.h"
 #include "src/interpreter/interpreter.h"
@@ -4683,6 +4686,9 @@ void Isolate::Deinit() {
   ast_string_constants_ = nullptr;
 
   heap_.TearDown();
+#ifdef V8_ENABLE_LONGQUE_API
+  DelegateKeyCache::Release(this);
+#endif  // V8_ENABLE_LONGQUE_API
   isolate_group()->RemoveIsolate(this);
 
   delete inner_pointer_to_code_cache_;
