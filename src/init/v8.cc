@@ -55,6 +55,10 @@
 #include "src/base/platform/jitfort.h"
 #endif
 
+#ifdef V8_ENABLE_LONGQUE_API
+#include "../../../arkweb/chromium_ext/v8/builtins-longque.h"
+#endif  // V8_ENABLE_LONGQUE_API
+
 namespace v8 {
 namespace internal {
 
@@ -309,6 +313,9 @@ void V8::Dispose() {
   ElementsAccessor::TearDown();
   RegisteredExtension::UnregisterAll();
   FlagList::ReleaseDynamicAllocations();
+#ifdef V8_ENABLE_LONGQUE_API
+  DelegateKeyCache::Release();
+#endif  // V8_ENABLE_LONGQUE_API
   IsolateGroup::TearDownOncePerProcess();
   AdvanceStartupState(V8StartupState::kV8Disposed);
 }
