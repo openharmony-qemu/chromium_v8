@@ -694,6 +694,9 @@ bool ScopeIterator::SetVariableValue(Handle<String> name,
                                      DirectHandle<Object> value) {
   DCHECK(!Done());
   name = isolate_->factory()->InternalizeString(name);
+  // Synthetic variables are compiler-introduced and not exposed to the user, so
+  // they may carry values outside the JSAny type and must not be overwritten.
+  if (ScopeInfo::VariableIsSynthetic(*name)) return false;
   switch (Type()) {
     case ScopeTypeGlobal:
     case ScopeTypeWith:
