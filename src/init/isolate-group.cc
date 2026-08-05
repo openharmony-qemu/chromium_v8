@@ -131,8 +131,6 @@ IsolateGroup::~IsolateGroup() {
     memory_pool_->TearDown();
   }
 
-  js_dispatch_table_.TearDown();
-
 #ifdef V8_ENABLE_SANDBOX
   code_pointer_table_.TearDown();
   trusted_range_.Free();
@@ -206,7 +204,6 @@ void IsolateGroup::Initialize(bool process_wide, Sandbox* sandbox) {
     memory_pool_ = std::make_unique<MemoryPool>();
   }
 
-  js_dispatch_table()->Initialize();
 }
 #elif defined(V8_COMPRESS_POINTERS)
 void IsolateGroup::Initialize(bool process_wide) {
@@ -240,7 +237,6 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   memory_pool_ = std::make_unique<MemoryPool>();
-  js_dispatch_table()->Initialize();
 }
 #else   // !V8_COMPRESS_POINTERS
 void IsolateGroup::Initialize(bool process_wide) {
@@ -249,7 +245,6 @@ void IsolateGroup::Initialize(bool process_wide) {
   optimizing_compile_task_executor_ =
       std::make_unique<OptimizingCompileTaskExecutor>();
   memory_pool_ = std::make_unique<MemoryPool>();
-  js_dispatch_table()->Initialize();
 }
 #endif  // V8_ENABLE_SANDBOX
 
