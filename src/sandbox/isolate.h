@@ -39,6 +39,8 @@ class V8_EXPORT_PRIVATE IsolateForSandbox final {
   inline TrustedPointerTable::Space* GetTrustedPointerTableSpaceFor(
       IndirectPointerTag tag);
 
+  inline JSDispatchTable& GetJSDispatchTable();
+
   // Object is needed as a witness that this handle does not come from the
   // shared space.
   inline ExternalPointerTag GetExternalPointerTableTagFor(

@@ -13,7 +13,9 @@
 #include "src/heap/remembered-set.h"
 #include "src/objects/code-inl.h"
 #include "src/objects/slots-inl.h"
+#include "src/sandbox/isolate.h"
 #include "src/sandbox/js-dispatch-table-inl.h"
+#include "src/sandbox/js-dispatch-table.h"
 
 namespace v8::internal {
 
@@ -181,9 +183,15 @@ void WriteBarrier::MarkingSlow(Tagged<HeapObject> host,
   if (marking_barrier->is_minor()) return;
 
   // Mark both the table entry and its content.
-  JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
-  jdt->Mark(handle);
-  marking_barrier->MarkValue(host, jdt->GetCode(handle));
+  Isolate* isolate = Isolate::Current();
+  JSDispatchTable& jdt = isolate->js_dispatch_table();
+#ifdef DEBUG
+  Heap* heap = isolate->heap();
+  jdt.VerifyEntry(handle, heap->js_dispatch_table_space(),
+                  heap->read_only_js_dispatch_table_space());
+#endif  // DEBUG
+  jdt.Mark(handle);
+  marking_barrier->MarkValue(host, jdt.GetCode(handle));
 
   // We don't need to record a slot here because the entries in the
   // JSDispatchTable are not compacted and because the pointers stored in the
@@ -566,21 +574,23 @@ void WriteBarrier::ForRange(Heap* heap, Tagged<HeapObject> object,
 void WriteBarrier::VerifyDispatchHandleWriteBarrier(Tagged<HeapObject> host,
                                                     JSDispatchHandle handle,
                                                     WriteBarrierMode mode) {
-  JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+  JSDispatchTable& jdt = Isolate::Current()->js_dispatch_table();
+  Tagged<Code> value = jdt.GetCode(handle);
+
   if (mode == SKIP_WRITE_BARRIER) {
     // Builtins do not need write barriers, neither do their JSDispatch handles
     // as the handles don't move and are immortal. This additional check is
     // needed since in some configurations and cctests the builtins Code objects
     // are not in R/O space.
-    if (jdt->GetCode(handle)->is_builtin()) {
+    if (value->is_builtin()) {
       return;
     }
 
     // First check the barrier for the value
-    VerifySkipWriteBarrier(host, jdt->GetCode(handle), mode);
+    VerifySkipWriteBarrier(host, value, mode);
 
     // Now check the barrier for the handle itself
-    if (jdt->InReadOnlySegment(handle)) {
+    if (jdt.InReadOnlySegment(handle)) {
       return;
     }
     if (IsMostRecentYoungAllocation(host->address())) {
