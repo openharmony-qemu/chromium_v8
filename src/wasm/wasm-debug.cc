@@ -722,24 +722,23 @@ class DebugInfoImpl {
   // code. The frame layout itself should be independent of breakpoints.
   void UpdateReturnAddresses(Isolate* isolate, WasmCode* new_code,
                              StackFrameId stepping_frame) {
-    // The first return location is after the breakpoint, others are after wasm
-    // calls.
-    ReturnLocation return_location = kAfterBreakpoint;
-    for (DebuggableStackFrameIterator it(isolate); !it.done();
-         it.Advance(), return_location = kAfterWasmCall) {
-      // We still need the flooded function for stepping.
-      if (it.frame()->id() == stepping_frame) continue;
-#if !V8_ENABLE_DRUMBRAKE
-      if (!it.is_wasm()) continue;
-#else   // !V8_ENABLE_DRUMBRAKE
-      // TODO(paolosev@microsoft.com) - Implement for Wasm interpreter.
-      if (!it.is_wasm() || it.is_wasm_interpreter_entry()) continue;
-#endif  // !V8_ENABLE_DRUMBRAKE
+    StackFrameIterator it(isolate);
+    for (; !it.done(); it.Advance()) {
+      bool at_breakpoint = it.frame()->is_wasm_debug_break();
+      if (at_breakpoint) {
+        it.Advance();
+        CHECK(!it.done());
+      }
+      if (!it.frame()->is_wasm()) continue;
+#if V8_ENABLE_DRUMBRAKE
+      if (it.frame()->is_wasm_interpreter_entry()) continue;
+#endif
+
       WasmFrame* frame = WasmFrame::cast(it.frame());
       if (frame->native_module() != new_code->native_module()) continue;
       if (frame->function_index() != new_code->index()) continue;
       if (!frame->wasm_code()->is_liftoff()) continue;
-      UpdateReturnAddress(frame, new_code, return_location);
+      UpdateReturnAddress(frame, new_code, at_breakpoint ? kAfterBreakpoint : kAfterWasmCall);
     }
   }
 
