@@ -6093,6 +6093,11 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildElementAccessOnTypedArray(
     return {};
   }
   if (!broker()->dependencies()->DependOnArrayBufferDetachingProtector()) {
+    // TODO(450237486, olivf): Support immutable AB checks.
+    if (keyed_mode.access_mode() == compiler::AccessMode::kStore &&
+        v8_flags.js_immutable_arraybuffer) {
+      return {};
+    }
     // TODO(leszeks): Eliminate this check.
     RETURN_IF_ABORT(AddNewNode<CheckTypedArrayNotDetached>({object}));
   }
@@ -9843,7 +9848,8 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildLoadDataView(
     const CallArguments& args, ExternalArrayType type) {
   if (!CanSpeculateCall()) return {};
   if (!broker()->dependencies()->DependOnArrayBufferDetachingProtector()) {
-    // TODO(victorgomes): Add checks whether the array has been detached.
+    // TODO(victorgomes): Add checks whether the array has been detached or is
+    // immutable.
     return {};
   }
   ValueNode* receiver = GetValueOrUndefined(args.receiver());
