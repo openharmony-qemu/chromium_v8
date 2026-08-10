@@ -297,6 +297,22 @@ function testDelegateAsInitObject() {
   }, TypeError);
 }
 
+function testDelegateWithWorker() {
+  if (typeof Worker !== 'function') {
+    return;
+  }
+
+  // Initialize the delegate key in the main isolate before using another
+  // isolate. Each isolate must use its own delegate key symbol.
+  __Longque__.createDelegate({ x: 1 });
+  var worker = new Worker(function() {
+    var delegate = __Longque__.createDelegate({ x: 2 });
+    postMessage(String(delegate.x));
+  }, { type: 'function' });
+  assertEquals('2', worker.getMessage());
+  worker.terminate();
+}
+
 function testVersionConstancy() {
   assertTrue(typeof __Longque__.version === 'number');
   const version = __Longque__.version;
@@ -339,6 +355,7 @@ function createDelegateTest() {
   testPropertyFilterFlagValue();
   testDelegateChain();
   testDelegateAsInitObject();
+  testDelegateWithWorker();
 }
 
 createDelegateTest();
