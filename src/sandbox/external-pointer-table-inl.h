@@ -237,8 +237,9 @@ ExternalPointerHandle ExternalPointerTable::DuplicateEntry(
   // We do not call `TakeOwnershipOfManagedResourceIfNecessary` here as that
   // method only has to be called for pointers owned by a `Managed` object, and
   // for `Managed` objects it should never be necessary to duplicate the entry.
-  CHECK(!IsManagedExternalPointerType(at(old_index).GetExternalPointerTag()));
-
+  ExternalPointerTag tag = at(old_index).GetExternalPointerTag();
+  CHECK(!IsManagedExternalPointerType(tag));
+  CHECK_WITH_MSG(tag >= kFirstEmbedderDataTag && tag <= kLastEmbedderDataTag, "Illegal tag, see 515252150");
   at(new_index).CopyFrom(at(old_index));
   return IndexToHandle(new_index);
 }
