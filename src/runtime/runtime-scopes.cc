@@ -552,9 +552,9 @@ DirectHandle<JSObject> NewSloppyArguments(Isolate* isolate,
                                           DirectHandle<JSFunction> callee,
                                           T parameters, int argument_count) {
   CHECK(!IsDerivedConstructor(callee->shared()->kind()));
-  DCHECK(callee->shared()->has_simple_parameters());
+  CHECK(callee->shared()->has_simple_parameters());
   DirectHandle<JSObject> result =
-      isolate->factory()->NewArgumentsObject(callee, argument_count);
+      isolate->factory()->NewSloppyArgumentsObject(callee, argument_count);
 
   // Allocate the elements if needed.
   int parameter_count =
@@ -573,8 +573,10 @@ DirectHandle<JSObject> NewSloppyArguments(Isolate* isolate,
           isolate->factory()->NewSloppyArgumentsElements(
               mapped_count, context, arguments, AllocationType::kYoung);
 
-      result->set_map(isolate,
-                      isolate->native_context()->fast_aliased_arguments_map());
+      Tagged<Map> aliased_map =
+          isolate->native_context()->fast_aliased_arguments_map();
+      CHECK_EQ(aliased_map->instance_size(), result->map()->instance_size());
+      result->set_map(isolate, aliased_map);
       result->set_elements(*parameter_map);
 
       // Loop over the actual parameters backwards.
