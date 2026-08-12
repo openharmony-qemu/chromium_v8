@@ -1576,7 +1576,12 @@ ProcessResult MaglevGraphOptimizer::VisitCheckedNumberToUint8Clamped(
 
 ProcessResult MaglevGraphOptimizer::VisitInt32ToNumber(
     Int32ToNumber* node, const ProcessingState& state) {
-  REPLACE_AND_RETURN_IF_DONE(TrySmiTag<UnsafeSmiTagInt32>(node->ValueInput()));
+  if (node->conversion_mode() != Int32ToNumber::ConversionMode::kForceHeapNumber) {
+    REPLACE_AND_RETURN_IF_DONE(
+        TrySmiTag<UnsafeSmiTagInt32>(node->ValueInput()));
+  } else {
+    // TODO(b/424157317): Optimize.
+  }
   return ProcessResult::kContinue;
 }
 

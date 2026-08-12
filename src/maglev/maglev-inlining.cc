@@ -424,7 +424,8 @@ ProcessResult ReturnedValueRepresentationSelector::Process(
   ValueNode* input = node->input(0).node()->UnwrapIdentities();
   switch (input->value_representation()) {
     case ValueRepresentation::kInt32:
-      node->OverwriteWith<Int32ToNumber>();
+      node->OverwriteWith<Int32ToNumber>()->SetMode(
+          Int32ToNumber::ConversionMode::kCanonicalizeSmi);
       break;
     case ValueRepresentation::kUint32:
       node->OverwriteWith<Uint32ToNumber>();
