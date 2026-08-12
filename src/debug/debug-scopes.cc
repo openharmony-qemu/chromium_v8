@@ -1115,6 +1115,7 @@ bool ScopeIterator::SetLocalVariableValue(DirectHandle<String> variable_name,
             DCHECK(!generator_.is_null());
             DirectHandle<FixedArray> parameters_and_registers(
                 generator_->parameters_and_registers(), isolate_);
+            CHECK_GE(index, 0);
             DCHECK_LT(index, parameters_and_registers->length());
             parameters_and_registers->set(index, *new_value);
           } else {
@@ -1135,6 +1136,7 @@ bool ScopeIterator::SetLocalVariableValue(DirectHandle<String> variable_name,
             index += parameter_count;
             DirectHandle<FixedArray> parameters_and_registers(
                 generator_->parameters_and_registers(), isolate_);
+            CHECK_GE(index, 0);
             DCHECK_LT(index, parameters_and_registers->length());
             parameters_and_registers->set(index, *new_value);
           } else {
