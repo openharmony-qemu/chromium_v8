@@ -5665,8 +5665,14 @@ Location Function::GetScriptLocation() const {
   if (i::IsScript(shared->script())) {
     i::DirectHandle<i::Script> script(i::Cast<i::Script>(shared->script()),
                                       i::Isolate::Current());
+#ifdef USING_OHOS_WEB
+    int start_pos = shared->StartPosition();
+    return {i::Script::GetLineNumber(script, start_pos),
+            i::Script::GetColumnNumber(script, start_pos)};
+#else
     return {i::Script::GetLineNumber(script, shared->StartPosition()),
             i::Script::GetColumnNumber(script, shared->StartPosition())};
+#endif
   }
   return {-1, -1};
 }
