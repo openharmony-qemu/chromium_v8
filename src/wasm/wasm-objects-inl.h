@@ -278,9 +278,9 @@ size_t WasmTrustedInstanceData::memory_size(int memory_index) const {
 }
 
 Tagged<WasmDispatchTable> WasmTrustedInstanceData::dispatch_table(
-    uint32_t table_index) {
-  Tagged<Object> table = dispatch_tables()->get(table_index);
-  return TrustedCast<WasmDispatchTable>(table);
+    uint32_t i) const {
+  if (i == 0) return dispatch_table0();
+  return TrustedCast<WasmDispatchTable>(dispatch_tables()->get(i));
 }
 
 bool WasmTrustedInstanceData::has_dispatch_table(uint32_t table_index) {
@@ -332,9 +332,11 @@ PROTECTED_POINTER_ACCESSORS(WasmDispatchTableForImports, protected_offheap_data,
                             kProtectedOffheapDataOffset)
 
 WasmDispatchTableData* WasmDispatchTable::offheap_data() const {
+  if (!has_protected_offheap_data()) return nullptr;
   return protected_offheap_data()->get().get();
 }
 WasmDispatchTableData* WasmDispatchTableForImports::offheap_data() const {
+  if (!has_protected_offheap_data()) return nullptr;
   return protected_offheap_data()->get().get();
 }
 
