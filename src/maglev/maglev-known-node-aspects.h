@@ -34,6 +34,7 @@ class NodeInfo {
     if (other.val.possible_maps_are_known_ && !other.val.any_map_is_unstable_) {
       possible_maps_ = other.val.possible_maps_;
       possible_maps_are_known_ = true;
+      maps_are_stale_ = other.val.maps_are_stale_;
     }
   }
 
@@ -165,6 +166,7 @@ class NodeInfo {
       } else {
         possible_maps_.clear();
         possible_maps_are_known_ = false;
+        maps_are_stale_ = true;
       }
     }
 
@@ -180,6 +182,7 @@ class NodeInfo {
     if (!any_map_is_unstable_) return;
     possible_maps_.clear();
     possible_maps_are_known_ = false;
+    maps_are_stale_ = true;
     type_ = MakeTypeStable(type_);
     any_map_is_unstable_ = false;
   }
@@ -197,6 +200,8 @@ class NodeInfo {
 
   bool possible_maps_are_known() const { return possible_maps_are_known_; }
 
+  bool maps_are_stale() const { return maps_are_stale_; }
+
   const PossibleMaps& possible_maps() const {
     // If !possible_maps_are_known_ then every map is possible and using the
     // (probably empty) possible_maps_ set is definitely wrong.
@@ -209,6 +214,7 @@ class NodeInfo {
                        compiler::JSHeapBroker* broker) {
     possible_maps_ = possible_maps;
     possible_maps_are_known_ = true;
+    maps_are_stale_ = false;
     any_map_is_unstable_ = any_map_is_unstable;
 #ifdef DEBUG
     if (possible_maps.size()) {
@@ -243,6 +249,7 @@ class NodeInfo {
   // they are cleared on side-effects.
   // TODO(v8:7700): Investigate a better data structure to use than ZoneMap.
   bool possible_maps_are_known_ = false;
+  bool maps_are_stale_ = false;
   PossibleMaps possible_maps_;
 
   AlternativeNodes alternative_;
