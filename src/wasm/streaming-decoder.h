@@ -14,6 +14,7 @@
 #include "include/v8-wasm.h"  // For WasmStreaming::ModuleCachingInterface.
 #include "src/base/macros.h"
 #include "src/base/vector.h"
+#include "src/sandbox/check.h"
 #include "src/wasm/compilation-environment.h"
 #include "src/wasm/wasm-constants.h"
 #include "src/wasm/wasm-engine.h"
@@ -117,7 +118,16 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
   std::shared_ptr<const std::string> shared_url() const { return url_; }
 
   void SetUrl(base::Vector<const char> url) {
+    // We shouldn't modify {url_} while it is being read. The API contract
+    // hence states that {SetUrl()} must be called early.
+    // Enforcing this with a CHECK is possibly racy when an attacker with an
+    // in-sandbox corruption primitive performs a swapping attack. If that
+    // becomes a problem, we can add a lock. As an attack mitigation, a CHECK
+    // that fails most of the time is probably good enough.
+    SBXCHECK_EQ(stream_state_, kReceivingBytes);
     url_->assign(url.begin(), url.size());
+    // Safely crash if a race did happen:
+    SBXCHECK_EQ(stream_state_, kReceivingBytes);
   }
 
   static std::unique_ptr<StreamingDecoder> CreateAsyncStreamingDecoder(
@@ -129,6 +139,13 @@ class V8_EXPORT_PRIVATE StreamingDecoder {
       std::shared_ptr<CompilationResultResolver> resolver);
 
  protected:
+  // Track the state of streaming decoding, as per the public API.
+  // This is used in `CHECK`s to ensure that the API methods are called in the
+  // correct order. In particular, `Finish` should not be called after `Abort`
+  // or `Finish`.
+  enum StreamState { kReceivingBytes, kAborted, kFinished, kDiscarded };
+  StreamState stream_state_{kReceivingBytes};
+
   const std::shared_ptr<std::string> url_ = std::make_shared<std::string>();
   MoreFunctionsCanBeSerializedCallback
       more_functions_can_be_serialized_callback_;
