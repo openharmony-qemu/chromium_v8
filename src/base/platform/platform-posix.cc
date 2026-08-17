@@ -464,7 +464,7 @@ void* OS::GetRandomMmapAddr() {
   // fulfilling our placement request.
   raw_addr &= uint64_t{0x3FFFFFFFF000};
 #elif V8_TARGET_ARCH_ARM64
-#if defined(V8_TARGET_OS_LINUX) || defined(V8_TARGET_OS_ANDROID)
+#if defined(V8_TARGET_OS_LINUX) || defined(V8_TARGET_OS_ANDROID) || defined(V8_TARGET_OS_OHOS)
   // On Linux, the default virtual address space is limited to 39 bits when
   // using 4KB pages, see arch/arm64/Kconfig. We truncate to 38 bits.
   raw_addr &= uint64_t{0x3FFFFFF000};
