@@ -547,6 +547,15 @@ bool is_inbounds(float_t v) {
 #define IF_TARGET_ARCH_64_BIT(V, ...)
 #endif  // V8_TARGET_ARCH_64_BIT
 
+// Defines IF_TARGET_ARCH_X64, to be used in macro lists for elements that
+// should only be there if the target architecture is x64.
+#if V8_TARGET_ARCH_X64
+// EXPAND is needed to work around MSVC's broken __VA_ARGS__ expansion.
+#define IF_TARGET_ARCH_X64(V, ...) EXPAND(V(__VA_ARGS__))
+#else
+#define IF_TARGET_ARCH_X64(V, ...)
+#endif  // V8_TARGET_ARCH_X64
+
 // Defines IF_V8_WASM_RANDOM_FUZZERS and IF_NO_V8_WASM_RANDOM_FUZZERS, to be
 // used in macro lists for elements that should only be there/absent when
 // building the Wasm fuzzers.
