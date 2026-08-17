@@ -21,7 +21,9 @@ void AstFunctionLiteralIdReindexer::Reindex(Expression* pattern,
   visited_.clear();
 #endif
   Visit(pattern);
-  CheckVisited(pattern);
+  if (!CheckStackOverflow()) {
+    CheckVisited(pattern);
+  }
 }
 
 void AstFunctionLiteralIdReindexer::VisitFunctionLiteral(FunctionLiteral* lit) {
@@ -116,6 +118,7 @@ class AstFunctionLiteralIdReindexChecker final
 }  // namespace
 
 void AstFunctionLiteralIdReindexer::CheckVisited(Expression* expr) {
+  DCHECK(!HasStackOverflow());
   AstFunctionLiteralIdReindexChecker(stack_limit(), &visited_).Visit(expr);
 }
 #endif
