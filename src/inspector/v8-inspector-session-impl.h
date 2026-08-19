@@ -76,6 +76,21 @@ class V8InspectorSessionImpl : public V8InspectorSession,
                         v8::Local<v8::Context>*, String16* objectGroup);
   void releaseObjectGroup(const String16& objectGroup);
 
+  // Turns the weakThis reference into a strong one so nested run loops or
+  // synchronous session detachment (e.g., during JS re-entrancy) cannot fully
+  // deconstruct the V8 session until any active call (such as
+  // dispatchProtocolMessage or forEachSession) fully unwinds from the stack.
+  class KeepSessionAliveScope {
+    CPPGC_STACK_ALLOCATED();
+
+   public:
+    explicit KeepSessionAliveScope(const V8InspectorSessionImpl& session)
+        : m_this(session.m_weakThis.lock()) {}
+
+   private:
+    std::shared_ptr<V8InspectorSessionImpl> m_this;
+  };
+
   // V8InspectorSession implementation.
   void dispatchProtocolMessage(StringView message) override;
   std::vector<uint8_t> state() override;
@@ -155,18 +170,7 @@ class V8InspectorSessionImpl : public V8InspectorSession,
   bool use_binary_protocol_ = false;
   V8Inspector::ClientTrustLevel m_clientTrustLevel = V8Inspector::kUntrusted;
 
-  // On each call to "dispatchProtocolMessage", the session turns the weakThis
-  // reference into a strong one, so nested run loops are not able to fully
-  // deconstruct the V8 session until we return from the
-  // "dispatchProtocolMessage" call (i.e. no freed "this" remains on the stack).
-  class KeepSessionAliveScope {
-   public:
-    explicit KeepSessionAliveScope(const V8InspectorSessionImpl& session)
-        : m_this(session.m_weakThis.lock()) {}
 
-   private:
-    std::shared_ptr<V8InspectorSessionImpl> m_this;
-  };
   std::weak_ptr<V8InspectorSessionImpl> m_weakThis;
 };
 
