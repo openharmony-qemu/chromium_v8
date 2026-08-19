@@ -182,7 +182,6 @@ void WriteBarrier::MarkingSlow(Tagged<HeapObject> host,
 
   // Mark both the table entry and its content.
   JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
-  static_assert(JSDispatchTable::kWriteBarrierSetsEntryMarkBit);
   jdt->Mark(handle);
   marking_barrier->MarkValue(host, jdt->GetCode(handle));
 
@@ -564,33 +563,33 @@ void WriteBarrier::ForRange(Heap* heap, Tagged<HeapObject> object,
 #if V8_VERIFY_WRITE_BARRIERS
 
 // static
-bool WriteBarrier::VerifyDispatchHandleMarkingState(Tagged<HeapObject> host,
+void WriteBarrier::VerifyDispatchHandleWriteBarrier(Tagged<HeapObject> host,
                                                     JSDispatchHandle handle,
                                                     WriteBarrierMode mode) {
   JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
-  if (mode == SKIP_WRITE_BARRIER &&
-      WriteBarrier::IsRequired(host, jdt->GetCode(handle))) {
-    return false;
-  }
+  if (mode == SKIP_WRITE_BARRIER) {
+    // Builtins do not need write barriers, neither do their JSDispatch handles
+    // as the handles don't move and are immortal. This additional check is
+    // needed since in some configurations and cctests the builtins Code objects
+    // are not in R/O space.
+    if (jdt->GetCode(handle)->is_builtin()) {
+      return;
+    }
 
-  if (CurrentMarkingBarrier(host)->is_not_major()) return true;
+    // First check the barrier for the value
+    VerifySkipWriteBarrier(host, jdt->GetCode(handle), mode);
 
-  // Ensure we don't have a black -> white -> black edge. This could happen when
-  // skipping a write barrier while concurrently the dispatch entry is marked
-  // from another JSFunction.
-  if (ReadOnlyHeap::Contains(host) ||
-      (IsMarking(host) && mode != SKIP_WRITE_BARRIER) ||
-      !CurrentMarkingBarrier(host)->IsMarked(host)) {
-    return true;
+    // Now check the barrier for the handle itself
+    if (jdt->InReadOnlySegment(handle)) {
+      return;
+    }
+    if (IsMostRecentYoungAllocation(host->address())) {
+      return;
+    }
+    UNREACHABLE();
+  } else {
+    DCHECK_EQ(mode, UPDATE_WRITE_BARRIER);
   }
-  if (jdt->IsMarked(handle)) {
-    return true;
-  }
-  Tagged<Code> value = jdt->GetCode(handle);
-  if (ReadOnlyHeap::Contains(value)) {
-    return true;
-  }
-  return !CurrentMarkingBarrier(host)->IsMarked(value);
 }
 
 #endif  // V8_VERIFY_WRITE_BARRIERS
