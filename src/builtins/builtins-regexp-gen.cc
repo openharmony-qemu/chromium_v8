@@ -1529,7 +1529,7 @@ TNode<Number> RegExpBuiltinsAssembler::AdvanceStringIndex(
     // on all call-sites and can never exceed the length of the string.
     static_assert(String::kMaxLength + 2 < Smi::kMaxValue);
     // TODO(532595489): Hard CHECK for now as a quick fix.
-    CSA_DCHECK(this, TaggedIsPositiveSmi(index_plus_one));
+    CSA_CHECK(this, TaggedIsPositiveSmi(index_plus_one));
   }
 
   Label if_isunicode(this), out(this);
