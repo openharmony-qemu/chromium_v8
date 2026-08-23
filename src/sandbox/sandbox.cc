@@ -202,6 +202,8 @@ bool Sandbox::Initialize(v8::VirtualAddressSpace* vas, size_t size,
 #if defined(V8_TARGET_OS_ANDROID)
   // On Android, we often won't have sufficient virtual address space available.
   const size_t kAdditionalTrailingGuardRegionSize = 0;
+#elif defined(V8_TARGET_OS_OHOS)
+  const size_t kAdditionalTrailingGuardRegionSize = 0;
 #else
   // Worst-case, we currently need 8 (max element size) * 32GB (max ArrayBuffer
   // size) + 32GB (additional bounded size offset for TypedArray access).
