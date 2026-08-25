@@ -31,6 +31,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "include/v8-function.h"
