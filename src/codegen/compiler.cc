@@ -2074,16 +2074,11 @@ class ConstantPoolPointerForwarder {
     if (!v8_flags.reuse_scope_infos) return;
     Tagged<ScopeInfo> scope_info;
     if (Is<SharedFunctionInfo>(info)) {
-      Tagged<SharedFunctionInfo> old_sfi = Cast<SharedFunctionInfo>(info);
-      // Also record context-having own scope infos for SFIs.
-      if (!old_sfi->scope_info()->IsEmpty() &&
-          old_sfi->scope_info()->HasContext()) {
-        scope_info = old_sfi->scope_info();
-      } else if (old_sfi->HasOuterScopeInfo()) {
-        scope_info = old_sfi->GetOuterScopeInfo();
-      } else {
-        return;
-      }
+      // We can get an empty scope info here for a function that is racily
+      // getting compiled, which is ok because we will revisit it during
+      // foreground merging.
+      scope_info = Cast<SharedFunctionInfo>(info)->TryGetScopeInfoForMerge();
+      if (scope_info->IsEmpty()) return;
     } else {
       scope_info = Cast<ScopeInfo>(info);
     }
@@ -2467,9 +2462,11 @@ void BackgroundMergeTask::BeginMergeInBackground(
           Tagged<ScopeInfo> info = old_sfi->scope_info();
           if (!info->IsEmpty()) {
             new_sfi->SetScopeInfo(info);
-          } else if (old_sfi->HasOuterScopeInfo()) {
-            new_sfi->scope_info()->set_outer_scope_info(
-                old_sfi->GetOuterScopeInfo());
+          } else {
+            Tagged<ScopeInfo> outer_info = old_sfi->TryGetOuterScopeInfo();
+            if (!outer_info->IsEmpty()) {
+              new_sfi->scope_info()->set_outer_scope_info(outer_info);
+            }
           }
           forwarder.AddBytecodeArray(new_sfi->GetBytecodeArray(isolate));
         }
