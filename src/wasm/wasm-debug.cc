@@ -738,6 +738,7 @@ class DebugInfoImpl {
       if (frame->native_module() != new_code->native_module()) continue;
       if (frame->function_index() != new_code->index()) continue;
       if (!frame->wasm_code()->is_liftoff()) continue;
+      if (frame->id() == stepping_frame) continue;
       UpdateReturnAddress(frame, new_code, at_breakpoint ? kAfterBreakpoint : kAfterWasmCall);
     }
   }
