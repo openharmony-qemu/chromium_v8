@@ -14,10 +14,9 @@
 
 namespace v8::internal {
 
+// LINT.IfChange(MemoryChunkMetadataFromMemoryChunk)
 template <bool check_isolate>
 MemoryChunkMetadata* MemoryChunk::MetadataImpl(const Isolate* isolate) {
-  // If this changes, we also need to update
-  // CodeStubAssembler::MemoryChunkMetadataFromMemoryChunk
 #ifdef V8_ENABLE_SANDBOX
   DCHECK_LT(metadata_index_,
             MemoryChunkConstants::kMetadataPointerTableSizeMask);
@@ -40,6 +39,7 @@ MemoryChunkMetadata* MemoryChunk::MetadataImpl(const Isolate* isolate) {
   return metadata_;
 #endif
 }
+// LINT.ThenChange(/src/codegen/code-stub-assembler.cc:MemoryChunkMetadataFromMemoryChunk)
 
 template <bool check_isolate>
 const MemoryChunkMetadata* MemoryChunk::MetadataImpl(

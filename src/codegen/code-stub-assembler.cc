@@ -14571,6 +14571,7 @@ TNode<IntPtrT> CodeStubAssembler::MemoryChunkFromAddress(
                  IntPtrConstant(~MemoryChunk::GetAlignmentMaskForAssembler()));
 }
 
+// LINT.IfChange(MemoryChunkMetadataFromMemoryChunk)
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkMetadataFromMemoryChunk(
     TNode<IntPtrT> address) {
 #ifdef V8_ENABLE_SANDBOX
@@ -14589,17 +14590,35 @@ TNode<IntPtrT> CodeStubAssembler::MemoryChunkMetadataFromMemoryChunk(
                         MemoryChunkConstants::kMetadataPointerTableSizeMask));
   TNode<IntPtrT> offset = ChangeInt32ToIntPtr(Word32Shl(
       index, UniqueUint32Constant(kMemoryChunkMetadataTableEntrySizeLog2)));
+  static_assert(
+      offsetof(IsolateGroup::MemoryChunkMetadataTableEntry, metadata_) == 0);
   TNode<IntPtrT> metadata = Load<IntPtrT>(table, offset);
   // Check that the Metadata belongs to this Chunk, since an attacker with write
   // inside the sandbox could've swapped the index.
   TNode<IntPtrT> metadata_chunk = MemoryChunkFromAddress(Load<IntPtrT>(
       metadata, IntPtrConstant(MemoryChunkMetadata::AreaStartOffset())));
   CSA_CHECK(this, WordEqual(metadata_chunk, address));
+  // Check that the page is accessible from the current isolate.
+  TNode<RawPtrT> isolate = Load<RawPtrT>(
+      table,
+      IntPtrAdd(offset, IntPtrConstant(offsetof(
+                            IsolateGroup::MemoryChunkMetadataTableEntry,
+                            isolate_))));
+  TNode<RawPtrT> current_isolate = UncheckedCast<RawPtrT>(
+      ExternalConstant(ExternalReference::isolate_address()));
+  CSA_CHECK(
+      this,
+      Word32Or(WordEqual(isolate, current_isolate),
+               WordEqual(
+                   isolate,
+                   IntPtrConstant(IsolateGroup::MemoryChunkMetadataTableEntry::
+                                      kReadOnlyOrSharedEntryIsolateSentinel))));
   return metadata;
 #else
   return Load<IntPtrT>(address, IntPtrConstant(MemoryChunk::MetadataOffset()));
 #endif
 }
+// LINT.ThenChange(/src/heap/memory-chunk-inl.h:MemoryChunkMetadataFromMemoryChunk)
 
 TNode<IntPtrT> CodeStubAssembler::MemoryChunkMetadataFromAddress(
     TNode<IntPtrT> address) {
