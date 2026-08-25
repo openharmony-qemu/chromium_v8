@@ -974,27 +974,6 @@ void MacroAssembler::LoadEntrypointFromJSDispatchTable(
                             JSDispatchEntry::kEntrypointOffset));
 }
 
-void MacroAssembler::LoadEntrypointFromJSDispatchTable(
-    Register destination, JSDispatchHandle dispatch_handle) {
-  DCHECK(!AreAliased(destination, kScratchRegister));
-
-  // The following is not isolate group independent and thus cannot be used in
-  // builtin code.
-  DCHECK_EQ(builtin(), Builtin::kNoBuiltinId);
-  Move(kScratchRegister,
-       ExternalReference::js_dispatch_table_address(isolate()));
-  // WARNING: This offset calculation is only safe if we have already stored a
-  // RelocInfo for the dispatch handle, e.g. in CallJSDispatchEntry, (thus
-  // keeping the dispatch entry alive) _and_ because the entrypoints are not
-  // compatible (thus meaning that the offset calculation is not invalidated by
-  // a compaction).
-  // TODO(leszeks): Make this less of a footgun.
-  static_assert(!JSDispatchTable::kSupportsCompaction);
-  int offset = JSDispatchTable::OffsetOfEntry(dispatch_handle) +
-               JSDispatchEntry::kEntrypointOffset;
-  movq(destination, Operand(kScratchRegister, offset));
-}
-
 
 void MacroAssembler::LoadParameterCountFromJSDispatchTable(
     Register destination, Register dispatch_handle) {
