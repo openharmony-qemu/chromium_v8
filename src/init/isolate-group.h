@@ -172,10 +172,12 @@ class V8_EXPORT_PRIVATE IsolateGroup final {
 
     MemoryChunkMetadata** metadata_slot() { return &metadata_; }
 
-   private:
     // This indicates that the metadata entry can be read from any isolates
     // (in essence, for the read-only or shared pages).
     static constexpr uintptr_t kReadOnlyOrSharedEntryIsolateSentinel = -1;
+
+   private:
+    friend class CodeStubAssembler;
 
     MemoryChunkMetadata* metadata_ = nullptr;
     Isolate* isolate_ = nullptr;
