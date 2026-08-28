@@ -2053,7 +2053,7 @@ TNode<UintPtrT> CodeStubAssembler::ComputeJSDispatchTableEntryOffset(
 TNode<Code> CodeStubAssembler::LoadCodeObjectFromJSDispatchTable(
     TNode<JSDispatchHandleT> handle) {
   TNode<RawPtrT> table =
-      ExternalConstant(ExternalReference::js_dispatch_table_address());
+      ExternalConstant(ExternalReference::js_dispatch_table_address(isolate()));
   TNode<UintPtrT> offset = ComputeJSDispatchTableEntryOffset(handle);
   offset =
       UintPtrAdd(offset, UintPtrConstant(JSDispatchEntry::kCodeObjectOffset));
@@ -2079,7 +2079,7 @@ TNode<Code> CodeStubAssembler::LoadCodeObjectFromJSDispatchTable(
 TNode<Uint16T> CodeStubAssembler::LoadParameterCountFromJSDispatchTable(
     TNode<JSDispatchHandleT> handle) {
   TNode<RawPtrT> table =
-      ExternalConstant(ExternalReference::js_dispatch_table_address());
+      ExternalConstant(ExternalReference::js_dispatch_table_address(isolate()));
   TNode<UintPtrT> offset = ComputeJSDispatchTableEntryOffset(handle);
   offset = UintPtrAdd(offset,
                       UintPtrConstant(JSDispatchEntry::kParameterCountOffset));

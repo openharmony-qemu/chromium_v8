@@ -917,6 +917,8 @@ class V8_EXPORT_PRIVATE MacroAssembler
 
   void LoadEntrypointFromJSDispatchTable(Register destination,
                                          Register dispatch_handle);
+  void LoadEntrypointFromJSDispatchTable(Register destination,
+                                         JSDispatchHandle dispatch_handle);
   void LoadParameterCountFromJSDispatchTable(Register destination,
                                              Register dispatch_handle);
   void LoadEntrypointAndParameterCountFromJSDispatchTable(
