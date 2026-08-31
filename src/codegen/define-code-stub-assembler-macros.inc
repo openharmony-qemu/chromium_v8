@@ -90,14 +90,3 @@
 
 // Similar to SBXCHECK in C++.
 #define CSA_SBXCHECK(csa, ...) CSA_CHECK(csa, __VA_ARGS__)
-
-#if defined(OHOS_MEM_USAGE_REPORT)
-#define CSA_MURCHECK(csa, x, id)       \
-  do {                                \
-    Label mur_##id(csa);              \
-    GotoIfNot(LoadRuntimeFlag(ExternalReference::address_of_mur_flag()), &mur_##id); \
-    (csa)->MURCheck(x, id);            \
-    Goto(&mur_##id);                   \
-    BIND(&mur_##id);                   \
-  } while(false)
-#endif // OHOS_MEM_USAGE_REPORT
