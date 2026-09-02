@@ -298,17 +298,6 @@ void Utils::ReportOOMFailure(i::Isolate* i_isolate, const char* location,
   }
 #endif
 
-#ifdef OHOS_JS_ENGINE
-  // First check for JSVM OOM callback with isolate parameter
-  // Ensure that oom_callback_with_isolate does not crash
-  if (auto oom_callback_with_isolate = i_isolate->oom_behavior_with_isolate()) {
-    v8::Isolate* v8_isolate = reinterpret_cast<v8::Isolate*>(i_isolate);
-    std::stringstream stream;
-    i_isolate->heap()->DumpJSONHeapStatistics(stream);
-    std::string heap_stat = stream.str();
-    oom_callback_with_isolate(v8_isolate, location, details, heap_stat.c_str());
-  }
-#endif
   if (auto oom_callback = i_isolate->oom_behavior()) {
     oom_callback(location, details, i_isolate->oom_callback_data());
   } else {
