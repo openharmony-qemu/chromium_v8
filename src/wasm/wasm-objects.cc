@@ -867,7 +867,9 @@ DirectHandle<WasmMemoryObject> WasmMemoryObject::New(
   if (buffer->is_shared()) {
     // Only Wasm memory can be shared (in contrast to asm.js memory).
     CHECK(backing_store && backing_store->is_wasm_memory());
-    backing_store->AttachSharedWasmMemoryObject(isolate, memory_object);
+    GlobalBackingStoreRegistry::AddSharedWasmMemoryObject(isolate,
+                                                          backing_store,
+                                                          memory_object);
   } else if (backing_store) {
     CHECK(!backing_store->is_shared());
   }
