@@ -4920,6 +4920,9 @@ class V8_EXPORT_PRIVATE CodeStubAssembler
       TNode<Object> value, WriteBarrierMode barrier_mode = UPDATE_WRITE_BARRIER,
       int additional_offset = 0);
 
+  TNode<IntPtrT> ComputeTypedArrayStoreOffset(TNode<IntPtrT> offset,
+                                              ElementsKind kind);
+
   template <typename TIndex>
   void StoreElementTypedArrayBigInt(TNode<RawPtrT> elements, ElementsKind kind,
                                     TNode<TIndex> index, TNode<BigInt> value);
