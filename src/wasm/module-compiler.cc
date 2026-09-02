@@ -1281,10 +1281,9 @@ class FeedbackMaker {
         WasmCodePointer{static_cast<uint32_t>(target_truncated_smi.value())};
     Address entry = GetProcessWideWasmCodePointerTable()
                         ->GetEntrypointWithoutSignatureCheck(handle);
-    wasm::WasmCode* code =
-        wasm::GetWasmCodeManager()->LookupCode(nullptr, entry);
-    if (!code || code->native_module() != instance_data_->native_module() ||
-        code->IsAnonymous()) {
+    WasmCodeRefScope code_ref_scope;
+    wasm::WasmCode* code = instance_data_->native_module()->Lookup(entry);
+    if (!code || code->IsAnonymous()) {
       // Was not in the main table (e.g., because it's an imported function).
       has_non_inlineable_targets_ = true;
       return;
@@ -2964,7 +2963,10 @@ void AsyncCompileJob::StartForegroundTask() {
 
   auto new_task = std::make_unique<CompileTask>(this, true);
   pending_foreground_task_ = new_task.get();
-  isolate_specific_info_.foreground_task_runner_->PostTask(std::move(new_task));
+  // Foreground compilation can invoke JavaScript callbacks and must not run
+  // nested inside an API interrupt.
+  isolate_specific_info_.foreground_task_runner_->PostNonNestableTask(
+      std::move(new_task));
 }
 
 void AsyncCompileJob::CancelPendingForegroundTask() {
