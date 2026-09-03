@@ -1795,7 +1795,6 @@ DirectHandle<WasmTrustedInstanceData> WasmTrustedInstanceData::New(
     instance_object->set_trusted_data(*trusted_data);
     instance_object->set_module_object(*module_object);
     trusted_data->set_instance_object(*instance_object);
-
     // Insert the new instance into the scripts weak list of instances. This
     // list is used for breakpoints affecting all instances belonging to the
     // script.
@@ -2845,7 +2844,11 @@ DirectHandle<WasmDispatchTable> WasmDispatchTable::Grow(
     }
   }
 
-  // Clear old table to avoid dangling uses via in-sandbox corruption.
+  // Make the old table inaccessible to avoid dangling uses via in-sandbox
+  // corruption.
+  old_table->Unpublish(isolate);
+  // As an additional layer of defense against stale pointers from other
+  // trusted objects, we also clear the old table.
   old_table->set_protected_uses(
       *isolate->factory()->empty_protected_weak_fixed_array());
   for (uint32_t i = 0; i < old_length; ++i) {
