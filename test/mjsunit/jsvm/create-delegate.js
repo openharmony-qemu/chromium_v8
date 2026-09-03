@@ -313,6 +313,37 @@ function testDelegateWithWorker() {
   worker.terminate();
 }
 
+function testDelegateStackoverflow() {
+  let sum = 0;
+  {
+    let a = { a: 1 };
+    let c = __Longque__.createDelegate(a, {});
+    let b = Object.create(c);
+    var obj = __Longque__.createDelegate(b, a);
+    assertThrows(() => {
+      sum += obj.a;
+    }, RangeError);
+  }
+  {
+    let a = { a: 1 };
+    let b = __Longque__.createDelegate(a, {});
+    delete a.a;
+    Object.setPrototypeOf(a, b);
+    assertThrows(() => {
+      sum += a.a;
+    }, RangeError);
+  }
+}
+
+function testDelegateWithUninitializedModuleNamespace() {
+  import("./repro-create-delegate-module.js").then(
+    module => {
+      assertInstanceof(module.caughtError, ReferenceError);
+    },
+    () => assertUnreachable(),
+  );
+}
+
 function testVersionConstancy() {
   assertTrue(typeof __Longque__.version === 'number');
   const version = __Longque__.version;
@@ -356,6 +387,8 @@ function createDelegateTest() {
   testDelegateChain();
   testDelegateAsInitObject();
   testDelegateWithWorker();
+  testDelegateStackoverflow();
+  testDelegateWithUninitializedModuleNamespace();
 }
 
 createDelegateTest();
