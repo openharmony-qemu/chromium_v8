@@ -15248,19 +15248,21 @@ ReduceResult MaglevGraphBuilder::VisitJumpLoop() {
   const FeedbackSlot feedback_slot = iterator_.GetSlotOperand(2);
   int target = iterator_.GetJumpTargetOffset();
 
-  if (ShouldEmitInterruptBudgetChecks()) {
-    int reduction = relative_jump_bytecode_offset *
-                    v8_flags.osr_from_maglev_interrupt_scale_factor;
-    RETURN_IF_ABORT(AddNewNode<ReduceInterruptBudgetForLoop>(
-        {GetFeedbackCell()}, reduction > 0 ? reduction : 1));
-  } else {
-    RETURN_IF_ABORT(AddNewNode<HandleNoHeapWritesInterrupt>({}));
-  }
+  if (V8_LIKELY(!v8_flags.disable_loop_stack_checks)) {
+    if (ShouldEmitInterruptBudgetChecks()) {
+      int reduction = relative_jump_bytecode_offset *
+                      v8_flags.osr_from_maglev_interrupt_scale_factor;
+      RETURN_IF_ABORT(AddNewNode<ReduceInterruptBudgetForLoop>(
+          {GetFeedbackCell()}, reduction > 0 ? reduction : 1));
+    } else {
+      RETURN_IF_ABORT(AddNewNode<HandleNoHeapWritesInterrupt>({}));
+    }
 
-  if (ShouldEmitOsrInterruptBudgetChecks()) {
-    RETURN_IF_ABORT(AddNewNode<TryOnStackReplacement>(
-        {GetClosure()}, loop_offset, feedback_slot,
-        BytecodeOffset(iterator_.current_offset()), compilation_unit_));
+    if (ShouldEmitOsrInterruptBudgetChecks()) {
+      RETURN_IF_ABORT(AddNewNode<TryOnStackReplacement>(
+          {GetClosure()}, loop_offset, feedback_slot,
+          BytecodeOffset(iterator_.current_offset()), compilation_unit_));
+    }
   }
 
   bool is_peeled_loop = loop_headers_to_peel_.Contains(target);

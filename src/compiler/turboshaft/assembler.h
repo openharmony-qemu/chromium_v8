@@ -3304,11 +3304,16 @@ class AssemblerOpInterface : public Next {
   void JSStackCheck(V<Context> context,
                     OptionalV<turboshaft::FrameState> frame_state,
                     JSStackCheckOp::Kind kind) {
+    if (V8_UNLIKELY(v8_flags.disable_loop_stack_checks &&
+                    kind == JSStackCheckOp::Kind::kLoop)) {
+      return;
+    }
     ReduceIfReachableJSStackCheck(context, frame_state, kind);
   }
 
   void JSLoopStackCheck(V<Context> context,
                         V<turboshaft::FrameState> frame_state) {
+    if (V8_UNLIKELY(v8_flags.disable_loop_stack_checks)) return;
     JSStackCheck(context, frame_state, JSStackCheckOp::Kind::kLoop);
   }
   void JSFunctionEntryStackCheck(V<Context> context,
