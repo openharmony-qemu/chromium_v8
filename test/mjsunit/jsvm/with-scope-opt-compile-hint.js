@@ -10,37 +10,37 @@
       Object: 'override Object',
       Array: 'override Array'
     };
-    
+
     with (bar) {
       //# @optNeverHideBaseStd
       assertNotEquals('override Object', Object.toString());
       assertTrue(Object.toString().includes('[native code]'));
     }
 })();
-  
+
 (function TestWithoutAnnotation() {
   var bar = {
     Object: 'override Object'
   };
-  
+
   with (bar) {
     assertEquals('override Object', Object);
   }
 })();
-  
+
 (function TestMixedPropertyAccess() {
   var bar = {
     Object: 'override Object',
     custom: 'custom property'
   };
-  
+
   with (bar) {
     //# @optNeverHideBaseStd
     assertNotEquals('override Object', Object.toString());
     assertEquals('custom property', custom);
   }
 })();
-  
+
 // Nested with tests
 (function TestNestedWithOuterAnnotated() {
   var outer = { Object: 'outer override' };
@@ -143,11 +143,11 @@
     custom: 'custom property',
     func: function() { return 'scope function'; }
   };
-  
+
   with (scope) {
     //# @optNeverHideBaseStd
     !function innerFunc() {
-      assertNotEquals('override Object', Object.toString());     
+      assertNotEquals('override Object', Object.toString());
       assertEquals('custom property', custom);
       assertEquals('scope function', func());
       var innerVar = 'inner variable';
@@ -165,7 +165,36 @@
 
   with(bar) //# @optNeverHideBaseStd
     assertNotEquals('[object Object]', Object.toString());
-  
+
   with(bar) //# @optNeverHideBaseStd
     assertEquals('custom property', custom);
 })();
+
+(function TestStickyFlagPlainBlockNoLeak() {
+  {
+    //# @optNeverHideBaseStd
+    var dummy = 1;
+  }
+  var filler;
+  for (var i = 0; i < 300; i++) { filler = i; }
+  var o = { Array: 'fake' };
+  var got;
+  with (o) {
+    got = Array;
+  }
+  assertEquals('fake', got);
+})();
+
+(function TestStickyFlagTrailingInPlainBlockNoLeak() {
+  var o = { Array: 'fake' };
+  var got;
+  {
+    var x = 1;
+    //# @optNeverHideBaseStd
+  }
+  with (o) {
+    got = Array;
+  }
+  assertEquals('fake', got);
+})();
+
