@@ -1062,6 +1062,8 @@ void V8RuntimeAgentImpl::bindingCalled(const String16& name,
 }
 
 void V8RuntimeAgentImpl::addBindings(InspectedContext* context) {
+  int contextGroupId = context->contextGroupId();
+  int contextId = context->contextId();
   const String16 contextName = context->humanReadableName();
   if (!m_enabled) return;
 
@@ -1070,6 +1072,7 @@ void V8RuntimeAgentImpl::addBindings(InspectedContext* context) {
   if (globalBindings) {
     for (size_t i = 0; i < globalBindings->size(); ++i) {
       addBinding(context, globalBindings->at(i).first);
+      if (!m_inspector->getContext(contextGroupId, contextId)) return;
     }
   }
 
@@ -1081,6 +1084,7 @@ void V8RuntimeAgentImpl::addBindings(InspectedContext* context) {
     if (bindings) {
       for (size_t i = 0; i < bindings->size(); ++i) {
         addBinding(context, bindings->at(i).first);
+        if (!m_inspector->getContext(contextGroupId, contextId)) return;
       }
     }
   }
@@ -1123,14 +1127,16 @@ Response V8RuntimeAgentImpl::enable() {
   // and that JavaScript could add more log messages, invalidating iterators
   // used here, hence we need to guard against that.
   // See http://crbug.com/446941355 for more details.
-  const auto& messages = storage->messages();
-  const size_t size = messages.size();
+  // Also, the storage itself can be destroyed and recreated, so re-fetch the
+  // storage on each iteration.
+  size_t size = storage->messages().size();
   for (size_t i = 0; i < size; ++i) {
-    if (size < messages.size()) {
-      // Also guard against the case where the message queue was cleared.
+    if (m_inspector->consoleMessageStorage(m_session->contextGroupId()) !=
+        storage) {
       break;
     }
-    if (!reportMessage(messages[i].get(), false)) {
+    if (i >= storage->messages().size()) break;
+    if (!reportMessage(storage->messages()[i].get(), false)) {
       break;
     }
   }

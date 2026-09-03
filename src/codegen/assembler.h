@@ -332,6 +332,9 @@ std::unique_ptr<AssemblerBuffer> NewAssemblerBuffer(int size);
 
 class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
  public:
+  static constexpr int kMaximalBufferSize = 512 * MB;
+
+  enum class BufferGrowthStrategy { kDouble, kDoubleCapped1MB };
   AssemblerBase(const AssemblerOptions& options,
                 std::unique_ptr<AssemblerBuffer>);
   virtual ~AssemblerBase();
@@ -410,6 +413,8 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
     return buffer;
   }
 
+int ComputeNewBufferSize(BufferGrowthStrategy strategy);
+
   // This function is called when code generation is aborted, so that
   // the assembler could clean up internal data structures.
   virtual void AbortedCodeGeneration() {}
@@ -475,6 +480,12 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
   // The default buffer size used if we do not know the final size of the
   // generated code.
   static constexpr int kDefaultBufferSize = 4 * KB;
+
+  void RecordJSDispatchHandle(JSDispatchHandle handle, uint16_t argument_count);
+  const std::vector<std::pair<JSDispatchHandle, uint16_t>>&
+  js_dispatch_handles() const {
+    return js_dispatch_handles_;
+  }
 
  protected:
   // Add 'target' to the {code_targets_} vector, if necessary, and return the
@@ -551,6 +562,8 @@ class V8_EXPORT_PRIVATE AssemblerBase : public Malloced {
                      IndirectHandle<HeapObject>::hash,
                      IndirectHandle<HeapObject>::equal_to>
       embedded_objects_map_;
+
+  std::vector<std::pair<JSDispatchHandle, uint16_t>> js_dispatch_handles_;
 
   const AssemblerOptions options_;
   uint64_t enabled_cpu_features_;

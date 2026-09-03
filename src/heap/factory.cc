@@ -39,7 +39,6 @@
 #include "src/numbers/conversions.h"
 #include "src/numbers/hash-seed-inl.h"
 #include "src/objects/allocation-site-inl.h"
-#include "src/objects/allocation-site-scopes.h"
 #include "src/objects/api-callbacks.h"
 #include "src/objects/arguments-inl.h"
 #include "src/objects/bigint.h"
@@ -1713,12 +1712,14 @@ DirectHandle<WasmDispatchTable> Factory::NewWasmDispatchTable(
     int length, wasm::CanonicalValueType table_type, bool shared) {
   CHECK_LE(length, WasmDispatchTable::kMaxLength);
 
-  // TODO(jkummerow): Any chance to get a better estimate?
-  size_t estimated_offheap_size = 0;
-  DirectHandle<TrustedManaged<WasmDispatchTableData>> offheap_data =
-      TrustedManaged<WasmDispatchTableData>::From(
-          isolate(), estimated_offheap_size,
-          std::make_shared<WasmDispatchTableData>(), shared);
+  DirectHandle<TrustedManaged<WasmDispatchTableData>> offheap_data;
+  if (length > 0) {
+    // TODO(jkummerow): Any chance to get a better estimate?
+    size_t estimated_offheap_size = 0;
+    offheap_data = TrustedManaged<WasmDispatchTableData>::From(
+        isolate(), estimated_offheap_size,
+        std::make_shared<WasmDispatchTableData>(), shared);
+  }
 
   int bytes = WasmDispatchTable::SizeFor(length);
   Tagged<WasmDispatchTable> result =
@@ -1730,7 +1731,11 @@ DirectHandle<WasmDispatchTable> Factory::NewWasmDispatchTable(
   result->InitAndPublish(isolate());
   result->WriteField<int>(WasmDispatchTable::kLengthOffset, length);
   result->WriteField<int>(WasmDispatchTable::kCapacityOffset, length);
-  result->set_protected_offheap_data(*offheap_data);
+  if (length > 0) {
+    result->set_protected_offheap_data(*offheap_data);
+  } else {
+    result->clear_protected_offheap_data();
+  }
   result->set_protected_uses(*empty_protected_weak_fixed_array());
   result->set_table_type(table_type);
   for (int i = 0; i < length; ++i) {
@@ -2235,7 +2240,7 @@ Factory::NewSharedFunctionInfoForWasmJSFunction(
 
 DirectHandle<SharedFunctionInfo> Factory::NewSharedFunctionInfoForWasmResume(
     DirectHandle<WasmResumeData> data) {
-  return NewSharedFunctionInfo({}, data, Builtin::kNoBuiltinId, 0, kDontAdapt);
+  return NewSharedFunctionInfo({}, data, Builtin::kNoBuiltinId, 1, kAdapt);
 }
 
 DirectHandle<SharedFunctionInfo>
@@ -4163,11 +4168,13 @@ Handle<JSObject> Factory::NewArgumentsObject(DirectHandle<JSFunction> callee,
                                              int length) {
   bool strict_mode_callee = is_strict(callee->shared()->language_mode()) ||
                             !callee->shared()->has_simple_parameters();
-  DirectHandle<Map> map = strict_mode_callee
-                              ? isolate()->strict_arguments_map()
-                              : isolate()->sloppy_arguments_map();
-  AllocationSiteUsageContext context(isolate(), Handle<AllocationSite>(),
-                                     false);
+  return strict_mode_callee ? NewStrictArgumentsObject(callee, length)
+                            : NewSloppyArgumentsObject(callee, length);
+}
+
+Handle<JSObject> Factory::NewStrictArgumentsObject(
+    DirectHandle<JSFunction> callee, int length) {
+  DirectHandle<Map> map = isolate()->strict_arguments_map();
   DCHECK(!isolate()->has_exception());
   Handle<JSObject> result = NewJSObjectFromMap(map);
   DirectHandle<Smi> value(Smi::FromInt(length), isolate());
@@ -4175,12 +4182,23 @@ Handle<JSObject> Factory::NewArgumentsObject(DirectHandle<JSFunction> callee,
                       StoreOrigin::kMaybeKeyed,
                       Just(ShouldThrow::kThrowOnError))
       .Assert();
-  if (!strict_mode_callee) {
-    Object::SetProperty(isolate(), result, callee_string(), callee,
-                        StoreOrigin::kMaybeKeyed,
-                        Just(ShouldThrow::kThrowOnError))
-        .Assert();
-  }
+  return result;
+}
+
+Handle<JSObject> Factory::NewSloppyArgumentsObject(
+    DirectHandle<JSFunction> callee, int length) {
+  DirectHandle<Map> map = isolate()->sloppy_arguments_map();
+  DCHECK(!isolate()->has_exception());
+  Handle<JSObject> result = NewJSObjectFromMap(map);
+  DirectHandle<Smi> value(Smi::FromInt(length), isolate());
+  Object::SetProperty(isolate(), result, length_string(), value,
+                      StoreOrigin::kMaybeKeyed,
+                      Just(ShouldThrow::kThrowOnError))
+      .Assert();
+  Object::SetProperty(isolate(), result, callee_string(), callee,
+                      StoreOrigin::kMaybeKeyed,
+                      Just(ShouldThrow::kThrowOnError))
+      .Assert();
   return result;
 }
 
@@ -4923,8 +4941,8 @@ Handle<JSFunction> Factory::JSFunctionBuilder::BuildRaw(
       DCHECK_NE(feedback_cell->dispatch_handle(), kNullJSDispatchHandle);
 
       JSDispatchHandle dispatch_handle = feedback_cell->dispatch_handle();
-      JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
-      Tagged<Code> old_code = jdt->GetCode(dispatch_handle);
+      JSDispatchTable& jdt = isolate_->js_dispatch_table();
+      Tagged<Code> old_code = jdt.GetCode(dispatch_handle);
 
       // A write barrier is needed when settings code, because the update can
       // race with marking which could leave the dispatch slot unmarked.
@@ -4938,16 +4956,16 @@ Handle<JSFunction> Factory::JSFunctionBuilder::BuildRaw(
       // needed and maybe find some alternative to initialize it correctly
       // from the beginning.
       if (old_code->is_builtin()) {
-        jdt->SetCodeNoWriteBarrier(dispatch_handle, *code);
-        function->set_dispatch_handle(dispatch_handle, mode_if_setting_code);
+        jdt.SetCodeNoWriteBarrier(dispatch_handle, *code);
+        function->set_dispatch_handle(dispatch_handle, mode);
       } else {
         // On a transition of a feedback cell from one closure to many, make
         // sure that the code on the feedback cell isn't native context
         // specialized, and if it was, eagerly re-optimize.
         if (cell_transition == FeedbackCell::kOneToMany &&
             old_code->is_context_specialized()) {
-          jdt->SetCodeNoWriteBarrier(dispatch_handle, *code);
-          function->set_dispatch_handle(dispatch_handle, mode_if_setting_code);
+          jdt.SetCodeNoWriteBarrier(dispatch_handle, *code);
+          function->set_dispatch_handle(dispatch_handle, mode);
           DCHECK(old_code->kind() == CodeKind::MAGLEV ||
                  old_code->kind() == CodeKind::TURBOFAN_JS);
           if (!old_code->marked_for_deoptimization()) {

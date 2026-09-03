@@ -203,6 +203,20 @@ void Phi::SetUseRequires31BitValue() {
   }
 }
 
+void Phi::SetUseRequiresHeapObject() {
+  if (uses_require_heap_object()) return;
+  set_uses_require_heap_object();
+  auto inputs =
+      is_loop_phi() ? merge_state_->predecessors_so_far() : input_count();
+  for (uint32_t i = 0; i < inputs; ++i) {
+    ValueNode* input_node = input(i).node();
+    DCHECK(input_node);
+    if (auto phi = input_node->TryCast<Phi>()) {
+      phi->SetUseRequiresHeapObject();
+    }
+  }
+}
+
 InitialValue::InitialValue(uint64_t bitfield, interpreter::Register source)
     : Base(bitfield), source_(source) {}
 
@@ -620,6 +634,13 @@ Tribool ValueNode::IsTheHole() const {
   if (!CanBeTheHoleValue(opcode())) return Tribool::kFalse;
   if (const RootConstant* cst = TryCast<RootConstant>()) {
     return ToTribool(cst->index() == RootIndex::kTheHoleValue);
+  }
+  if (const LoadTaggedField* load = TryCast<LoadTaggedField>()) {
+    // Modules variables can be the hole.
+    if (load->offset() == Cell::kValueOffset) {
+      return Tribool::kMaybe;
+    }
+    return Tribool::kFalse;
   }
   if (const LoadFixedArrayElement* load = TryCast<LoadFixedArrayElement>()) {
     if (load->load_type() != LoadType::kUnknown) {
@@ -5029,27 +5050,30 @@ void Int32ToNumber::GenerateCode(MaglevAssembler* masm,
   if (input_output_alias) {
     res = temps.AcquireScratch();
   }
-  __ SmiTagInt32AndJumpIfFail(
-      res, value,
-      __ MakeDeferredCode(
-          [](MaglevAssembler* masm, Register object, Register value,
-             Register scratch, ZoneLabelRef done, Int32ToNumber* node) {
-            MaglevAssembler::TemporaryRegisterScope temps(masm);
-            // AllocateHeapNumber needs a scratch register, and the res scratch
-            // register isn't needed anymore, so return it to the pool.
-            if (scratch.is_valid()) {
-              temps.IncludeScratch(scratch);
-            }
-            DoubleRegister double_value = temps.AcquireScratchDouble();
-            __ Int32ToDouble(double_value, value);
-            __ AllocateHeapNumber(node->register_snapshot(), object,
-                                  double_value);
-            __ Jump(*done);
-          },
-          object, value, input_output_alias ? res : Register::no_reg(), done,
-          this));
-  if (input_output_alias) {
-    __ Move(object, res);
+  auto allocate_heap_number = __ MakeDeferredCode(
+      [](MaglevAssembler* masm, Register object, Register value,
+         Register scratch, ZoneLabelRef done, Int32ToNumber* node) {
+        MaglevAssembler::TemporaryRegisterScope temps(masm);
+        // AllocateHeapNumber needs a scratch register, and the res scratch
+        // register isn't needed anymore, so return it to the pool.
+        if (scratch.is_valid()) {
+          temps.IncludeScratch(scratch);
+        }
+        DoubleRegister double_value = temps.AcquireScratchDouble();
+        __ Int32ToDouble(double_value, value);
+        __ AllocateHeapNumber(node->register_snapshot(), object, double_value);
+        __ Jump(*done);
+      },
+      object, value, input_output_alias ? res : Register::no_reg(), done, this);
+
+  if (force_heap_number()) {
+    __ Jump(allocate_heap_number);
+  } else {
+    __ SmiTagInt32AndJumpIfFail(res, value, allocate_heap_number);
+
+    if (input_output_alias) {
+      __ Move(object, res);
+    }
   }
   __ bind(*done);
 }
@@ -6501,6 +6525,7 @@ void CallKnownJSFunction::GenerateCode(MaglevAssembler* masm,
 
     __ CallJSBuiltin(builtin, expected_parameter_count_);
   } else {
+    __ RecordJSDispatchHandle(dispatch_handle_, expected_parameter_count_);
     __ CallJSDispatchEntry(dispatch_handle_, expected_parameter_count_);
   }
   masm->DefineExceptionHandlerAndLazyDeoptPoint(this);

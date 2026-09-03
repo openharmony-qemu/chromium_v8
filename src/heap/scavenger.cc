@@ -533,9 +533,10 @@ class ScavengerObjectVisitorBase : public NewSpaceVisitor<ConcreteVisitor> {
       // since the last GC (external pointer tags have the mark bit set), in
       // which case it may be marked already. In any case, transfer the color
       // from new to old EPT space.
-      table.Evacuate(heap->young_external_pointer_space(),
-                     heap->old_external_pointer_space(), handle, slot.address(),
-                     ExternalPointerTable::EvacuateMarkMode::kTransferMark);
+      handle = table.Evacuate(
+          heap->young_external_pointer_space(),
+          heap->old_external_pointer_space(), handle, slot.address(),
+          ExternalPointerTable::EvacuateMarkMode::kTransferMark);
     }
 #endif  // V8_COMPRESS_POINTERS
   }

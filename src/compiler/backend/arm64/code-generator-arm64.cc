@@ -1129,12 +1129,12 @@ CodeGenerator::CodeGenResult CodeGenerator::AssembleArchInstruction(
             }
           } else {
             JSDispatchHandle dispatch_handle = function->dispatch_handle();
-            size_t expected =
-                IsolateGroup::current()->js_dispatch_table()->GetParameterCount(
-                    dispatch_handle);
+            size_t expected = isolate()->js_dispatch_table().GetParameterCount(
+                dispatch_handle);
             // Defer signature mismatch abort to run-time as optimized
             // unreachable calls can have mismatched signatures.
             if (num_arguments >= expected) {
+              __ RecordJSDispatchHandle(dispatch_handle, expected);
               __ CallJSDispatchEntry(dispatch_handle, expected);
             } else {
               __ Abort(AbortReason::kJSSignatureMismatch);

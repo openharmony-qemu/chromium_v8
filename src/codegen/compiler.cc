@@ -1273,7 +1273,7 @@ MaybeHandle<Code> CompileMaglev(Isolate* isolate, Handle<JSFunction> function,
     CompilerTracer::TraceStartMaglevCompile(isolate, function, job->is_osr(),
                                             mode);
     CompilationJob::Status status = job->PrepareJob(isolate);
-    CHECK_EQ(status, CompilationJob::SUCCEEDED);  // TODO(v8:7700): Use status.
+    if (status != CompilationJob::SUCCEEDED) return {};
   }
 
   if (IsSynchronous(mode)) {
@@ -1328,7 +1328,7 @@ MaybeHandle<Code> GetOrCompileOptimized(
   // Clear the optimization marker on the function so that we don't try to
   // re-optimize.
   if (!IsOSR(osr_offset)) {
-    function->ResetTieringRequests();
+    function->ResetTieringRequests(isolate);
     // Always reset the OSR urgency to ensure we reset it on function entry.
     int invocation_count =
         function->feedback_vector()->invocation_count(kRelaxedLoad);
@@ -2074,16 +2074,11 @@ class ConstantPoolPointerForwarder {
     if (!v8_flags.reuse_scope_infos) return;
     Tagged<ScopeInfo> scope_info;
     if (Is<SharedFunctionInfo>(info)) {
-      Tagged<SharedFunctionInfo> old_sfi = Cast<SharedFunctionInfo>(info);
-      // Also record context-having own scope infos for SFIs.
-      if (!old_sfi->scope_info()->IsEmpty() &&
-          old_sfi->scope_info()->HasContext()) {
-        scope_info = old_sfi->scope_info();
-      } else if (old_sfi->HasOuterScopeInfo()) {
-        scope_info = old_sfi->GetOuterScopeInfo();
-      } else {
-        return;
-      }
+      // We can get an empty scope info here for a function that is racily
+      // getting compiled, which is ok because we will revisit it during
+      // foreground merging.
+      scope_info = Cast<SharedFunctionInfo>(info)->TryGetScopeInfoForMerge();
+      if (scope_info->IsEmpty()) return;
     } else {
       scope_info = Cast<ScopeInfo>(info);
     }
@@ -2467,9 +2462,11 @@ void BackgroundMergeTask::BeginMergeInBackground(
           Tagged<ScopeInfo> info = old_sfi->scope_info();
           if (!info->IsEmpty()) {
             new_sfi->SetScopeInfo(info);
-          } else if (old_sfi->HasOuterScopeInfo()) {
-            new_sfi->scope_info()->set_outer_scope_info(
-                old_sfi->GetOuterScopeInfo());
+          } else {
+            Tagged<ScopeInfo> outer_info = old_sfi->TryGetOuterScopeInfo();
+            if (!outer_info->IsEmpty()) {
+              new_sfi->scope_info()->set_outer_scope_info(outer_info);
+            }
           }
           forwarder.AddBytecodeArray(new_sfi->GetBytecodeArray(isolate));
         }
@@ -2740,12 +2737,6 @@ bool BackgroundCompileTask::FinalizeFunction(
   DirectHandle<SharedFunctionInfo> input_shared_info =
       input_shared_info_.ToHandleChecked();
 
-  // The UncompiledData on the input SharedFunctionInfo will have a pointer to
-  // the LazyCompileDispatcher Job that launched this task, which will now be
-  // considered complete, so clear that regardless of whether the finalize
-  // succeeds or not.
-  input_shared_info->ClearUncompiledDataJobPointer(isolate);
-
   // We might not have been able to finalize all jobs on the background
   // thread (e.g. asm.js jobs), so finalize those deferred jobs now.
   if (FinalizeDeferredUnoptimizedCompilationJobs(
@@ -2771,15 +2762,6 @@ bool BackgroundCompileTask::FinalizeFunction(
   input_shared_info->CopyFrom(*result, isolate);
 
   return true;
-}
-
-void BackgroundCompileTask::AbortFunction() {
-  // The UncompiledData on the input SharedFunctionInfo will have a pointer to
-  // the LazyCompileDispatcher Job that launched this task, which is about to be
-  // deleted, so clear that to avoid the SharedFunctionInfo from pointing to
-  // deallocated memory.
-  input_shared_info_.ToHandleChecked()->ClearUncompiledDataJobPointer(
-      isolate_for_local_isolate_);
 }
 
 void BackgroundCompileTask::ReportStatistics(Isolate* isolate) {
@@ -3079,7 +3061,7 @@ bool Compiler::Compile(Isolate* isolate, DirectHandle<JSFunction> function,
   // optimized.
   DCHECK(!function->is_compiled(isolate));
   DCHECK_IMPLIES(function->has_feedback_vector() &&
-                     function->IsTieringRequestedOrInProgress(),
+                     function->IsTieringRequestedOrInProgress(isolate),
                  function->shared()->is_compiled());
   DCHECK_IMPLIES(function->HasAvailableOptimizedCode(isolate),
                  function->shared()->is_compiled());
@@ -3108,7 +3090,7 @@ bool Compiler::Compile(Isolate* isolate, DirectHandle<JSFunction> function,
   // immediately after a flush would be better.
   JSFunction::InitializeFeedbackCell(isolate, function, is_compiled_scope,
                                      true);
-  function->ResetTieringRequests();
+  function->ResetTieringRequests(isolate);
 
   function->UpdateCode(isolate, *code);
 
@@ -3270,7 +3252,7 @@ void Compiler::CompileOptimized(Isolate* isolate,
   DCHECK(function->is_compiled(isolate));
   DCHECK(function->shared()->HasBytecodeArray());
 
-  DCHECK_IMPLIES(function->IsTieringRequestedOrInProgress() &&
+  DCHECK_IMPLIES(function->IsTieringRequestedOrInProgress(isolate) &&
                      !function->IsLoggingRequested(isolate),
                  function->tiering_in_progress());
   DCHECK_IMPLIES(!tiering_was_in_progress && function->tiering_in_progress(),

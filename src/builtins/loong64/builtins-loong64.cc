@@ -312,8 +312,8 @@ static void GetSharedFunctionInfoBytecodeOrBaseline(
           {CODE_TYPE, &is_code},
 #endif
       });
-  // Fallthrough means none of the types matched. The destination register is
-  // zeroed.);
+  // Fallthrough means none of the types matched or the field was invalid.
+  // The destination register is zeroed.
   __ Branch(is_unavailable);
 
   __ bind(&is_code);
@@ -1317,7 +1317,7 @@ void Builtins::Generate_InterpreterEntryTrampoline(
 #endif  // !V8_JITLESS
 
   __ bind(&compile_lazy);
-  __ GenerateTailCallToReturnedCode(Runtime::kCompileLazy);
+  __ TailCallBuiltin(Builtin::kCompileLazy);
   // Unreachable code.
   __ break_(0xCC);
 
@@ -2594,7 +2594,8 @@ void Builtins::Generate_CallBoundFunctionImpl(MacroAssembler* masm) {
   // Load [[BoundArguments]] into a2 and length of that into a4.
   __ LoadTaggedField(
       a2, FieldMemOperand(a1, JSBoundFunction::kBoundArgumentsOffset));
-  __ SmiUntagField(a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
+  __ SmiUntagFieldUnsigned(a4,
+                           FieldMemOperand(a2, offsetof(FixedArray, length_)));
 
   // ----------- S t a t e -------------
   //  -- a0 : the number of arguments
@@ -2627,7 +2628,8 @@ void Builtins::Generate_CallBoundFunctionImpl(MacroAssembler* masm) {
   // Push [[BoundArguments]].
   {
     Label loop, done_loop;
-    __ SmiUntagField(a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
+    __ SmiUntagFieldUnsigned(
+        a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
     __ Add_d(a0, a0, Operand(a4));
     __ Add_d(a2, a2,
              Operand(OFFSET_OF_DATA_START(FixedArray) - kHeapObjectTag));
@@ -2701,7 +2703,8 @@ void Builtins::Generate_ConstructBoundFunction(MacroAssembler* masm) {
   // Load [[BoundArguments]] into a2 and length of that into a4.
   __ LoadTaggedField(
       a2, FieldMemOperand(a1, JSBoundFunction::kBoundArgumentsOffset));
-  __ SmiUntagField(a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
+  __ SmiUntagFieldUnsigned(a4,
+                           FieldMemOperand(a2, offsetof(FixedArray, length_)));
 
   // ----------- S t a t e -------------
   //  -- a0 : the number of arguments
@@ -2735,7 +2738,8 @@ void Builtins::Generate_ConstructBoundFunction(MacroAssembler* masm) {
   // Push [[BoundArguments]].
   {
     Label loop, done_loop;
-    __ SmiUntagField(a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
+    __ SmiUntagFieldUnsigned(
+        a4, FieldMemOperand(a2, offsetof(FixedArray, length_)));
     __ Add_d(a0, a0, Operand(a4));
     __ Add_d(a2, a2,
              Operand(OFFSET_OF_DATA_START(FixedArray) - kHeapObjectTag));

@@ -658,6 +658,36 @@ Tagged<ScopeInfo> SharedFunctionInfo::GetOuterScopeInfo() const {
   return info->OuterScopeInfo();
 }
 
+Tagged<ScopeInfo> SharedFunctionInfo::TryGetScopeInfoForMerge() const {
+  Tagged<Object> maybe_scope_info = name_or_scope_info(kAcquireLoad);
+  if (IsScopeInfo(maybe_scope_info)) {
+    return Cast<ScopeInfo>(maybe_scope_info);
+  }
+  Tagged<Object> maybe_outer_scope_info_or_feedback =
+      raw_outer_scope_info_or_feedback_metadata(kAcquireLoad);
+  if (IsScopeInfo(maybe_outer_scope_info_or_feedback)) {
+    return Cast<ScopeInfo>(maybe_outer_scope_info_or_feedback);
+  }
+  return GetReadOnlyRoots().empty_scope_info();
+}
+
+Tagged<ScopeInfo> SharedFunctionInfo::TryGetOuterScopeInfo() const {
+  if (Tagged<ScopeInfo> scope_info;
+      TryCast(name_or_scope_info(kAcquireLoad), &scope_info)) {
+    if (scope_info->HasOuterScopeInfo()) {
+      return scope_info->OuterScopeInfo();
+    }
+    return GetReadOnlyRoots().empty_scope_info();
+  }
+
+  if (Tagged<ScopeInfo> outer_scope_info;
+      TryCast(raw_outer_scope_info_or_feedback_metadata(kAcquireLoad),
+              &outer_scope_info)) {
+    return outer_scope_info;
+  }
+  return GetReadOnlyRoots().empty_scope_info();
+}
+
 void SharedFunctionInfo::set_outer_scope_info(
     Tagged<UnionOf<ScopeInfo, TheHole>> value, WriteBarrierMode mode) {
   DCHECK(!is_compiled());
@@ -1088,18 +1118,6 @@ void SharedFunctionInfo::set_uncompiled_data_with_preparse_data(
 bool SharedFunctionInfo::HasUncompiledDataWithoutPreparseData(
     IsolateForSandbox isolate) const {
   return IsUncompiledDataWithoutPreparseData(GetTrustedData(isolate));
-}
-
-void SharedFunctionInfo::ClearUncompiledDataJobPointer(
-    IsolateForSandbox isolate) {
-  Tagged<UncompiledData> uncompiled_data = this->uncompiled_data(isolate);
-  if (Tagged<UncompiledDataWithPreparseDataAndJob> data;
-      TryCast(uncompiled_data, &data)) {
-    data->set_job(kNullAddress);
-  } else if (Tagged<UncompiledDataWithoutPreparseDataWithJob> data_with_job;
-             TryCast(uncompiled_data, &data_with_job)) {
-    data_with_job->set_job(kNullAddress);
-  }
 }
 
 void SharedFunctionInfo::ClearPreparseData(IsolateForSandbox isolate) {

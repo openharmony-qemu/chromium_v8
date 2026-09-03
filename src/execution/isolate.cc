@@ -78,6 +78,9 @@
 #include "src/init/bootstrapper.h"
 #include "src/init/setup-isolate.h"
 #include "src/init/v8.h"
+#ifdef V8_ENABLE_LONGQUE_API
+#include "../../../arkweb/chromium_ext/v8/builtins-longque.h"
+#endif  // V8_ENABLE_LONGQUE_API
 #include "src/interpreter/bytecode-array-iterator.h"
 #include "src/interpreter/bytecodes.h"
 #include "src/interpreter/interpreter.h"
@@ -707,6 +710,9 @@ DirectHandle<String> Isolate::StackTraceString() {
 
 void Isolate::PushStackTraceAndDie(void* ptr1, void* ptr2, void* ptr3,
                                    void* ptr4, void* ptr5, void* ptr6) {
+  // Constructing the stack trace requires allocations and handles and is
+  // therefore only supported on the main thread.
+  CHECK(LocalHeap::Current()->is_main_thread());
   StackTraceFailureMessage message(this,
                                    StackTraceFailureMessage::kIncludeStackTrace,
                                    {ptr1, ptr2, ptr3, ptr4, ptr5, ptr6});
@@ -2332,6 +2338,9 @@ Tagged<Object> Isolate::UnwindAndFindHandler() {
         SwitchStacks<wasm::JumpBuffer::Retired, wasm::JumpBuffer::Inactive>(
             active_stack, parent, kNullAddress, kNullAddress, kNullAddress);
         if (suspender->has_parent() && parent == suspender->parent()->stack()) {
+          // Exception escapes the current suspender, unwind to the parent.
+          // Clear the external stack pointer to avoid a UAF.
+          suspender->set_stack(this, nullptr);
           suspender = suspender->parent();
         }
         RetireWasmStack(active_stack);
@@ -4442,6 +4451,11 @@ void Isolate::CheckIsolateLayout() {
                     Isolate, isolate_data_.code_pointer_table_base_address_)) ==
                 Internals::kIsolateCodePointerTableBaseAddressOffset);
 #endif
+
+  static_assert(
+      static_cast<int>(OFFSET_OF(Isolate, isolate_data_.js_dispatch_table_)) ==
+      Internals::kIsolateJSDispatchTableOffset);
+
   static_assert(static_cast<int>(OFFSET_OF(
                     Isolate, isolate_data_.api_callback_thunk_argument_)) ==
                 Internals::kIsolateApiCallbackThunkArgumentOffset);
@@ -4449,10 +4463,6 @@ void Isolate::CheckIsolateLayout() {
       static_cast<int>(OFFSET_OF(
           Isolate, isolate_data_.continuation_preserved_embedder_data_)) ==
       Internals::kContinuationPreservedEmbedderDataOffset);
-
-  static_assert(static_cast<int>(OFFSET_OF(
-                    Isolate, isolate_data_.js_dispatch_table_base_)) ==
-                Internals::kJSDispatchTableOffset);
 
   static_assert(
       static_cast<int>(OFFSET_OF(Isolate, isolate_data_.roots_table_)) ==
@@ -4683,6 +4693,9 @@ void Isolate::Deinit() {
   ast_string_constants_ = nullptr;
 
   heap_.TearDown();
+#ifdef V8_ENABLE_LONGQUE_API
+  DelegateKeyCache::Release(this);
+#endif  // V8_ENABLE_LONGQUE_API
   isolate_group()->RemoveIsolate(this);
 
   delete inner_pointer_to_code_cache_;
@@ -4775,8 +4788,14 @@ void Isolate::Deinit() {
   IsolateGroup::current()->code_pointer_table()->TearDownSpace(
       heap()->code_pointer_space());
 #endif  // V8_ENABLE_SANDBOX
-  IsolateGroup::current()->js_dispatch_table()->TearDownSpace(
-      heap()->js_dispatch_table_space());
+  js_dispatch_table().TearDownSpace(heap()->js_dispatch_table_space());
+#if V8_STATIC_DISPATCH_HANDLES_BOOL
+  js_dispatch_table().DetachSpaceFromReadOnlySegments(
+      heap()->read_only_js_dispatch_table_space());
+#endif  // V8_STATIC_DISPATCH_HANDLES_BOOL
+  js_dispatch_table().TearDownSpace(
+      heap()->read_only_js_dispatch_table_space());
+  js_dispatch_table().TearDown();
 
   {
     base::MutexGuard lock_guard(&thread_data_table_mutex_);
@@ -5812,6 +5831,8 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
   }
 #endif  // V8_EXTERNAL_CODE_SPACE
 
+  js_dispatch_table().Initialize();
+
   isolate_data_.external_reference_table()->Init(this);
 
 #ifdef V8_COMPRESS_POINTERS
@@ -5848,8 +5869,22 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
   }
 
 #endif  // V8_ENABLE_SANDBOX
-  IsolateGroup::current()->js_dispatch_table()->InitializeSpace(
-      heap()->js_dispatch_table_space());
+  JSDispatchTable::Space* read_only_js_dispatch_table_space =
+      heap()->read_only_js_dispatch_table_space();
+  js_dispatch_table().InitializeSpace(read_only_js_dispatch_table_space);
+  // To avoid marking trying to write to these read-only cells they are
+  // allocated black. Target code objects in the read-only dispatch table are
+  // read-only code objects.
+  read_only_js_dispatch_table_space->set_allocate_black(true);
+#if V8_STATIC_DISPATCH_HANDLES_BOOL
+  js_dispatch_table().AttachSpaceToReadOnlySegments(
+      read_only_js_dispatch_table_space);
+  // TODO(omerkatz): Consider allocating and populating the read only space
+  // once for the first isolate, and remapping it for every other isolate.
+  js_dispatch_table().PreAllocateEntries(read_only_js_dispatch_table_space,
+                                         JSBuiltinDispatchHandleRoot::kCount);
+#endif  // V8_STATIC_DISPATCH_HANDLES_BOOL
+  js_dispatch_table().InitializeSpace(heap()->js_dispatch_table_space());
 
 #if V8_ENABLE_WEBASSEMBLY
   wasm::GetWasmEngine()->AddIsolate(this);
@@ -7932,7 +7967,7 @@ base::LazyMutex read_only_dispatch_entries_mutex_ = LAZY_MUTEX_INITIALIZER;
 void Isolate::InitializeBuiltinJSDispatchTable() {
   static_assert(Builtins::kAllBuiltinsAreIsolateIndependent);
 
-  JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+  JSDispatchTable& jdt = js_dispatch_table();
 
 #if V8_STATIC_DISPATCH_HANDLES_BOOL
   // For static dispatch handles we need:
@@ -7948,39 +7983,37 @@ void Isolate::InitializeBuiltinJSDispatchTable() {
   // should be allowed to proceed until the table is initialized.
   base::MutexGuard guard(read_only_dispatch_entries_mutex_.Pointer());
 
-  if (jdt->PreAllocatedEntryNeedsInitialization(
-          read_only_heap_->js_dispatch_table_space(),
-          builtin_dispatch_handle(JSBuiltinDispatchHandleRoot::Idx::kFirst))) {
-    JSDispatchTable::UnsealReadOnlySegmentScope unseal_scope(jdt);
-    for (JSBuiltinDispatchHandleRoot::Idx idx =
-             JSBuiltinDispatchHandleRoot::kFirst;
-         idx < JSBuiltinDispatchHandleRoot::kCount;
-         idx = static_cast<JSBuiltinDispatchHandleRoot::Idx>(
-             static_cast<int>(idx) + 1)) {
-      Builtin builtin = JSBuiltinDispatchHandleRoot::to_builtin(idx);
-      DCHECK(Builtins::IsIsolateIndependent(builtin));
-      Tagged<Code> code = builtins_.code(builtin);
-      if (code->is_disabled_builtin()) {
-        // Initialize preallocated entry for disabled builtin with kIllegal
-        // builtin's Code to ensure that the actual builtin's code can't be
-        // called by reusing the dispatch table handle.
-        code = builtins_.code(Builtin::kIllegal);
-      }
-      DCHECK_EQ(code->entrypoint_tag(), CodeEntrypointTag::kJSEntrypointTag);
-      // Since we are sharing the dispatch handles we need all isolates to
-      // share the builtin code objects.
-      DCHECK_IMPLIES(!serializer_enabled_, HeapLayout::InReadOnlySpace(code));
-
-      // TODO(olivf, 40931165): It might be more robust to get the static
-      // parameter count of this builtin.
-      int parameter_count = code->parameter_count();
-
-      JSDispatchHandle handle = builtin_dispatch_handle(builtin);
-      DCHECK_EQ(builtin_dispatch_handle(idx), handle);
-      jdt->InitializePreAllocatedEntry(
-          read_only_heap_->js_dispatch_table_space(), handle, code,
-          parameter_count);
+  CHECK(jdt.PreAllocatedEntryNeedsInitialization(
+      heap()->read_only_js_dispatch_table_space(),
+      builtin_dispatch_handle(JSBuiltinDispatchHandleRoot::Idx::kFirst)));
+  JSDispatchTable::UnsealReadOnlySegmentScope unseal_scope(&jdt);
+  for (JSBuiltinDispatchHandleRoot::Idx idx =
+           JSBuiltinDispatchHandleRoot::kFirst;
+       idx < JSBuiltinDispatchHandleRoot::kCount;
+       idx = static_cast<JSBuiltinDispatchHandleRoot::Idx>(
+           static_cast<int>(idx) + 1)) {
+    Builtin builtin = JSBuiltinDispatchHandleRoot::to_builtin(idx);
+    DCHECK(Builtins::IsIsolateIndependent(builtin));
+    Tagged<Code> code = builtins_.code(builtin);
+    if (code->is_disabled_builtin()) {
+      // Initialize preallocated entry for disabled builtin with kIllegal
+      // builtin's Code to ensure that the actual builtin's code can't be
+      // called by reusing the dispatch table handle.
+      code = builtins_.code(Builtin::kIllegal);
     }
+    DCHECK_EQ(code->entrypoint_tag(), CodeEntrypointTag::kJSEntrypointTag);
+    // Since we are sharing the dispatch handles we need all isolates to
+    // share the builtin code objects.
+    DCHECK_IMPLIES(!serializer_enabled_, HeapLayout::InReadOnlySpace(code));
+
+    // TODO(olivf, 40931165): It might be more robust to get the static
+    // parameter count of this builtin.
+    int parameter_count = code->parameter_count();
+
+    JSDispatchHandle handle = builtin_dispatch_handle(builtin);
+    DCHECK_EQ(builtin_dispatch_handle(idx), handle);
+    jdt.InitializePreAllocatedEntry(heap()->read_only_js_dispatch_table_space(),
+                                    handle, code, parameter_count);
   }
 #else
   for (JSBuiltinDispatchHandleRoot::Idx idx =
@@ -7996,8 +8029,8 @@ void Isolate::InitializeBuiltinJSDispatchTable() {
     // it's impossible to call it.
     if (!code->is_disabled_builtin()) {
       int parameter_count = code->parameter_count();
-      handle = jdt->AllocateAndInitializeEntry(
-          heap()->js_dispatch_table_space(), parameter_count, code);
+      handle = jdt.AllocateAndInitializeEntry(heap()->js_dispatch_table_space(),
+                                              parameter_count, code);
     }
     isolate_data_.builtin_dispatch_table()[idx] = handle;
   }

@@ -8,12 +8,12 @@
 #include <memory>
 #include <vector>
 
+#include "include/cppgc/persistent.h"
+#include "include/v8-inspector.h"
 #include "src/base/macros.h"
 #include "src/inspector/protocol/Forward.h"
 #include "src/inspector/protocol/Runtime.h"
 #include "src/inspector/protocol/Schema.h"
-
-#include "include/v8-inspector.h"
 
 namespace v8_inspector {
 
@@ -36,7 +36,7 @@ class V8InspectorSessionImpl : public V8InspectorSession,
  public:
   static V8InspectorSessionImpl* create(
       V8InspectorImpl*, int contextGroupId, int sessionId,
-      V8Inspector::Channel*, StringView state,
+      V8Inspector::ManagedChannel*, StringView state,
       v8_inspector::V8Inspector::ClientTrustLevel,
       std::shared_ptr<V8DebuggerBarrier>);
   ~V8InspectorSessionImpl() override;
@@ -75,6 +75,21 @@ class V8InspectorSessionImpl : public V8InspectorSession,
   Response unwrapObject(const String16& objectId, v8::Local<v8::Value>*,
                         v8::Local<v8::Context>*, String16* objectGroup);
   void releaseObjectGroup(const String16& objectGroup);
+
+  // Turns the weakThis reference into a strong one so nested run loops or
+  // synchronous session detachment (e.g., during JS re-entrancy) cannot fully
+  // deconstruct the V8 session until any active call (such as
+  // dispatchProtocolMessage or forEachSession) fully unwinds from the stack.
+  class KeepSessionAliveScope {
+    CPPGC_STACK_ALLOCATED();
+
+   public:
+    explicit KeepSessionAliveScope(const V8InspectorSessionImpl& session)
+        : m_this(session.m_weakThis.lock()) {}
+
+   private:
+    std::shared_ptr<V8InspectorSessionImpl> m_this;
+  };
 
   // V8InspectorSession implementation.
   void dispatchProtocolMessage(StringView message) override;
@@ -119,7 +134,7 @@ class V8InspectorSessionImpl : public V8InspectorSession,
 
  private:
   V8InspectorSessionImpl(V8InspectorImpl*, int contextGroupId, int sessionId,
-                         V8Inspector::Channel*, StringView state,
+                         V8Inspector::ManagedChannel*, StringView state,
                          V8Inspector::ClientTrustLevel,
                          std::shared_ptr<V8DebuggerBarrier>);
   protocol::DictionaryValue* agentState(const String16& name);
@@ -138,7 +153,7 @@ class V8InspectorSessionImpl : public V8InspectorSession,
   int m_contextGroupId;
   int m_sessionId;
   V8InspectorImpl* m_inspector;
-  V8Inspector::Channel* m_channel;
+  cppgc::Persistent<V8Inspector::ManagedChannel> m_channel;
   bool m_customObjectFormatterEnabled;
 
   protocol::UberDispatcher m_dispatcher;
@@ -155,18 +170,7 @@ class V8InspectorSessionImpl : public V8InspectorSession,
   bool use_binary_protocol_ = false;
   V8Inspector::ClientTrustLevel m_clientTrustLevel = V8Inspector::kUntrusted;
 
-  // On each call to "dispatchProtocolMessage", the session turns the weakThis
-  // reference into a strong one, so nested run loops are not able to fully
-  // deconstruct the V8 session until we return from the
-  // "dispatchProtocolMessage" call (i.e. no freed "this" remains on the stack).
-  class KeepSessionAliveScope {
-   public:
-    explicit KeepSessionAliveScope(const V8InspectorSessionImpl& session)
-        : m_this(session.m_weakThis.lock()) {}
 
-   private:
-    std::shared_ptr<V8InspectorSessionImpl> m_this;
-  };
   std::weak_ptr<V8InspectorSessionImpl> m_weakThis;
 };
 

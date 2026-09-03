@@ -91,6 +91,7 @@
 #include "src/objects/transitions-inl.h"
 #include "src/objects/visitors.h"
 #include "src/sandbox/indirect-pointer-tag.h"
+#include "src/sandbox/trusted-pointer-table.h"
 #include "src/snapshot/shared-heap-serializer.h"
 #include "src/tasks/cancelable-task.h"
 #include "src/tracing/tracing-category-observer.h"
@@ -1030,19 +1031,17 @@ class MarkCompactCollector::CustomRootBodyMarkingVisitor final
 
   void VisitJSDispatchTableEntry(Tagged<HeapObject> host,
                                  JSDispatchHandle handle) override {
-    JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+    JSDispatchTable& jdt = collector_->heap()->isolate()->js_dispatch_table();
 #ifdef DEBUG
     JSDispatchTable::Space* space =
         collector_->heap()->js_dispatch_table_space();
-    JSDispatchTable::Space* ro_space = collector_->heap()
-                                           ->isolate()
-                                           ->read_only_heap()
-                                           ->js_dispatch_table_space();
-    jdt->VerifyEntry(handle, space, ro_space);
+    JSDispatchTable::Space* ro_space =
+        collector_->heap()->read_only_js_dispatch_table_space();
+    jdt.VerifyEntry(handle, space, ro_space);
 #endif  // DEBUG
-    jdt->Mark(handle);
+    jdt.Mark(handle);
     if (handle != kNullJSDispatchHandle) {
-      MarkObject(jdt->GetCode(handle));
+      MarkObject(jdt.GetCode(handle));
     } else {
       // The only case we are allowed to see a zero handle installed here is if
       // the code is already marked deoptimized for cleared weak references.
@@ -1983,7 +1982,7 @@ void MarkCompactCollector::MarkRoots(RootVisitor* root_visitor) {
                               SkipRoot::kReadOnlyBuiltins});
 
 #if !V8_STATIC_DISPATCH_HANDLES_BOOL
-  JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+  JSDispatchTable& jdt = heap_->isolate()->js_dispatch_table();
   // Builtin dispatch handles are custom roots which are handled here.
   // TODO(olivf): Once dispatch handles are supported by the GC this should be
   // done by Heap::IterateBuiltins.
@@ -1992,7 +1991,7 @@ void MarkCompactCollector::MarkRoots(RootVisitor* root_visitor) {
        idx < JSBuiltinDispatchHandleRoot::kCount;
        idx = static_cast<JSBuiltinDispatchHandleRoot::Idx>(
            static_cast<int>(idx) + 1)) {
-    jdt->Mark(heap_->isolate_->builtin_dispatch_handle(idx));
+    jdt.Mark(heap_->isolate_->builtin_dispatch_handle(idx));
   }
 #endif
 
@@ -3147,10 +3146,10 @@ void MarkCompactCollector::ClearNonLiveReferences() {
 
   {
     TRACE_GC(heap_->tracer(), GCTracer::Scope::MC_SWEEP_JS_DISPATCH_TABLE);
-    JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+    JSDispatchTable& jdt = isolate->js_dispatch_table();
     Tagged<Code> compile_lazy =
         heap_->isolate()->builtins()->code(Builtin::kCompileLazy);
-    jdt->Sweep(heap_->js_dispatch_table_space(), isolate->counters(),
+    jdt.Sweep(heap_->js_dispatch_table_space(), isolate->counters(),
                [&](JSDispatchEntry& entry) {
                  Tagged<Code> code = entry.GetCode();
                  if (MarkingHelper::IsUnmarkedAndNotAlwaysLive(
@@ -3359,11 +3358,11 @@ void MarkCompactCollector::MarkDependentCodeForDeoptimization() {
       MarkForDeoptimization(weak_object_in_code.code);
     }
   }
-  JSDispatchTable* jdt = IsolateGroup::current()->js_dispatch_table();
+  JSDispatchTable& jdt = heap_->isolate()->js_dispatch_table();
   DispatchHandleAndCode dispatch_handle_in_code;
   while (local_weak_objects()->weak_dispatch_handles_in_code_local.Pop(
       &dispatch_handle_in_code)) {
-    if (!jdt->IsMarked(dispatch_handle_in_code.dispatch_handle)) {
+    if (!jdt.IsMarked(dispatch_handle_in_code.dispatch_handle)) {
       MarkForDeoptimization(dispatch_handle_in_code.code);
     }
   }
@@ -5746,7 +5745,8 @@ void MarkCompactCollector::UpdatePointersInClientHeap(Isolate* client) {
 void MarkCompactCollector::UpdatePointersInPointerTables() {
   // Process an entry of a pointer table, returning either the relocated object
   // or a null pointer if the object wasn't relocated.
-  auto process_entry = [&](Address content) -> Tagged<ExposedTrustedObject> {
+  const auto process_entry =
+      [](Address content) -> Tagged<ExposedTrustedObject> {
     Tagged<HeapObject> heap_obj = Cast<HeapObject>(Tagged<Object>(content));
     MapWord map_word = heap_obj->map_word(kRelaxedLoad);
     if (!map_word.IsForwardingAddress()) return {};
@@ -5756,35 +5756,21 @@ void MarkCompactCollector::UpdatePointersInPointerTables() {
   };
 
 #ifdef V8_ENABLE_SANDBOX
-  TrustedPointerTable* const tpt = &heap_->isolate()->trusted_pointer_table();
-  tpt->IterateActiveEntriesIn(
-      heap_->trusted_pointer_space(),
-      [&](TrustedPointerHandle handle, Address content) {
-        Tagged<ExposedTrustedObject> relocated_object = process_entry(content);
-        if (!relocated_object.is_null()) {
-          DCHECK_EQ(handle, relocated_object->self_indirect_pointer_handle());
-          auto instance_type = relocated_object->map()->instance_type();
-          bool shared = HeapLayout::InAnySharedSpace(relocated_object);
-          auto tag = IndirectPointerTagFromInstanceType(instance_type, shared);
-          tpt->Set(handle, relocated_object.ptr(), tag);
-        }
-      });
-
-  TrustedPointerTable* const stpt =
-      &heap_->isolate()->shared_trusted_pointer_table();
-  stpt->IterateActiveEntriesIn(
-      heap_->isolate()->shared_trusted_pointer_space(),
-      [&](TrustedPointerHandle handle, Address content) {
-        Tagged<ExposedTrustedObject> relocated_object = process_entry(content);
-        if (!relocated_object.is_null()) {
-          DCHECK_EQ(handle, relocated_object->self_indirect_pointer_handle());
-          auto instance_type = relocated_object->map()->instance_type();
-          bool shared = HeapLayout::InAnySharedSpace(relocated_object);
-          auto tag = IndirectPointerTagFromInstanceType(instance_type, shared);
-          DCHECK(IsSharedTrustedPointerType(tag));
-          stpt->Set(handle, relocated_object.ptr(), tag);
-        }
-      });
+  const auto process_table = [process_entry](
+                                 TrustedPointerTable& table,
+                                 TrustedPointerTable::Space* space) {
+    table.IterateActiveEntriesIn(space, [&](TrustedPointerHandle handle,
+                                            Address content) {
+      Tagged<ExposedTrustedObject> relocated_object = process_entry(content);
+      if (relocated_object.is_null()) return;
+      DCHECK_EQ(handle, relocated_object->self_indirect_pointer_handle());
+      table.Update(handle, relocated_object.ptr());
+    });
+  };
+  process_table(heap_->isolate()->trusted_pointer_table(),
+                heap_->trusted_pointer_space());
+  process_table(heap_->isolate()->shared_trusted_pointer_table(),
+                heap_->isolate()->shared_trusted_pointer_space());
 
   CodePointerTable* const cpt = IsolateGroup::current()->code_pointer_table();
   cpt->IterateActiveEntriesIn(
@@ -5798,12 +5784,12 @@ void MarkCompactCollector::UpdatePointersInPointerTables() {
       });
 #endif  // V8_ENABLE_SANDBOX
 
-  JSDispatchTable* const jdt = IsolateGroup::current()->js_dispatch_table();
+  JSDispatchTable& jdt = heap_->isolate()->js_dispatch_table();
   const EmbeddedData& embedded_data = EmbeddedData::FromBlob(heap_->isolate());
-  jdt->IterateActiveEntriesIn(
+  jdt.IterateActiveEntriesIn(
       heap_->js_dispatch_table_space(), [&](JSDispatchHandle handle) {
-        Address code_address = jdt->GetCodeAddress(handle);
-        Address entrypoint_address = jdt->GetEntrypoint(handle);
+        Address code_address = jdt.GetCodeAddress(handle);
+        Address entrypoint_address = jdt.GetEntrypoint(handle);
         Tagged<TrustedObject> relocated_code = process_entry(code_address);
         bool code_object_was_relocated = !relocated_code.is_null();
         Tagged<Code> code = TrustedCast<Code>(
@@ -5812,7 +5798,7 @@ void MarkCompactCollector::UpdatePointersInPointerTables() {
         bool instruction_stream_was_relocated =
             code->instruction_start() != entrypoint_address;
         if (code_object_was_relocated || instruction_stream_was_relocated) {
-          Address old_entrypoint = jdt->GetEntrypoint(handle);
+          Address old_entrypoint = jdt.GetEntrypoint(handle);
           // Ensure tiering trampolines are not overwritten here.
           Address new_entrypoint = ([&]() {
 #define CASE(name, ...)                                                       \
@@ -5823,8 +5809,8 @@ void MarkCompactCollector::UpdatePointersInPointerTables() {
 #undef CASE
             return code->instruction_start();
           })();
-          jdt->SetCodeAndEntrypointNoWriteBarrier(handle, code, new_entrypoint);
-          CHECK_IMPLIES(jdt->IsTieringRequested(handle),
+          jdt.SetCodeAndEntrypointNoWriteBarrier(handle, code, new_entrypoint);
+          CHECK_IMPLIES(jdt.IsTieringRequested(handle),
                         old_entrypoint == new_entrypoint);
         }
       });

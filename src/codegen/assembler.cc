@@ -195,6 +195,25 @@ AssemblerBase::AssemblerBase(const AssemblerOptions& options,
 
 AssemblerBase::~AssemblerBase() = default;
 
+int AssemblerBase::ComputeNewBufferSize(BufferGrowthStrategy strategy) {
+  int old_size = buffer_size();
+  int64_t new_size_64;
+
+  if (strategy == BufferGrowthStrategy::kDouble) {
+    new_size_64 = 2LL * old_size;
+  } else {
+    DCHECK_EQ(strategy, BufferGrowthStrategy::kDoubleCapped1MB);
+    new_size_64 = std::min<int64_t>(2LL * old_size,
+                                    static_cast<int64_t>(old_size) + 1 * MB);
+  }
+
+  if (new_size_64 > kMaximalBufferSize) {
+    V8::FatalProcessOutOfMemory(nullptr, "Assembler::GrowBuffer");
+  }
+  DCHECK_LE(new_size_64, kMaxInt);
+  return static_cast<int>(new_size_64);
+}
+
 void AssemblerBase::Print(Isolate* isolate) {
   StdoutStream os;
   v8::internal::Disassembler::Decode(isolate, os, buffer_start_, pc_);
@@ -338,6 +357,11 @@ IndirectHandle<HeapObject> AssemblerBase::GetEmbeddedObject(
     EmbeddedObjectIndex index) const {
   DCHECK_LT(index, embedded_objects_.size());
   return embedded_objects_[index];
+}
+
+void AssemblerBase::RecordJSDispatchHandle(JSDispatchHandle handle,
+                                           uint16_t argument_count) {
+  js_dispatch_handles_.push_back({handle, argument_count});
 }
 
 int Assembler::WriteCodeComments() {

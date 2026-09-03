@@ -970,7 +970,7 @@ DirectHandle<Object> LookupIterator::FetchValue(
     FieldIndex field_index =
         FieldIndex::ForDetails(holder->map(isolate_), property_details_);
     if (allocation_policy == AllocationPolicy::kAllocationDisallowed &&
-        field_index.is_inobject() && field_index.is_double()) {
+        field_index.is_double()) {
       return isolate_->factory()->undefined_value();
     }
     return JSObject::FastPropertyAt(

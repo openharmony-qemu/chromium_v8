@@ -2498,8 +2498,7 @@ void MacroAssembler::CallJSDispatchEntry(JSDispatchHandle dispatch_handle,
   LoadEntrypointFromJSDispatchTable(code, kJavaScriptCallDispatchHandleRegister,
                                     scratch);
   CHECK_EQ(argument_count,
-           IsolateGroup::current()->js_dispatch_table()->GetParameterCount(
-               dispatch_handle));
+           isolate()->js_dispatch_table().GetParameterCount(dispatch_handle));
   Call(code);
 }
 
@@ -3839,14 +3838,23 @@ void MacroAssembler::LoadTrustedPointerField(Register destination,
 
 void MacroAssembler::LoadTrustedUnknownPointerField(
     Register destination, MemOperand field_operand, Register scratch,
-    const std::initializer_list<std::tuple<InstanceType, Label*>>& cases) {
+    const std::initializer_list<std::tuple<InstanceType, Label*>>& cases,
+    Label* is_unavailable) {
   DCHECK(!AreAliased(destination, scratch));
-  Label done;
+  Label zero_and_fallthrough, done;
+
+  // The label is_unavailable will be used if the field is null (with enabled
+  // sandbox) or a Smi (with disabled sandbox). In these two cases, if the
+  // label is a nullptr, then we zero the destination register and fall through.
+  if (!is_unavailable) is_unavailable = &zero_and_fallthrough;
 
 #ifdef V8_ENABLE_SANDBOX
   {
     Register handle = scratch;
     Ldr(handle.W(), field_operand);
+
+    static_assert(kNullIndirectPointerHandle == 0);
+    Cbz(handle, is_unavailable);
 
     bool handles_code_case = false;
     constexpr int kCodePointerHandleMarkerBit = 0;
@@ -3867,7 +3875,7 @@ void MacroAssembler::LoadTrustedUnknownPointerField(
       }
     }
     if (!handles_code_case) {
-      Tbnz(handle, kCodePointerHandleMarkerBit, &done);
+      Tbnz(handle, kCodePointerHandleMarkerBit, &zero_and_fallthrough);
     }
 
     ResolveTrustedPointerHandle(destination, handle,
@@ -3899,8 +3907,11 @@ void MacroAssembler::LoadTrustedUnknownPointerField(
   }
 #endif  // V8_STATIC_ROOTS_BOOL
 
-  bind(&done);
+  B(&done);
+
+  bind(&zero_and_fallthrough);
   Mov(destination, xzr);
+  bind(&done);
 }
 
 void MacroAssembler::StoreTrustedPointerField(Register value,
@@ -4213,7 +4224,7 @@ void MacroAssembler::MoveObjectAndSlot(Register dst_object, Register dst_slot,
   ASM_CODE_COMMENT(this);
   DCHECK_NE(dst_object, dst_slot);
   // If `offset` is a register, it cannot overlap with `object`.
-  DCHECK_IMPLIES(!offset.IsImmediate(), offset.reg() != object);
+  DCHECK_IMPLIES(!offset.IsImmediate(), !offset.reg().Aliases(object));
 
   // If the slot register does not overlap with the object register, we can
   // overwrite it.
@@ -4227,19 +4238,19 @@ void MacroAssembler::MoveObjectAndSlot(Register dst_object, Register dst_slot,
 
   // If the destination object register does not overlap with the offset
   // register, we can overwrite it.
-  if (offset.IsImmediate() || (offset.reg() != dst_object)) {
+  if (offset.IsImmediate() || !offset.reg().Aliases(dst_object)) {
     Mov(dst_object, dst_slot);
     Add(dst_slot, dst_slot, offset);
     return;
   }
 
-  DCHECK_EQ(dst_object, offset.reg());
+  DCHECK(dst_object.Aliases(offset.reg()));
 
   // We only have `dst_slot` and `dst_object` left as distinct registers so we
   // have to swap them. We write this as a add+sub sequence to avoid using a
   // scratch register.
-  Add(dst_slot, dst_slot, dst_object);
-  Sub(dst_object, dst_slot, dst_object);
+  Add(dst_slot, dst_slot, offset);
+  Sub(dst_object, dst_slot, offset);
 }
 
 // If lr_status is kLRHasBeenSaved, lr will be clobbered.

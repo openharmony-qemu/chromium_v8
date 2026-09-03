@@ -1319,7 +1319,13 @@ bool CompilationDependencies::DependOnContextCell(ContextCellRef slot,
 bool CompilationDependencies::DependOnEmptyContextExtension(
     ScopeInfoRef scope_info) {
   if (!v8_flags.empty_context_extension_dep) return false;
+#ifdef OHOS_JS_ENGINE
+  if (!scope_info.SloppyEvalCanExtendVars()) {
+    return false;
+  }
+#else
   DCHECK(scope_info.SloppyEvalCanExtendVars());
+#endif
   if (HeapLayout::InReadOnlySpace(*scope_info.object()) ||
       scope_info.object()->SomeContextHasExtension()) {
     // There are respective contexts with non-empty context extension, so

@@ -89,7 +89,10 @@
   # Ensures that %VerifyGetJSBuiltinState() machinery works as expected.
   'regress/regress-435630464-verification-failure': [['mode == release', SKIP], ['mode != release', FAIL]],
 
-  ##############################################################################
+  # https://crbug.com/532595489
+  'regress/regress-532595489': [FAIL, CRASH, NO_VARIANTS, ['not pointer_compression', SKIP]],
+
+   ##############################################################################
   # Tests where variants make no sense.
   'd8/enable-tracing': [PASS, NO_VARIANTS],
   'd8/d8-os': [PASS, NO_VARIANTS],
@@ -253,6 +256,9 @@
 
   # Disabled since v8_flags.always_use_string_forwarding_table is now READONLY.
   'string-forwarding-table': [SKIP],
+
+  # Requires a large --wasm-max-code-space-size-mb.
+  'regress/wasm/regress-538378084': [PASS, ['arch not in (x64, ia32) or no_simd_hardware', SKIP]],
 
   # Slow tests in the lower_limits_mode.
   # The lower limits makes EphemeronHashTables more inefficient by making hashes
@@ -558,6 +564,7 @@
 
   'sandbox/regress/regress-334120897': [SKIP],
   'sandbox/regress/regress-349502157': [SKIP],
+  'sandbox/regress-537948358': [SKIP],
   'sandbox/wasm-inlining-sigcheck': [SKIP],
   'sandbox/wasm-signature-verification': [SKIP],
   'sandbox/wasm-table-import': [SKIP],
@@ -2507,6 +2514,7 @@
   'regress/wasm/regress-455832038': [SKIP],
   'compiler/regress-347724915': [SKIP],
   'regress/regress-crbug-418520151': [SKIP],
+  'regress/regress-535000102': [SKIP],
 
   # TODO(v8:14581): Re-enable this test once TransitionElementsKindOrCheckMap is
   # supported by the Maglev->Turboshaft graph builder.

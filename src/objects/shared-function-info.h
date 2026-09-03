@@ -352,6 +352,8 @@ class SharedFunctionInfo
   // Get the outer scope info whether this function is compiled or not.
   inline bool HasOuterScopeInfo() const;
   inline Tagged<ScopeInfo> GetOuterScopeInfo() const;
+  inline Tagged<ScopeInfo> TryGetScopeInfoForMerge() const;
+  inline Tagged<ScopeInfo> TryGetOuterScopeInfo() const;
 
   // [feedback metadata] Metadata template for feedback vectors of instances of
   // this function.
@@ -529,7 +531,6 @@ class SharedFunctionInfo
       WriteBarrierMode mode = UPDATE_WRITE_BARRIER);
   inline bool HasUncompiledDataWithoutPreparseData(
       IsolateForSandbox isolate) const;
-  inline void ClearUncompiledDataJobPointer(IsolateForSandbox isolate);
 
   // Clear out pre-parsed scope data from UncompiledDataWithPreparseData,
   // turning it into UncompiledDataWithoutPreparseData.

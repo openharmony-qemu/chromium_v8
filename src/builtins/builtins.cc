@@ -725,6 +725,8 @@ Builtins::JSBuiltinStateFlags Builtins::GetJSBuiltinState(Builtin builtin) {
     case Builtin::kJSToJSWrapper:
     case Builtin::kJSToJSWrapperInvalidSig:
     case Builtin::kWasmPromising:
+    case Builtin::kWasmResume:
+    case Builtin::kWasmReject:
 #if V8_ENABLE_DRUMBRAKE
     case Builtin::kGenericJSToWasmInterpreterWrapper:
 #endif
@@ -734,8 +736,6 @@ Builtins::JSBuiltinStateFlags Builtins::GetJSBuiltinState(Builtin builtin) {
     // These are core JS builtins which are instantiated lazily.
     case Builtin::kWasmConstructorWrapper:
     case Builtin::kWasmMethodWrapper:
-    case Builtin::kWasmResume:
-    case Builtin::kWasmReject:
     // Well known import functions.
     case Builtin::kWebAssemblyStringCast:
     case Builtin::kWebAssemblyStringTest:
@@ -896,6 +896,12 @@ Builtins::JSBuiltinStateFlags Builtins::GetJSBuiltinState(Builtin builtin) {
     case Builtin::kWeakMapPrototypeGetOrInsert:
     case Builtin::kWeakMapPrototypeGetOrInsertComputed:
       RETURN_FLAG_DEPENDENT_BUILTIN_STATE(v8_flags.js_upsert);
+
+    // --js-immutable-arraybuffer
+    case Builtin::kArrayBufferPrototypeGetImmutable:
+    case Builtin::kArrayBufferPrototypeTransferToImmutable:
+    case Builtin::kArrayBufferPrototypeSliceToImmutable:
+      RETURN_FLAG_DEPENDENT_BUILTIN_STATE(v8_flags.js_immutable_arraybuffer);
 
 #ifdef V8_INTL_SUPPORT
     // --js-intl-locale-variants

@@ -3572,12 +3572,14 @@ class TypedElementsAccessor
 
   static PropertyDetails GetDetailsImpl(Tagged<JSObject> holder,
                                         InternalIndex entry) {
-    return PropertyDetails(PropertyKind::kData, NONE,
-                           PropertyCellType::kNoCell);
-  }
-
-  static PropertyDetails GetDetailsImpl(Tagged<FixedArrayBase> backing_store,
-                                        InternalIndex entry) {
+    Tagged<JSTypedArray> typed_array = Cast<JSTypedArray>(holder);
+    Tagged<JSArrayBuffer> buffer = Cast<JSArrayBuffer>(typed_array->buffer());
+    if (buffer->is_immutable()) {
+      return PropertyDetails(
+          PropertyKind::kData,
+          static_cast<PropertyAttributes>(DONT_DELETE | READ_ONLY),
+          PropertyCellType::kNoCell);
+    }
     return PropertyDetails(PropertyKind::kData, NONE,
                            PropertyCellType::kNoCell);
   }
@@ -4088,6 +4090,10 @@ class TypedElementsAccessor
     bool both_are_simple = HasSimpleRepresentation(source_type) &&
                            HasSimpleRepresentation(destination_type);
 
+    size_t source_byte_length = length * source_size;
+    // Guard against switching the ElementsKind to make this too big.
+    SBXCHECK(source_byte_length <= ArrayBuffer::kMaxByteLength);
+
     // We can simply copy the backing store if the types are the same, or if
     // we are converting e.g. Uint8 <-> Int8, as the binary representation
     // will be the same. This is not the case for floats or clamped Uint8,
@@ -4096,18 +4102,13 @@ class TypedElementsAccessor
       if (source_shared || destination_shared) {
         base::Relaxed_Memcpy(reinterpret_cast<base::Atomic8*>(dest_data),
                              reinterpret_cast<base::Atomic8*>(source_data),
-                             length * source_size);
+                             source_byte_length);
       } else {
-        std::memmove(dest_data, source_data, length * source_size);
+        std::memmove(dest_data, source_data, source_byte_length);
       }
     } else {
       std::unique_ptr<uint8_t[]> cloned_source_elements;
-      size_t source_byte_length = length * source_size;
       size_t dest_byte_length = length * destination_size;
-
-      // Guard against switching the ElementsKind to make this too big.
-      SBXCHECK(source_byte_length <= ArrayBuffer::kMaxByteLength);
-      SBXCHECK(dest_byte_length <= ArrayBuffer::kMaxByteLength);
 
       // Guard against switching the ElementsKind to make this too big.
       SBXCHECK(source_byte_length <= TypedArray::kMaxByteLength);

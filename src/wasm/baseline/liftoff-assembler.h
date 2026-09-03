@@ -695,6 +695,12 @@ class LiftoffAssembler : public MacroAssembler {
   inline void CheckStackShrink();
   inline void LoadConstant(LiftoffRegister, WasmValue);
   inline void LoadInstanceDataFromFrame(Register dst);
+  inline void LoadMemoryStart(Register dst, Register instance_data,
+                              int mem_index);
+  inline void RestoreCachedRegisters(Register instance_data,
+                                     bool reload_instance_data,
+                                     Register mem_start, bool reload_mem_start,
+                                     int mem_index);
   inline void LoadTrustedPointer(Register dst, Register src_addr, int offset,
                                  IndirectPointerTag tag);
   inline void LoadFromInstance(Register dst, Register instance, int offset,
@@ -1597,8 +1603,11 @@ class LiftoffAssembler : public MacroAssembler {
   inline void AllocateStackSlot(Register addr, uint32_t size);
   inline void DeallocateStackSlot(uint32_t size);
 
+#if V8_TARGET_ARCH_X64
   // Instrumentation for shadow-stack-compatible OSR on x64.
   inline void MaybeOSR();
+  inline void AssertOSREmpty();
+#endif
 
   inline bool supports_f16_mem_access();
 

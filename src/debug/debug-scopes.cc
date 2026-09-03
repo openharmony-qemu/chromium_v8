@@ -694,6 +694,9 @@ bool ScopeIterator::SetVariableValue(Handle<String> name,
                                      DirectHandle<Object> value) {
   DCHECK(!Done());
   name = isolate_->factory()->InternalizeString(name);
+  // Synthetic variables are compiler-introduced and not exposed to the user, so
+  // they may carry values outside the JSAny type and must not be overwritten.
+  if (ScopeInfo::VariableIsSynthetic(*name)) return false;
   switch (Type()) {
     case ScopeTypeGlobal:
     case ScopeTypeWith:
@@ -1033,17 +1036,28 @@ void ScopeIterator::VisitLocalScope(const Visitor& visitor, Mode mode,
       // suspended generators. We'd need to read the arguments out from the
       // suspended generator rather than from an activation as
       // FunctionGetArguments does.
-      if (frame_inspector_ != nullptr && !closure_scope_->is_arrow_scope() &&
-          (closure_scope_->arguments() == nullptr ||
-           IsOptimizedOut(*frame_inspector_->GetExpression(
-                              closure_scope_->arguments()->index()),
-                          isolate_))) {
+      if (frame_inspector_ != nullptr && !closure_scope_->is_arrow_scope()) {
+        Variable* arguments_var = closure_scope_->arguments();
+        bool arguments_optimized_out = arguments_var == nullptr;
         JavaScriptFrame* frame = GetFrame();
-        Handle<JSObject> arguments = Accessors::FunctionGetArguments(
-            frame, frame_inspector_->inlined_frame_index());
-        if (visitor(isolate_->factory()->arguments_string(), arguments,
-                    scope_type))
-          return;
+        if (!arguments_optimized_out &&
+            arguments_var->location() == VariableLocation::LOCAL) {
+          int index = arguments_var->index();
+          if (frame->is_unoptimized()) {
+            CHECK_GE(index, 0);
+            CHECK_LT(index, frame->ComputeExpressionsCount());
+          }
+          arguments_optimized_out =
+              IsOptimizedOut(*frame_inspector_->GetExpression(index), isolate_);
+        }
+
+        if (arguments_optimized_out) {
+          Handle<JSObject> arguments = Accessors::FunctionGetArguments(
+              frame, frame_inspector_->inlined_frame_index());
+          if (visitor(isolate_->factory()->arguments_string(), arguments,
+                      scope_type))
+            return;
+        }
       }
     }
   } else {
