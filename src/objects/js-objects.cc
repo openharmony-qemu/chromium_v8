@@ -158,7 +158,7 @@ Maybe<bool> JSReceiver::HasOwnProperty(Isolate* isolate,
 }
 
 Handle<Object> JSReceiver::GetDataProperty(LookupIterator* it,
-                                           AllocationPolicy allocation_policy) {
+                                           AllowAllocation allow_allocation) {
   for (;; it->Next()) {
     switch (it->state()) {
       case LookupIterator::INTERCEPTOR:
@@ -199,7 +199,7 @@ Handle<Object> JSReceiver::GetDataProperty(LookupIterator* it,
       case LookupIterator::TYPED_ARRAY_INDEX_NOT_FOUND:
         return it->isolate()->factory()->undefined_value();
       case LookupIterator::DATA:
-        return it->GetDataValue(allocation_policy);
+        return it->GetDataValue(allow_allocation);
       case LookupIterator::NOT_FOUND:
         return it->isolate()->factory()->undefined_value();
     }
@@ -574,6 +574,7 @@ Tagged<String> JSReceiver::class_name() {
 namespace {
 std::pair<MaybeDirectHandle<JSFunction>, DirectHandle<String>>
 GetConstructorHelper(Isolate* isolate, DirectHandle<JSReceiver> receiver) {
+  DisallowGarbageCollection no_gc;
   // If the object was instantiated simply with base == new.target, the
   // constructor on the map provides the most accurate name.
   // Don't provide the info for prototypes, since their constructors are
@@ -586,7 +587,7 @@ GetConstructorHelper(Isolate* isolate, DirectHandle<JSReceiver> receiver) {
       DirectHandle<JSFunction> constructor =
           Cast<JSFunction>(maybe_constructor);
       DirectHandle<String> name =
-          JSFunction::GetDebugName(isolate, constructor);
+          JSFunction::GetDebugName(isolate, constructor, AllowAllocation::kNo);
       if (name->length() != 0 &&
           !name->Equals(ReadOnlyRoots(isolate).Object_string())) {
         return std::make_pair(indirect_handle(constructor, isolate), name);
@@ -609,8 +610,8 @@ GetConstructorHelper(Isolate* isolate, DirectHandle<JSReceiver> receiver) {
     LookupIterator it_to_string_tag(
         isolate, receiver, isolate->factory()->to_string_tag_symbol(), current,
         LookupIterator::OWN_SKIP_INTERCEPTOR);
-    auto maybe_to_string_tag = JSReceiver::GetDataProperty(
-        &it_to_string_tag, AllocationPolicy::kAllocationDisallowed);
+    auto maybe_to_string_tag =
+        JSReceiver::GetDataProperty(&it_to_string_tag, AllowAllocation::kNo);
     if (IsString(*maybe_to_string_tag)) {
       return std::make_pair(MaybeHandle<JSFunction>(),
                             Cast<String>(maybe_to_string_tag));
@@ -646,12 +647,13 @@ GetConstructorHelper(Isolate* isolate, DirectHandle<JSReceiver> receiver) {
       LookupIterator it_constructor(
           isolate, receiver, isolate->factory()->constructor_string(), current,
           LookupIterator::OWN_SKIP_INTERCEPTOR);
-      auto maybe_constructor = JSReceiver::GetDataProperty(
-          &it_constructor, AllocationPolicy::kAllocationDisallowed);
+      auto maybe_constructor =
+          JSReceiver::GetDataProperty(&it_constructor, AllowAllocation::kNo);
       if (IsJSFunction(*maybe_constructor)) {
         auto constructor = Cast<JSFunction>(maybe_constructor);
         auto name = SharedFunctionInfo::DebugName(
-            isolate, direct_handle(constructor->shared(), isolate));
+            isolate, direct_handle(constructor->shared(), isolate),
+            AllowAllocation::kNo);
 
         if (name->length() != 0 &&
             !name->Equals(ReadOnlyRoots(isolate).Object_string())) {
