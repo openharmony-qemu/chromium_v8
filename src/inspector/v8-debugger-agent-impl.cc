@@ -1759,7 +1759,7 @@ Response V8DebuggerAgentImpl::setVariableValue(
     --scopeNumber;
     scopeIterator->Advance();
   }
-  if (scopeNumber != 0) {
+  if (scopeNumber != 0 || scopeIterator->Done()) {
     return Response::ServerError("Could not find scope with given number");
   }
 
