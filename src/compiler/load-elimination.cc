@@ -784,7 +784,8 @@ Reduction LoadElimination::ReduceMapGuard(Node* node) {
 }
 
 Reduction LoadElimination::ReduceCheckMaps(Node* node) {
-  ZoneRefSet<Map> const& maps = CheckMapsParametersOf(node->op()).maps();
+  CheckMapsParameters const& p = CheckMapsParametersOf(node->op());
+  ZoneRefSet<Map> const& maps = p.maps();
   Node* const object = NodeProperties::GetValueInput(node, 0);
   Node* const effect = NodeProperties::GetEffectInput(node);
   AbstractState const* state = node_states_.Get(effect);
@@ -794,8 +795,23 @@ Reduction LoadElimination::ReduceCheckMaps(Node* node) {
     if (maps.contains(object_maps)) return Replace(effect);
     // TODO(turbofan): Compute the intersection.
   }
+  state = KillFieldsOnInstanceMigration(node, state);
   state = state->SetMaps(object, maps, zone());
   return UpdateState(node, state);
+}
+
+LoadElimination::AbstractState const*
+LoadElimination::KillFieldsOnInstanceMigration(Node* node,
+                                              AbstractState const* state) const {
+  CheckMapsParameters const& p = CheckMapsParametersOf(node->op());
+  if (p.flags() & (CheckMapsFlag::kTryMigrateInstance |
+                   CheckMapsFlag::kTryMigrateInstanceAndDeopt)) {
+    Node* const object = NodeProperties::GetValueInput(node, 0);
+    state = state->KillFields(object, MaybeHandle<Name>(), zone());
+    state = state->KillConstField(
+        object, IndexRange(0, kMaxTrackedFieldsPerObject), zone());
+  }
+  return state;
 }
 
 Reduction LoadElimination::ReduceCompareMaps(Node* node) {
@@ -1384,13 +1400,7 @@ LoadElimination::AbstractState const* LoadElimination::ComputeLoopState(
       visited.insert(current);
       if (!current->op()->HasProperty(Operator::kNoWrite)) {
         switch (current->opcode()) {
-          case IrOpcode::kEnsureWritableFastElements: {
-            Node* const object = NodeProperties::GetValueInput(current, 0);
-            state = state->KillField(
-                object, FieldIndexOf(JSObject::kElementsOffset, kTaggedSize),
-                MaybeHandle<Name>(), zone());
-            break;
-          }
+          case IrOpcode::kEnsureWritableFastElements:
           case IrOpcode::kMaybeGrowFastElements: {
             Node* const object = NodeProperties::GetValueInput(current, 0);
             state = state->KillField(
@@ -1450,6 +1460,8 @@ LoadElimination::AbstractState const* LoadElimination::ComputeLoopState(
             break;
           }
           case IrOpcode::kCheckMaps:
+            state = KillFieldsOnInstanceMigration(current, state);
+            break;
           case IrOpcode::kStoreTypedElement: {
             // Doesn't affect anything we track with the state currently.
             break;
