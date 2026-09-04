@@ -348,6 +348,8 @@ class V8_EXPORT_PRIVATE LoadElimination final
   AbstractState const* ComputeLoopStateForStoreField(
       Node* current, LoadElimination::AbstractState const* state,
       FieldAccess const& access) const;
+  AbstractState const* KillFieldsOnInstanceMigration(
+      Node* node, AbstractState const* state) const;
   AbstractState const* UpdateStateForPhi(AbstractState const* state,
                                          Node* effect_phi, Node* phi);
 
