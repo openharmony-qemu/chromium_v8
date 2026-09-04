@@ -1626,6 +1626,10 @@ enum class RecordYoungSlot : bool {
   kYes,
 };
 
+// Enum for functions that offer a second mode that does not cause allocations.
+// Used in conjunction with LookupIterator and unboxed double fields.
+enum class AllowAllocation : uint8_t { kYes, kNo };
+
 enum AllocationAlignment : uint8_t {
   // The allocated address is kTaggedSize aligned (this is default for most of
   // the allocations).

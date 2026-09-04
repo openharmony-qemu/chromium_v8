@@ -1786,6 +1786,10 @@ DirectHandle<WasmTrustedInstanceData> WasmTrustedInstanceData::New(
     }
   }
 
+  // Publish WasmTrustedInstanceData now that all body fields are fully
+  // initialized.
+  trusted_data->Publish(isolate);
+
   if (!shared) {
     // Allocate the WasmInstanceObject (JS wrapper).
     DirectHandle<JSFunction> instance_cons(
@@ -1807,7 +1811,6 @@ DirectHandle<WasmTrustedInstanceData> WasmTrustedInstanceData::New(
       module_object->script()->set_wasm_weak_instance_list(*weak_instance_list);
     }
   }
-
   return trusted_data;
 }
 

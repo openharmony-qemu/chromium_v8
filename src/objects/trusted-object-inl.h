@@ -115,6 +115,10 @@ void ExposedTrustedObject::InitDontPublish(LocalIsolate* isolate) {
 #endif
 }
 
+void ExposedTrustedObject::Publish(Isolate* isolate) {
+  this->Publish(IsolateForSandbox(isolate));
+}
+
 void ExposedTrustedObject::Publish(IsolateForSandbox isolate) {
 #ifdef V8_ENABLE_SANDBOX
   DCHECK(!IsPublished(isolate));

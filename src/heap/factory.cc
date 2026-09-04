@@ -222,13 +222,6 @@ MaybeHandle<Code> Factory::CodeBuilder::BuildInternal(
                 handle(on_heap_profiler_data->counts(), isolate_));
       }
 
-      // Migrate generated code.
-      // The generated code can contain embedded objects (typically from
-      // handles) in a pointer-to-tagged-value format (i.e. with indirection
-      // like a handle) that are dereferenced during the copy to point
-      // directly to the actual heap objects. These pointers can include
-      // references to the code object itself, through the self_reference
-      // parameter.
       istream->Finalize(*code, *reloc_info, code_desc_, isolate_->heap());
 
 #ifdef VERIFY_HEAP
@@ -1700,7 +1693,8 @@ DirectHandle<WasmTrustedInstanceData> Factory::NewWasmTrustedInstanceData(
           shared ? AllocationType::kSharedTrusted : AllocationType::kTrusted,
           read_only_roots().wasm_trusted_instance_data_map()));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
+  // Published after fields are initialized on the caller side.
+  result->InitDontPublish(isolate());
   result->clear_padding();
   for (int offset : WasmTrustedInstanceData::kTaggedFieldOffsets) {
     result->RawField(offset).store(read_only_roots().undefined_value());
@@ -1728,7 +1722,6 @@ DirectHandle<WasmDispatchTable> Factory::NewWasmDispatchTable(
           shared ? AllocationType::kSharedTrusted : AllocationType::kTrusted,
           read_only_roots().wasm_dispatch_table_map()));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
   result->WriteField<int>(WasmDispatchTable::kLengthOffset, length);
   result->WriteField<int>(WasmDispatchTable::kCapacityOffset, length);
   if (length > 0) {
@@ -1741,6 +1734,7 @@ DirectHandle<WasmDispatchTable> Factory::NewWasmDispatchTable(
   for (int i = 0; i < length; ++i) {
     result->Clear(i, WasmDispatchTable::kNewEntry);
   }
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -1872,7 +1866,6 @@ DirectHandle<WasmInternalFunction> Factory::NewWasmInternalFunction(
           *wasm_internal_function_map()));
 
   DisallowGarbageCollection no_gc;
-  internal->InitAndPublish(isolate());
   internal->set_call_target(call_target);
   DCHECK(IsWasmTrustedInstanceData(*implicit_arg) ||
          IsWasmImportData(*implicit_arg));
@@ -1880,6 +1873,7 @@ DirectHandle<WasmInternalFunction> Factory::NewWasmInternalFunction(
   internal->set_function_index(function_index);
   internal->set_external(*undefined_value());
   internal->set_sig(sig);
+  internal->InitAndPublish(isolate());
 
   return direct_handle(internal, isolate());
 }
@@ -1927,7 +1921,6 @@ DirectHandle<WasmJSFunctionData> Factory::NewWasmJSFunctionData(
   Tagged<WasmJSFunctionData> result =
       TrustedCast<WasmJSFunctionData>(AllocateRawWithImmortalMap(
           map->instance_size(), AllocationType::kTrusted, map));
-  result->InitAndPublish(isolate());
   DisallowGarbageCollection no_gc;
   result->set_func_ref(*func_ref);
   result->set_internal(*internal);
@@ -1935,6 +1928,7 @@ DirectHandle<WasmJSFunctionData> Factory::NewWasmJSFunctionData(
   result->set_js_promise_flags(WasmFunctionData::SuspendField::encode(suspend) |
                                WasmFunctionData::PromiseField::encode(promise));
   result->set_protected_offheap_data(*offheap_data);
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -1956,13 +1950,13 @@ DirectHandle<WasmSuspenderObject> Factory::NewWasmSuspenderObject() {
       TrustedCast<WasmSuspenderObject>(AllocateRawWithImmortalMap(
           map->instance_size(), AllocationType::kTrusted, map));
   auto suspender = handle(obj, isolate());
-  // Ensure that all properties are initialized before the allocation below.
-  suspender->InitAndPublish(isolate());
+  DisallowGarbageCollection no_gc;
   suspender->init_stack(IsolateForSandbox(isolate()), nullptr);
   suspender->clear_parent();
   suspender->set_promise(*undefined_value());
   suspender->set_resume(*undefined_value());
   suspender->set_reject(*undefined_value());
+  suspender->InitAndPublish(isolate());
   return suspender;
 }
 
@@ -2016,7 +2010,6 @@ DirectHandle<WasmExportedFunctionData> Factory::NewWasmExportedFunctionData(
   Tagged<WasmExportedFunctionData> result =
       TrustedCast<WasmExportedFunctionData>(AllocateRawWithImmortalMap(
           map->instance_size(), AllocationType::kTrusted, map));
-  result->InitAndPublish(isolate());
   DisallowGarbageCollection no_gc;
   result->set_func_ref(*func_ref);
   result->set_internal(*internal_function);
@@ -2032,6 +2025,7 @@ DirectHandle<WasmExportedFunctionData> Factory::NewWasmExportedFunctionData(
   result->set_js_promise_flags(
       WasmFunctionData::SuspendField::encode(wasm::kNoSuspend) |
       WasmFunctionData::PromiseField::encode(promise));
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -2055,7 +2049,6 @@ DirectHandle<WasmCapiFunctionData> Factory::NewWasmCapiFunctionData(
   Tagged<WasmCapiFunctionData> result =
       TrustedCast<WasmCapiFunctionData>(AllocateRawWithImmortalMap(
           map->instance_size(), AllocationType::kTrusted, map));
-  result->InitAndPublish(isolate());
   DisallowGarbageCollection no_gc;
   result->set_func_ref(*func_ref);
   result->set_internal(*internal);
@@ -2064,6 +2057,7 @@ DirectHandle<WasmCapiFunctionData> Factory::NewWasmCapiFunctionData(
   result->set_js_promise_flags(
       WasmFunctionData::SuspendField::encode(wasm::kNoSuspend) |
       WasmFunctionData::PromiseField::encode(wasm::kNoPromise));
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -3068,7 +3062,6 @@ DirectHandle<BytecodeArray> Factory::CopyBytecodeArray(
           size, AllocationType::kTrusted, *bytecode_array_map()));
   DisallowGarbageCollection no_gc;
   Tagged<BytecodeArray> raw_source = *source;
-  copy->InitAndPublish(isolate());
   copy->set_length(raw_source->length());
   copy->set_frame_size(raw_source->frame_size());
   copy->set_parameter_count(raw_source->parameter_count());
@@ -3085,6 +3078,7 @@ DirectHandle<BytecodeArray> Factory::CopyBytecodeArray(
     copy->clear_source_position_table(kReleaseStore);
   }
   raw_source->CopyBytecodesTo(copy);
+  copy->InitAndPublish(isolate());
   wrapper->set_bytecode(copy);
   return direct_handle(copy, isolate());
 }
@@ -4034,9 +4028,9 @@ DirectHandle<InterpreterData> Factory::NewInterpreterData(
       AllocateRawWithImmortalMap(map->instance_size(), AllocationType::kTrusted,
                                  *interpreter_data_map()));
   DisallowGarbageCollection no_gc;
-  interpreter_data->InitAndPublish(isolate());
   interpreter_data->set_bytecode_array(*bytecode_array);
   interpreter_data->set_interpreter_trampoline(*code);
+  interpreter_data->InitAndPublish(isolate());
   return direct_handle(interpreter_data, isolate());
 }
 
@@ -4318,13 +4312,13 @@ DirectHandle<RegExpData> Factory::NewAtomRegExpData(
       size, AllocationType::kTrusted, read_only_roots().atom_regexp_data_map());
   DisallowGarbageCollection no_gc;
   Tagged<AtomRegExpData> instance = TrustedCast<AtomRegExpData>(result);
-  instance->InitAndPublish(isolate());
   instance->set_type_tag(RegExpData::Type::ATOM);
   instance->set_source(*source);
   instance->set_flags(flags);
   instance->set_pattern(*pattern);
   Tagged<RegExpDataWrapper> raw_wrapper = *wrapper;
   instance->set_wrapper(raw_wrapper);
+  instance->InitAndPublish(isolate());
   raw_wrapper->set_data(instance);
   return direct_handle(instance, isolate());
 }
@@ -4340,7 +4334,6 @@ DirectHandle<RegExpData> Factory::NewIrRegExpData(DirectHandle<String> source,
       size, AllocationType::kTrusted, read_only_roots().ir_regexp_data_map());
   DisallowGarbageCollection no_gc;
   Tagged<IrRegExpData> instance = TrustedCast<IrRegExpData>(result);
-  instance->InitAndPublish(isolate());
   instance->set_type_tag(RegExpData::Type::IRREGEXP);
   instance->set_source(*source);
   instance->set_flags(flags);
@@ -4359,6 +4352,7 @@ DirectHandle<RegExpData> Factory::NewIrRegExpData(DirectHandle<String> source,
   instance->set_bit_field(bit_field);
   Tagged<RegExpDataWrapper> raw_wrapper = *wrapper;
   instance->set_wrapper(raw_wrapper);
+  instance->InitAndPublish(isolate());
   raw_wrapper->set_data(instance);
   return direct_handle(instance, isolate());
 }
@@ -4378,7 +4372,6 @@ DirectHandle<RegExpData> Factory::NewExperimentalRegExpData(
   // struct. `RegExpExecInternal` should probably distinguish between
   // EXPERIMENTAL and IRREGEXP, and then we can get rid of all the IRREGEXP only
   // fields.
-  instance->InitAndPublish(isolate());
   instance->set_type_tag(RegExpData::Type::EXPERIMENTAL);
   instance->set_source(*source);
   instance->set_flags(flags);
@@ -4394,6 +4387,7 @@ DirectHandle<RegExpData> Factory::NewExperimentalRegExpData(
   instance->set_bit_field(0);
   Tagged<RegExpDataWrapper> raw_wrapper = *wrapper;
   instance->set_wrapper(raw_wrapper);
+  instance->InitAndPublish(isolate());
   raw_wrapper->set_data(instance);
   return direct_handle(instance, isolate());
 }

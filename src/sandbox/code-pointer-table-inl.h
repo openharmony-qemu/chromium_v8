@@ -25,13 +25,13 @@ void CodePointerTableEntry::MakeCodePointerEntry(Address code,
   DCHECK_NE(tag, kFreeCodePointerTableEntryTag);
 
   if (mark_as_alive) code |= kMarkingBit;
-  entrypoint_.store(entrypoint ^ tag, std::memory_order_relaxed);
-  code_.store(code, std::memory_order_relaxed);
+  entrypoint_.store(entrypoint ^ tag, std::memory_order_release);
+  code_.store(code, std::memory_order_release);
 }
 
 Address CodePointerTableEntry::GetEntrypoint(CodeEntrypointTag tag) const {
   DCHECK(!IsFreelistEntry());
-  return entrypoint_.load(std::memory_order_relaxed) ^ tag;
+  return entrypoint_.load(std::memory_order_acquire) ^ tag;
 }
 
 void CodePointerTableEntry::SetEntrypoint(Address value,
@@ -40,14 +40,14 @@ void CodePointerTableEntry::SetEntrypoint(Address value,
   DCHECK_EQ(value >> kCodeEntrypointTagShift, 0);
   DCHECK_NE(tag, kFreeCodePointerTableEntryTag);
 
-  entrypoint_.store(value ^ tag, std::memory_order_relaxed);
+  entrypoint_.store(value ^ tag, std::memory_order_release);
 }
 
 Address CodePointerTableEntry::GetCodeObject() const {
   DCHECK(!IsFreelistEntry());
   // We reuse the heap object tag bit as marking bit, so we need to explicitly
   // set it here when accessing the pointer.
-  return code_.load(std::memory_order_relaxed) | kMarkingBit;
+  return code_.load(std::memory_order_acquire) | kMarkingBit;
 }
 
 void CodePointerTableEntry::SetCodeObject(Address new_value) {
@@ -56,7 +56,7 @@ void CodePointerTableEntry::SetCodeObject(Address new_value) {
   // is always automatically the case, but if this ever fails, we might need to
   // manually copy the marking bit.
   DCHECK_EQ(code_ & kMarkingBit, new_value & kMarkingBit);
-  code_.store(new_value, std::memory_order_relaxed);
+  code_.store(new_value, std::memory_order_release);
 }
 
 void CodePointerTableEntry::MakeFreelistEntry(uint32_t next_entry_index) {
