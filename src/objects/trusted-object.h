@@ -132,6 +132,10 @@ class ExposedTrustedObject : public TrustedObject {
   // invalid type tag) until this method is called.
   inline void Publish(IsolateForSandbox isolate);
 
+  // Unpublishes this object so it becomes inaccessible from within the
+  // sandbox.
+  inline void Unpublish(IsolateForSandbox isolate);
+
   // Returns true if this trusted object is "published", i.e. accessible from
   // within the sandbox via the trusted pointer table.
   inline bool IsPublished(IsolateForSandbox isolate) const;
