@@ -474,11 +474,6 @@ void LateLoadEliminationAnalyzer::ProcessCall(OpIndex op_idx,
   // Some builtins do not create aliases and do not invalidate existing
   // memory, and some even return fresh objects. For such cases, we don't
   // invalidate the state, and record the non-alias if any.
-  if (!op.Effects().can_write()) {
-    TRACE(">> Call doesn't write, skipping");
-    return;
-  }
-
   auto builtin_id = TryGetBuiltinId(callee.TryCast<ConstantOp>(), broker_);
 
   if (builtin_id) {
@@ -495,6 +490,10 @@ void LateLoadEliminationAnalyzer::ProcessCall(OpIndex op_idx,
         memory_.Invalidate(op.arguments()[0], OpIndex::Invalid(),
                            JSObject::kElementsOffset);
         return;
+      case Builtin::kCreateShallowObjectLiteral:
+        // This builtin creates a fresh non-aliasing object.
+        non_aliasing_objects_.Set(op_idx, true);
+        return;
       default:
         break;
     }
@@ -504,15 +503,14 @@ void LateLoadEliminationAnalyzer::ProcessCall(OpIndex op_idx,
   // memory.
   InvalidateAllNonAliasingInputs(op);
 
-  if (builtin_id) {
-    switch (*builtin_id) {
-      case Builtin::kCreateShallowObjectLiteral:
-        // This builtin creates a fresh non-aliasing object.
-        non_aliasing_objects_.Set(op_idx, true);
-        break;
-      default:
-        break;
-    }
+  // Keep in mind that "can_write" really means "can write to already allocated
+  // memory" and excludes writes to memory that the call itself allocates.
+  // Hence, InvalidateAllNonAliasingInputs must be called before this can_write
+  // bailout, to account for the fact that some builtins may create fresh
+  // objects that copy their inputs, thus creating aliases.
+  if (!op.Effects().can_write()) {
+    TRACE(">> Call doesn't write, skipping");
+    return;
   }
 
   // The call could modify arbitrary memory, so we invalidate every
