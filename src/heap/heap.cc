@@ -1842,6 +1842,18 @@ bool Heap::HasConsecutiveIneffectiveMarkCompact() const {
              std::memory_order_relaxed) > 0;
 }
 
+#ifdef OHOS_JS_ENGINE
+void Heap::InvokeJSVMOOMCallback(const char* location) {
+  auto callback = isolate()->oom_behavior_with_isolate();
+  if (callback == nullptr) return;
+  std::stringstream stream;
+  DumpJSONHeapStatistics(stream);
+  std::string heap_stat = stream.str();
+  callback(reinterpret_cast<v8::Isolate*>(isolate()), location, V8::kHeapOOM,
+           heap_stat.c_str());
+}
+#endif
+
 void Heap::CheckHeapLimitReached() {
   if (ReachedHeapLimit()) {
     InvokeNearHeapLimitCallback();
@@ -1853,6 +1865,9 @@ void Heap::CheckHeapLimitReached() {
       if (v8_flags.heap_dump_on_oom) {
         dfx::DumpHeapAfterOOM(this);
       }
+#endif
+#ifdef OHOS_JS_ENGINE
+      InvokeJSVMOOMCallback("Reached heap limit");
 #endif
       FatalProcessOutOfMemory("Reached heap limit");
     }
@@ -3871,6 +3886,9 @@ void Heap::CheckIneffectiveMarkCompact(size_t old_generation_size,
     if (v8_flags.heap_dump_on_oom) {
       dfx::DumpHeapAfterOOM(this);
     }
+#endif
+#ifdef OHOS_JS_ENGINE
+    InvokeJSVMOOMCallback("Ineffective mark-compacts near heap limit");
 #endif
     FatalProcessOutOfMemory("Ineffective mark-compacts near heap limit");
   }
