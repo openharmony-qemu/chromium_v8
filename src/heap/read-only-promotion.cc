@@ -479,7 +479,8 @@ class ReadOnlyPromotionImpl final : public AllStatic {
           CHECK(IsCode(new_code));
           // TODO(saelo): is it worth logging something
           // in this case?
-          jdt.SetCodeNoWriteBarrier(handle, TrustedCast<Code>(new_code));
+          jdt.SetCodeNoWriteBarrier(handle, TrustedCast<Code>(new_code),
+                                    isolate);
         });
   }
 
