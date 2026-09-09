@@ -86,20 +86,17 @@ Tagged<Code> JSDispatchTable::GetCode(JSDispatchHandle handle) {
 }
 
 void JSDispatchTable::SetCodeNoWriteBarrier(JSDispatchHandle handle,
-                                            Tagged<Code> new_code) {
-  SetCodeNoWriteBarrier(handle, new_code, Isolate::Current());
-}
-
-void JSDispatchTable::SetCodeNoWriteBarrier(JSDispatchHandle handle,
                                             Tagged<Code> new_code,
                                             Isolate* isolate) {
   SetCodeAndEntrypointNoWriteBarrier(handle, new_code,
                                      new_code->instruction_start(), isolate);
 }
 
-void JSDispatchTable::SetCodeKeepTieringRequestNoWriteBarrier(
-    JSDispatchHandle handle, Tagged<Code> new_code) {
-  SetCodeKeepTieringRequestNoWriteBarrier(handle, new_code, Isolate::Current());
+void JSDispatchTable::SetCode(JSDispatchHandle handle, Tagged<Code> new_code,
+                              Tagged<HeapObject> host, Isolate* isolate,
+                              WriteBarrierMode mode) {
+  SetCodeNoWriteBarrier(handle, new_code, isolate);
+  WriteBarrier::ForJSDispatchHandle(host, handle, mode);
 }
 
 void JSDispatchTable::SetCodeKeepTieringRequestNoWriteBarrier(
@@ -113,10 +110,11 @@ void JSDispatchTable::SetCodeKeepTieringRequestNoWriteBarrier(
   }
 }
 
-void JSDispatchTable::SetCodeAndEntrypointNoWriteBarrier(
-    JSDispatchHandle handle, Tagged<Code> new_code, Address new_entrypoint) {
-  SetCodeAndEntrypointNoWriteBarrier(handle, new_code, new_entrypoint,
-                                    Isolate::Current());
+void JSDispatchTable::SetCodeKeepTieringRequest(
+    JSDispatchHandle handle, Tagged<Code> new_code, Tagged<HeapObject> host,
+    Isolate* isolate, WriteBarrierMode mode) {
+  SetCodeKeepTieringRequestNoWriteBarrier(handle, new_code, isolate);
+  WriteBarrier::ForJSDispatchHandle(host, handle, mode);
 }
 
 void JSDispatchTable::SetCodeAndEntrypointNoWriteBarrier(
@@ -202,11 +200,6 @@ std::optional<JSDispatchHandle> JSDispatchTable::TryAllocateAndInitializeEntry(
   entry.MakeJSDispatchEntry(new_code.address(), new_code->instruction_start(),
                             parameter_count, space->allocate_black());
   return IndexToHandle(index);
-}
-
-void JSDispatchEntry::SetCodeAndEntrypointPointer(Address new_object,
-                                                  Address new_entrypoint) {
-  SetCodeAndEntrypointPointer(new_object, new_entrypoint, Isolate::Current());
 }
 
 void JSDispatchEntry::SetCodeAndEntrypointPointer(Address new_object,
