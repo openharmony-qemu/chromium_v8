@@ -16,7 +16,6 @@
 // clang-format from merging that include into the following ones).
 #include "src/debug/debug.h"
 #include "src/diagnostics/code-tracer.h"
-#include "src/execution/isolate-utils-inl.h"
 #include "src/ic/ic.h"
 #include "src/init/bootstrapper.h"
 #include "src/objects/abstract-code-inl.h"
@@ -179,17 +178,14 @@ void JSFunction::set_dispatch_handle(JSDispatchHandle handle,
 }
 void JSFunction::UpdateDispatchEntry(Isolate* isolate, Tagged<Code> new_code,
                                      WriteBarrierMode mode) {
-  JSDispatchHandle handle = dispatch_handle();
-  isolate->js_dispatch_table().SetCodeNoWriteBarrier(handle, new_code);
-  CONDITIONAL_JS_DISPATCH_HANDLE_WRITE_BARRIER(*this, handle, mode);
+  isolate->js_dispatch_table().SetCode(dispatch_handle(), new_code,
+                                       Tagged<HeapObject>(*this), isolate, mode);
 }
 void JSFunction::UpdateDispatchEntryKeepTieringRequest(Isolate* isolate,
                                                        Tagged<Code> new_code,
                                                        WriteBarrierMode mode) {
-  JSDispatchHandle handle = dispatch_handle();
-  isolate->js_dispatch_table().SetCodeKeepTieringRequestNoWriteBarrier(
-      handle, new_code);
-  CONDITIONAL_JS_DISPATCH_HANDLE_WRITE_BARRIER(*this, handle, mode);
+  isolate->js_dispatch_table().SetCodeKeepTieringRequest(
+      dispatch_handle(), new_code, Tagged<HeapObject>(*this), isolate, mode);
 }
 JSDispatchHandle JSFunction::dispatch_handle() const {
   return JSDispatchHandle(Relaxed_ReadField<JSDispatchHandle::underlying_type>(
