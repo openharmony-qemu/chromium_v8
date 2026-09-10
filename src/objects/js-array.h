@@ -130,6 +130,10 @@ class JSArray : public TorqueGeneratedJSArray<JSArray, JSObject> {
   // Max. number of elements being copied in Array builtins.
   static const int kMaxCopyElements = 100;
 
+  // Max. array length for inlining Array.prototype.sort as an insertion sort
+  // in Turbofan/Maglev.  Larger arrays fall back to the builtin sort.
+  static constexpr int kMaxInlineSortLength = 20;
+
   // Valid array indices range from +0 <= i < 2^32 - 1 (kMaxUInt32).
   static constexpr uint32_t kMaxArrayLength = JSObject::kMaxElementCount;
   static constexpr uint32_t kMaxArrayIndex = JSObject::kMaxElementIndex;
