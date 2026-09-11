@@ -5152,21 +5152,25 @@ ReduceResult MaglevGraphBuilder::BuildLoadField(
     return AddNewNode<LoadFloat64>(
         {heap_number}, static_cast<int>(offsetof(HeapNumber, value_)));
   }
+  compiler::OptionalMapRef stable_field_map;
+  if (access_info.field_representation().IsHeapObject() &&
+      access_info.field_map().has_value() &&
+      access_info.field_map().value().is_stable()) {
+    stable_field_map = access_info.field_map();
+  }
   ValueNode* value;
-  GET_VALUE_OR_ABORT(value,
-                     BuildLoadTaggedField(
-                         load_source, field_index.offset(), LoadType::kUnknown,
-                         AccessInfoGuaranteedConst(access_info), name));
+  GET_VALUE_OR_ABORT(
+      value, BuildLoadTaggedField(load_source, field_index.offset(), LoadType::kUnknown,
+                                  AccessInfoGuaranteedConst(access_info), name));
   // Insert stable field information if present.
   if (access_info.field_representation().IsSmi()) {
     NodeInfo* known_info = GetOrCreateInfoFor(value);
     known_info->IntersectType(NodeType::kSmi);
   } else if (access_info.field_representation().IsHeapObject()) {
     NodeInfo* known_info = GetOrCreateInfoFor(value);
-    if (access_info.field_map().has_value() &&
-        access_info.field_map().value().is_stable()) {
-      DCHECK(access_info.field_map().value().IsJSReceiverMap());
-      auto map = access_info.field_map().value();
+    if (stable_field_map.has_value()) {
+      DCHECK(stable_field_map.value().IsJSReceiverMap());
+      auto map = stable_field_map.value();
       known_info->SetPossibleMaps(PossibleMaps{map}, false,
                                   StaticTypeForMap(map, broker()), broker());
       broker()->dependencies()->DependOnStableMap(map);
