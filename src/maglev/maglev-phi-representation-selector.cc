@@ -1127,6 +1127,28 @@ ProcessResult MaglevPhiRepresentationSelector::UpdateNodePhiInput(
   return ProcessResult::kContinue;
 }
 
+// StoreTaggedFieldWithWriteBarrier tracks whether its value input can be a Smi
+// or not, in order to elide the smi-check from its write-barrier when its input
+// is definitely not a Smi. However, because we do HeapNumber canonicalization
+// in Float64ToTagged, it's possible that its input is a HeapNumber that got
+// untagged to Float64 and that will become a Smi when we retag.
+ProcessResult MaglevPhiRepresentationSelector::UpdateNodePhiInput(
+    StoreTaggedFieldWithWriteBarrier* node, Phi* phi, int input_index,
+    const ProcessingState* state) {
+  UpdateNodePhiInput(static_cast<NodeBase*>(node), phi, input_index, state);
+
+  if (input_index == StoreTaggedFieldWithWriteBarrier::kValueIndex &&
+      phi->value_representation() != ValueRepresentation::kTagged) {
+    // This store could be storing a Smi, since Int32 phis will be tagged to Smi
+    // if they fit in a Smi, and even Float64 phis will be tagged to Smis if
+    // this doesn't lose precision.
+    static constexpr bool kRetaggedPhiCouldBeSmi = true;
+    node->set_can_be_smi(kRetaggedPhiCouldBeSmi);
+  }
+
+  return ProcessResult::kContinue;
+}
+
 // If the input of a StoreFixedArrayElementNoWriteBarrier was a Phi that got
 // untagged, then we need to retag it, and we might need to actually use a write
 // barrier.
