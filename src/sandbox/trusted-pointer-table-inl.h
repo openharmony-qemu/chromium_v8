@@ -208,6 +208,11 @@ bool TrustedPointerTable::IsUnpublished(TrustedPointerHandle handle) const {
   return at(index).HasPointer(kUnpublishedIndirectPointerTag);
 }
 
+void TrustedPointerTable::Unpublish(TrustedPointerHandle handle) {
+  uint32_t index = HandleToIndex(handle);
+  at(index).Unpublish();
+}
+
 template <typename Callback>
 void TrustedPointerTable::IterateActiveEntriesIn(Space* space,
                                                  Callback callback) {

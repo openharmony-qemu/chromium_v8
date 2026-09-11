@@ -215,6 +215,13 @@ class V8_EXPORT_PRIVATE TrustedPointerTable
   // Checks whether the given entry currently has the "unpublished" tag.
   inline bool IsUnpublished(TrustedPointerHandle handle) const;
 
+  // Unpublish the entry referenced by the given handle.
+  //
+  // The specified entry must currently be published, and is therefore
+  // accessible from within the sandbox. Calling this method will make the
+  // entry inaccessible.
+  inline void Unpublish(TrustedPointerHandle handle);
+
   // Iterate over all active entries in the given space.
   //
   // The callback function will be invoked once for every entry that is
