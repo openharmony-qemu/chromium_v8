@@ -287,13 +287,6 @@ void Utils::ReportApiFailure(const char* location, const char* message) {
 
 void Utils::ReportOOMFailure(i::Isolate* i_isolate, const char* location,
                              const OOMDetails& details) {
-#ifdef V8_ENABLE_OHOS_OOM_MONITOR
-  if (dfx::V8OOMReportCallbackWithData report = dfx::GetOOMReportCallback();
-      report) {
-    report(location, details, nullptr);
-  }
-#endif
-
   if (auto oom_callback = i_isolate->oom_behavior()) {
     oom_callback(location, details, i_isolate->oom_callback_data());
   } else {

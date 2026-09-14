@@ -151,6 +151,10 @@
 #include "arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.h"
 #endif
 
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+#include "arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h"
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -1842,6 +1846,16 @@ bool Heap::HasConsecutiveIneffectiveMarkCompact() const {
              std::memory_order_relaxed) > 0;
 }
 
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+void Heap::InvokeOOMMonitorCallback(const char* location,
+                                    const OOMDetails& details) {
+  if (dfx::V8OOMReportCallbackWithData report = dfx::GetOOMReportCallback();
+      report) {
+    report(location, details, nullptr);
+  }
+}
+#endif
+
 #ifdef OHOS_JS_ENGINE
 void Heap::InvokeJSVMOOMCallback(const char* location) {
   auto callback = isolate()->oom_behavior_with_isolate();
@@ -1865,6 +1879,9 @@ void Heap::CheckHeapLimitReached() {
       if (v8_flags.heap_dump_on_oom) {
         dfx::DumpHeapAfterOOM(this);
       }
+#endif
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+      InvokeOOMMonitorCallback("Reached heap limit", V8::kHeapOOM);
 #endif
 #ifdef OHOS_JS_ENGINE
       InvokeJSVMOOMCallback("Reached heap limit");
@@ -3886,6 +3903,10 @@ void Heap::CheckIneffectiveMarkCompact(size_t old_generation_size,
     if (v8_flags.heap_dump_on_oom) {
       dfx::DumpHeapAfterOOM(this);
     }
+#endif
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+    InvokeOOMMonitorCallback("Ineffective mark-compacts near heap limit",
+                             V8::kHeapOOM);
 #endif
 #ifdef OHOS_JS_ENGINE
     InvokeJSVMOOMCallback("Ineffective mark-compacts near heap limit");
