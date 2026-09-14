@@ -21,10 +21,6 @@
 
 namespace v8::internal {
 
-// Enum for functions that offer a second mode that does not cause allocations.
-// Used in conjunction with LookupIterator and unboxed double fields.
-enum class AllocationPolicy { kAllocationAllowed, kAllocationDisallowed };
-
 enum InstanceType : uint16_t;
 class JSGlobalObject;
 class JSGlobalProxy;
@@ -320,8 +316,8 @@ class JSReceiver : public TorqueGeneratedJSReceiver<JSReceiver, HeapObject> {
                                                DirectHandle<JSReceiver> object,
                                                DirectHandle<Name> name);
   V8_EXPORT_PRIVATE static Handle<Object> GetDataProperty(
-      LookupIterator* it, AllocationPolicy allocation_policy =
-                              AllocationPolicy::kAllocationAllowed);
+      LookupIterator* it,
+      AllowAllocation allow_allocation = AllowAllocation::kYes);
 
   // Retrieves a permanent object identity hash code. The undefined value might
   // be returned in case no hash was created yet.

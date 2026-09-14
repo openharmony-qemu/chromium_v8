@@ -89,6 +89,10 @@ Handle<Code> FactoryBase<Impl>::NewCode(const NewCodeOptions& options) {
   Tagged<Code> code = TrustedCast<Code>(
       AllocateRawWithImmortalMap(size, AllocationType::kTrusted, map));
   DisallowGarbageCollection no_gc;
+  // Allocates the Code object's self-indirect pointer directly inside the
+  // Code Pointer Table (CPT). This does not actually publish the JIT entrypoint
+  // yet as the CPT entry is natively initialized with
+  // kUninitializedEntrypointTag.
   code->InitAndPublish(isolate());
   code->initialize_flags(options.kind, options.is_context_specialized,
                          options.is_turbofanned);
@@ -147,17 +151,18 @@ Handle<Code> FactoryBase<Impl>::NewCode(const NewCodeOptions& options) {
   Handle<InstructionStream> istream;
   if (options.instruction_stream.ToHandle(&istream)) {
     DCHECK_EQ(options.instruction_start, kNullAddress);
-    code->SetInstructionStreamAndInstructionStart(isolate(), *istream);
+    // This avoids setting the instruction stream start which would publish the
+    // object. See `InstructionStream::Finalize()` for the actual finalization
+    // sequence.
+    code->set_raw_instruction_stream(*istream);
   } else {
     DCHECK_NE(options.instruction_start, kNullAddress);
     code->set_raw_instruction_stream(Smi::zero(), SKIP_WRITE_BARRIER);
     code->SetInstructionStartForOffHeapBuiltin(isolate(),
                                                options.instruction_start);
   }
-
   wrapper->set_code(code);
   code->set_wrapper(*wrapper);
-
   code->clear_padding();
   return handle(code, isolate());
 }
@@ -528,10 +533,10 @@ FactoryBase<Impl>::NewUncompiledDataWithoutPreparseData(
       TrustedCast<UncompiledDataWithoutPreparseData>(
           AllocateRawWithImmortalMap(size, AllocationType::kTrusted, map));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
   result->set_inferred_name(*inferred_name);
   result->set_start_position(start_position);
   result->set_end_position(end_position);
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -546,11 +551,11 @@ FactoryBase<Impl>::NewUncompiledDataWithPreparseData(
       TrustedCast<UncompiledDataWithPreparseData>(
           AllocateRawWithImmortalMap(size, AllocationType::kTrusted, map));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
   result->set_inferred_name(*inferred_name);
   result->set_start_position(start_position);
   result->set_end_position(end_position);
   result->set_preparse_data(*preparse_data);
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -566,11 +571,11 @@ FactoryBase<Impl>::NewUncompiledDataWithoutPreparseDataWithJob(
       TrustedCast<UncompiledDataWithoutPreparseDataWithJob>(
           AllocateRawWithImmortalMap(size, AllocationType::kTrusted, map));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
   result->set_inferred_name(*inferred_name);
   result->set_start_position(start_position);
   result->set_end_position(end_position);
   result->set_job(kNullAddress);
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 
@@ -586,12 +591,12 @@ FactoryBase<Impl>::NewUncompiledDataWithPreparseDataAndJob(
       TrustedCast<UncompiledDataWithPreparseDataAndJob>(
           AllocateRawWithImmortalMap(size, AllocationType::kTrusted, map));
   DisallowGarbageCollection no_gc;
-  result->InitAndPublish(isolate());
   result->set_inferred_name(*inferred_name);
   result->set_start_position(start_position);
   result->set_end_position(end_position);
   result->set_preparse_data(*preparse_data);
   result->set_job(kNullAddress);
+  result->InitAndPublish(isolate());
   return direct_handle(result, isolate());
 }
 

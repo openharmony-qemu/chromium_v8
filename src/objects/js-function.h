@@ -425,8 +425,9 @@ class JSFunction : public TorqueGeneratedJSFunction<
 
   // The function's name if it is configured, otherwise shared function info
   // debug name.
-  static DirectHandle<String> GetDebugName(Isolate* isolate,
-                                           DirectHandle<JSFunction> function);
+  static DirectHandle<String> GetDebugName(
+      Isolate* isolate, DirectHandle<JSFunction> function,
+      AllowAllocation allow_allocation = AllowAllocation::kYes);
 
   // The function's string representation implemented according to
   // ES6 section 19.2.3.5 Function.prototype.toString ( ).
