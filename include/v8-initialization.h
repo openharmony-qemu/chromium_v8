@@ -199,11 +199,6 @@ class V8_EXPORT JSVM_EXPORT V8 {
    */
   static void InitializePlatform(Platform* platform);
 
-  static int CreateJSVMExtractor(uintptr_t& ptr, uint32_t pid);
-  static void DeleteJSVMExtractor(uintptr_t ptr);
-  static int GetJSVMCodeName(uintptr_t ptr, uintptr_t pc,
-                             std::string& codeName);
-
   /**
    * Clears all references to the v8::Platform. This should be invoked after
    * V8 was disposed.

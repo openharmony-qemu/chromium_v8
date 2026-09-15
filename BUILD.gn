@@ -4643,7 +4643,6 @@ v8_header_set("v8_internal_headers") {
     sources += [
       "//arkweb/chromium_ext/v8/ohos-perf-jit.h",
       "//arkweb/chromium_ext/v8/ohos-perf-jit.cc",
-      "//arkweb/chromium_ext/v8/parse-jitcode.cc",
     ]
   } else {
     sources += [
