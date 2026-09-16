@@ -314,6 +314,23 @@ Tagged<Object> FutexEmulation::WaitWasm64(
                        rel_timeout_ns >= 0, rel_timeout_ns, CallType::kIsWasm);
 }
 
+namespace {
+class InSyncWaitScope {
+ public:
+  explicit InSyncWaitScope(FutexWaitListNode* node) : node_(node) {
+    DCHECK(!node_->IsInSyncWait());
+    node_->SetInSyncWait(true);
+  }
+  ~InSyncWaitScope() {
+    DCHECK(node_->IsInSyncWait());
+    node_->SetInSyncWait(false);
+  }
+
+ private:
+  FutexWaitListNode* node_;
+};
+}  // namespace
+
 template <typename T>
 Tagged<Object> FutexEmulation::Wait(Isolate* isolate, WaitMode mode,
                                     DirectHandle<JSArrayBuffer> array_buffer,
@@ -370,6 +387,13 @@ Tagged<Object> FutexEmulation::WaitSync(
   FutexWaitListNode* node = isolate->futex_wait_list_node();
   void* wait_location = FutexWaitList::ToWaitLocation(*array_buffer, addr);
 
+  if (node->IsInSyncWait()) {
+    return isolate->Throw(*isolate->factory()->NewTypeError(
+        MessageTemplate::kAtomicsOperationNotAllowed,
+        isolate->factory()->NewStringFromAsciiChecked("Atomics.wait")));
+  }
+  InSyncWaitScope wait_scope(node);
+
   base::TimeTicks timeout_time;
   if (use_timeout) {
     base::TimeTicks current_time = base::TimeTicks::Now();
@@ -392,6 +416,8 @@ Tagged<Object> FutexEmulation::WaitSync(
       loaded_value = ByteReverse(loaded_value);
     }
 #endif
+    DCHECK(!node->IsWaiting());
+
     if (loaded_value != value) {
       result =
           direct_handle(Smi::FromInt(WaitReturnValue::kNotEqualValue), isolate);
