@@ -489,6 +489,12 @@ class FeedbackVector
     return kRawFeedbackSlotsOffset + index * kTaggedSize;
   }
 
+  // The maximum number of feedback slots. Bounded such that SizeFor(length)
+  // does not overflow an int.
+  static const int kMaxLength;
+
+  static constexpr int SizeFor(int length);
+
   TQ_OBJECT_CONSTRUCTORS(FeedbackVector)
 
  private:
@@ -513,6 +519,15 @@ class FeedbackVector
   // Don't expose the raw feedback slot getter/setter.
   using TorqueGeneratedFeedbackVector::raw_feedback_slots;
 };
+
+inline constexpr int FeedbackVector::kMaxLength =
+    (kMaxInt - kHeaderSize) / kTaggedSize;
+
+constexpr int FeedbackVector::SizeFor(int length) {
+  CHECK_GE(length, 0);
+  CHECK_LE(length, kMaxLength);
+  return TorqueGeneratedFeedbackVector::SizeFor(length);
+}
 
 class V8_EXPORT_PRIVATE FeedbackVectorSpec {
  public:
