@@ -58,14 +58,16 @@ class GrowableStacksReducer : public Next {
               Operator::kNoProperties, StubCallMode::kCallWasmRuntimeStub);
       const TSCallDescriptor* ts_stub_call_descriptor =
           TSCallDescriptor::Create(stub_call_descriptor,
-                                   compiler::CanThrow::kNo,
+                                   compiler::CanThrow::kYes,
                                    LazyDeoptOnThrow::kNo, __ graph_zone());
       V<WordPtr> builtin =
           __ RelocatableWasmBuiltinCallTarget(Builtin::kWasmGrowableStackGuard);
       auto param_slots_size = __ IntPtrConstant(
           call_descriptor_->ParameterSlotCount() * kSystemPointerSize);
+      V<WordPtr> gap =
+          __ ChangeInt32ToIntPtr(__ UntagSmi(__ StackCheckOffset()));
       __ Call(
-          builtin, {param_slots_size}, ts_stub_call_descriptor,
+          builtin, {param_slots_size, gap}, ts_stub_call_descriptor,
           OpEffects().CanReadMemory().RequiredWhenUnused().CanThrowOrTrap());
     }
 
