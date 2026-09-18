@@ -1877,6 +1877,57 @@ Stack::StackSlot Stack::ObtainCurrentThreadStackStart() {
 }
 
 // static
+Stack::StackSlot Stack::GetCommittedStackLimit() {
+#if defined(V8_TARGET_ARCH_X64)
+  return reinterpret_cast<void*>(
+      reinterpret_cast<NT_TIB64*>(NtCurrentTeb())->StackLimit);
+#elif defined(V8_TARGET_ARCH_32_BIT)
+  return reinterpret_cast<void*>(
+      reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackLimit);
+#elif defined(V8_TARGET_ARCH_ARM64)
+  ULONG_PTR lowLimit, highLimit;
+  ::GetCurrentThreadStackLimits(&lowLimit, &highLimit);
+  return reinterpret_cast<void*>(lowLimit);
+#else
+#error Unsupported GetCommittedStackLimit.
+#endif
+}
+
+// static
+Stack::StackSlot Stack::ObtainCurrentThreadStackReservedLimit() {
+  // On Windows, "StackLimit" (see function above) is the limit of the stack
+  // pages committed so far and grows dynamically. The absolute limit of the
+  // reserved stack memory is called "DeallocationStack". It does not have an
+  // associated symbol in the struct, and its offset is not very well
+  // documented, but it has been stable for a long time.
+  // Sources for the offsets:
+  // https://en.wikipedia.org/wiki/Win32_Thread_Information_Block
+  // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/api/pebteb/teb/index.htm
+#ifdef V8_TARGET_ARCH_64_BIT
+  constexpr unsigned kDeallocationStackOffset = 0x1478;
+#else
+  constexpr unsigned kDeallocationStackOffset = 0xe0c;
+#endif
+  return *reinterpret_cast<void**>(reinterpret_cast<char*>(NtCurrentTeb()) +
+                                   kDeallocationStackOffset);
+}
+
+// static
+void Stack::SetCurrentThreadStackBounds(uintptr_t limit, uintptr_t base) {
+#if defined(V8_TARGET_ARCH_X64) || defined(V8_TARGET_ARCH_ARM64)
+  reinterpret_cast<NT_TIB64*>(NtCurrentTeb())->StackBase = base;
+  reinterpret_cast<NT_TIB64*>(NtCurrentTeb())->StackLimit = limit;
+#elif defined(V8_TARGET_ARCH_32_BIT)
+  reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackBase =
+      reinterpret_cast<void*>(base);
+  reinterpret_cast<NT_TIB*>(NtCurrentTeb())->StackLimit =
+      reinterpret_cast<void*>(limit);
+#else
+#error Unsupported SetCurrentThreadStackBounds.
+#endif
+}
+
+// static
 Stack::StackSlot Stack::GetCurrentStackPosition() {
 #if V8_CC_MSVC
   return _AddressOfReturnAddress();
