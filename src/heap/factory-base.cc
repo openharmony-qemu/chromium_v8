@@ -928,10 +928,10 @@ HandleType<String>::MaybeType FactoryBase<Impl>::NewConsString(
   // concurrently turn thin right after we've checked, but that's fine - we'll
   // just put ThinStrings into a ConsString, which is slightly inefficient, but
   // nothing will go wrong.
-  if (IsThinString(*left)) {
+  if (IsThinString(*left, kAcquireLoad)) {
     left = HandleType<String>(Cast<ThinString>(*left)->actual(), isolate());
   }
-  if (IsThinString(*right)) {
+  if (IsThinString(*right, kAcquireLoad)) {
     right = HandleType<String>(Cast<ThinString>(*right)->actual(), isolate());
   }
   uint32_t left_length = left->length();
