@@ -483,17 +483,17 @@ class FeedbackVector
   static_assert(kHeaderSize % kObjectAlignment == 0,
                 "Header must be padded for alignment");
 
+  // Bounds check for the variable-length slots tail (fix for 556715288).
+  // Shadow method: hides the Torque-generated SizeFor below (shadowing is
+  // intentional; all qualified call sites dispatch to this checked version).
+  static const int kMaxLength;
+  static constexpr int SizeFor(int length);
+
   class BodyDescriptor;
 
   static constexpr int OffsetOfElementAt(int index) {
     return kRawFeedbackSlotsOffset + index * kTaggedSize;
   }
-
-  // The maximum number of feedback slots. Bounded such that SizeFor(length)
-  // does not overflow an int.
-  static const int kMaxLength;
-
-  static constexpr int SizeFor(int length);
 
   TQ_OBJECT_CONSTRUCTORS(FeedbackVector)
 
@@ -526,7 +526,7 @@ inline constexpr int FeedbackVector::kMaxLength =
 constexpr int FeedbackVector::SizeFor(int length) {
   CHECK_GE(length, 0);
   CHECK_LE(length, kMaxLength);
-  return TorqueGeneratedFeedbackVector::SizeFor(length);
+  return kHeaderSize + length * kTaggedSize;
 }
 
 class V8_EXPORT_PRIVATE FeedbackVectorSpec {
