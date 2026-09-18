@@ -100,8 +100,9 @@ struct ExternalPointerTableEntry {
   // The source entry remains valid.
   inline void CopyFrom(const ExternalPointerTableEntry& src);
 
-  // Mark this entry as alive during table garbage collection.
-  inline void Mark();
+  // Mark this entry as alive during table garbage collection. Returns true if
+  // the entry transitioned from un-marked to marked, and false otherwise.
+  inline bool Mark(ExternalPointerTagRange tag_range);
 
   static constexpr bool IsWriteProtected = false;
 
@@ -419,14 +420,15 @@ class V8_EXPORT_PRIVATE ExternalPointerTable
   //
   // This method is atomic and can be called from background threads.
   inline void Mark(Space* space, ExternalPointerHandle handle,
-                   Address handle_location);
+                   Address handle_location, ExternalPointerTagRange tag_range);
 
   // Evacuate the specified entry from one space to another, updating the handle
   // location in place and returning the valid evacuated handle.
   inline ExternalPointerHandle Evacuate(Space* from_space, Space* to_space,
                                         ExternalPointerHandle handle,
                                         Address handle_location,
-                                        EvacuateMarkMode mode);
+                                        EvacuateMarkMode mode,
+                                        ExternalPointerTagRange tag_range);
 
   // Evacuate all segments from from_space to to_space, leaving from_space empty
   // with an empty free list.  Then free unmarked entries, finishing compaction
