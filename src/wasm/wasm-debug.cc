@@ -634,6 +634,7 @@ class DebugInfoImpl {
     }
 
     if (value->is_register()) {
+      if (debug_break_fp == kNullAddress) return {};
       auto reg = LiftoffRegister::from_liftoff_code(value->reg_code);
       auto gp_addr = [debug_break_fp](Register reg) {
         return debug_break_fp +
@@ -738,7 +739,6 @@ class DebugInfoImpl {
       if (frame->native_module() != new_code->native_module()) continue;
       if (frame->function_index() != new_code->index()) continue;
       if (!frame->wasm_code()->is_liftoff()) continue;
-      if (frame->id() == stepping_frame) continue;
       UpdateReturnAddress(frame, new_code, at_breakpoint ? kAfterBreakpoint : kAfterWasmCall);
     }
   }
