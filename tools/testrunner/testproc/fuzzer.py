@@ -68,6 +68,7 @@ EXTRA_FLAGS = [
     (0.2, '--turboshaft-verify-load-elimination'),
     (0.2, '--turboshaft-verify-load-store-taggedness'),
     (0.1, '--turboshaft-verify-reductions'),
+    (0.1, '--disable-loop-stack-checks'),
     (0.1, '--stress-wasm-memory-moving'),
     (0.1, '--stress-scavenger-conservative-object-pinning-random'),
     (0.1, '--conservative-stack-scanning'),
