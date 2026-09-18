@@ -6290,6 +6290,11 @@ typename ParserBase<Impl>::StatementT ParserBase<Impl>::ParseWithStatement(
   // WithStatement ::
   //   'with' '(' Expression ')' Statement
 
+#ifdef OHOS_JS_ENGINE
+  // Consume it before the 'with' token so only hints scanned after this point -
+  // after ')' or at the body head - can reach the checks below.
+  scanner()->ResetHasNeverHideBaseStdHint();
+#endif  // OHOS_JS_ENGINE
   Consume(Token::kWith);
   int pos = position();
 
