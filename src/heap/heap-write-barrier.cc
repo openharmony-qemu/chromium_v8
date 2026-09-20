@@ -157,6 +157,14 @@ void WriteBarrier::MarkingSlow(Tagged<HeapObject> host,
       isolate.GetExternalPointerTableSpaceFor(slot.tag_range(), host.address());
 
   table.Mark(space, handle, slot.address(), slot.tag_range());
+
+  if (marking_barrier->is_minor() && HeapLayout::InYoungGeneration(host)) {
+    MutablePageMetadata* host_page =
+        MutablePageMetadata::FromHeapObject(marking_barrier->heap()->isolate(),
+                                            host);
+    RememberedSet<SURVIVOR_TO_EXTERNAL_POINTER>::Insert<AccessMode::ATOMIC>(
+        host_page, host_page->Offset(slot.address()));
+  }
 #endif  // V8_COMPRESS_POINTERS
 }
 
