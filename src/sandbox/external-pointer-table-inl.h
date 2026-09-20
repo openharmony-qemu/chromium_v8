@@ -61,7 +61,8 @@ void ExternalPointerTableEntry::SetExternalPointer(Address value,
 bool ExternalPointerTableEntry::HasExternalPointer(
     ExternalPointerTagRange tag_range) const {
   auto payload = payload_.load(std::memory_order_relaxed);
-  if (!payload.ContainsPointer()) return false;
+  DCHECK(!tag_range.Contains(kExternalPointerFreeEntryTag));
+  DCHECK(!tag_range.Contains(kExternalPointerEvacuationEntryTag));
   return payload.IsTaggedWithTagIn(tag_range);
 }
 
@@ -115,10 +116,13 @@ uint32_t ExternalPointerTableEntry::GetNextFreelistEntryIndex() const {
   return payload.ExtractFreelistLink();
 }
 
-bool ExternalPointerTableEntry::Mark() {
+bool ExternalPointerTableEntry::Mark(ExternalPointerTagRange tag_range) {
   auto old_payload = payload_.load(std::memory_order_relaxed);
   while (true) {
-    DCHECK(old_payload.ContainsPointer());
+    // Some entry types (e.g. ArrayBufferExtension) are managed and require that
+    // the EPT mark bit and the specifc type handling (e.g. marking an
+    // ArrayBufferExtension) stay in sync.
+    SBXCHECK(old_payload.IsTaggedWithTagIn(tag_range));
     if (old_payload.HasMarkBitSet()) {
       return false;
     }
@@ -250,7 +254,8 @@ ExternalPointerHandle ExternalPointerTable::DuplicateEntry(
 }
 
 void ExternalPointerTable::Mark(Space* space, ExternalPointerHandle handle,
-                                Address handle_location) {
+                                Address handle_location,
+                                ExternalPointerTagRange tag_range) {
   DCHECK(space->BelongsTo(this));
 
   // The handle_location must always contain the given handle. Except if the
@@ -271,7 +276,7 @@ void ExternalPointerTable::Mark(Space* space, ExternalPointerHandle handle,
   DCHECK(space->Contains(index));
 
   // Bail out in case the entry was already marked.
-  if (!at(index).Mark()) {
+  if (!at(index).Mark(tag_range)) {
     return;
   }
 
@@ -284,7 +289,8 @@ void ExternalPointerTable::Mark(Space* space, ExternalPointerHandle handle,
 
 ExternalPointerHandle ExternalPointerTable::Evacuate(
     Space* from_space, Space* to_space, ExternalPointerHandle handle,
-    Address handle_location, EvacuateMarkMode mode) {
+    Address handle_location, EvacuateMarkMode mode,
+    ExternalPointerTagRange tag_range) {
   DCHECK(from_space->BelongsTo(this));
   DCHECK(to_space->BelongsTo(this));
 
@@ -297,11 +303,12 @@ ExternalPointerHandle ExternalPointerTable::Evacuate(
   const uint32_t from_index = HandleToIndex(handle);
   // The handle may legitimately already point into old space.
   if (!from_space->Contains(from_index)) {
+    SBXCHECK(at(from_index).HasExternalPointer(tag_range));
     return handle;
   }
 
   auto old_payload = at(from_index).GetRawPayload();
-  SBXCHECK(old_payload.ContainsPointer());
+  SBXCHECK(old_payload.IsTaggedWithTagIn(tag_range));
 
   const uint32_t to_index = AllocateEntry(to_space);
   ExternalPointerHandle new_handle = IndexToHandle(to_index);
