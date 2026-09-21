@@ -256,15 +256,36 @@ class ValueNumberingReducer : public Next {
   }
 
   template <class Op>
+  bool CanGVN(const Op& op) {
+    if constexpr (std::is_same_v<Op, PendingLoopPhiOp>) {
+      // Cannot GVN PendingLoopPhis because we are missing the backedge input.
+      return false;
+    }
+    if (op.IsBlockTerminator()) return false;
+    if constexpr (std::is_same_v<Op, DeoptimizeIfOp>) {
+      // GVNing DeoptimizeIf even though its effect would otherwise prevent it.
+      return true;
+    }
+    if constexpr (std::is_same_v<Op, LoadOp>) {
+      if (v8_flags.turbolev && !op.index().valid() &&
+          op.offset == HeapObject::kMapOffset) {
+        // We don't GVN loads at offset kMapOffset, because they could be string
+        // maps loads, which can get invalidated on GCs and we don't increment
+        // {current_epoch_} on operations that can_allocate but only on those
+        // that can_write. Note that this is only an issue for Turbolev, since
+        // Turbofan doesn't really care about string maps that much.
+        return false;
+      }
+    }
+    return CanGVN(op.Effects());
+  }
+
+  template <class Op>
   OpIndex AddOrFind(OpIndex op_idx) {
     if (is_disabled()) return op_idx;
 
     const Op& op = Asm().output_graph().Get(op_idx).template Cast<Op>();
-    if (std::is_same_v<Op, PendingLoopPhiOp> || op.IsBlockTerminator() ||
-        (!CanGVN(op.Effects()) && !std::is_same_v<Op, DeoptimizeIfOp>)) {
-      // GVNing DeoptimizeIf is safe, despite the fact that it has the CanDeopt
-      // property, which implies CanLeaveCurrentFunction, which is generally not
-      // safe to GVN.
+    if (!CanGVN(op)) {
       return op_idx;
     }
     RehashIfNeeded();
