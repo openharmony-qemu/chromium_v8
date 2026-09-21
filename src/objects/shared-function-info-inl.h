@@ -192,6 +192,7 @@ bool SharedFunctionInfo::HasUntrustedData() const { return !HasTrustedData(); }
 
 Tagged<Object> SharedFunctionInfo::GetTrustedData(
     IsolateForSandbox isolate) const {
+  if (HasUnpublishedTrustedData(isolate)) return Smi::zero();
   return ReadMaybeEmptyTrustedPointerField<kUnknownIndirectPointerTag>(
       kTrustedFunctionDataOffset, isolate, kAcquireLoad);
 }
@@ -1075,8 +1076,7 @@ void SharedFunctionInfo::set_builtin_id(Builtin builtin) {
 }
 
 bool SharedFunctionInfo::HasUncompiledData(IsolateForSandbox isolate) const {
-  return !HasUnpublishedTrustedData(isolate) &&
-         IsUncompiledData(GetTrustedData(isolate));
+  return IsUncompiledData(GetTrustedData(isolate));
 }
 
 Tagged<UncompiledData> SharedFunctionInfo::uncompiled_data(
