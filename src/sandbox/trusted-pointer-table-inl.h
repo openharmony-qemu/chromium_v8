@@ -61,24 +61,16 @@ bool TrustedPointerTableEntry::HasPointer(IndirectPointerTag tag) const {
 void TrustedPointerTableEntry::Unpublish() {
   auto old_payload = payload_.load(std::memory_order_relaxed);
   auto new_payload = old_payload;
-  do {
-    new_payload = old_payload;
-    new_payload.SetTag(kUnpublishedIndirectPointerTag);
-  } while (!payload_.compare_exchange_weak(old_payload, new_payload,
-                                           std::memory_order_release,
-                                           std::memory_order_relaxed));
+  new_payload.SetTag(kUnpublishedIndirectPointerTag);
+  payload_.store(new_payload, std::memory_order_release);
 }
 
 void TrustedPointerTableEntry::Publish(IndirectPointerTag tag) {
   auto old_payload = payload_.load(std::memory_order_relaxed);
+  CHECK(old_payload.IsTaggedWith(kUnpublishedIndirectPointerTag));
   auto new_payload = old_payload;
-  do {
-    CHECK(old_payload.IsTaggedWith(kUnpublishedIndirectPointerTag));
-    new_payload = old_payload;
-    new_payload.SetTag(tag);
-  } while (!payload_.compare_exchange_weak(old_payload, new_payload,
-                                           std::memory_order_release,
-                                           std::memory_order_relaxed));
+  new_payload.SetTag(tag);
+  payload_.store(new_payload, std::memory_order_release);
 }
 
 bool TrustedPointerTableEntry::IsFreelistEntry() const {
