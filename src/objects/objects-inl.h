@@ -523,6 +523,14 @@ DEF_HEAP_OBJECT_PREDICATE(HeapObject, IsThinString) {
   return StringShape(Cast<String>(obj)->map()).IsThin();
 }
 
+// Concurrent-safe variant: the map is loaded with an acquire load. When a
+// string turns thin, the actual pointer is written first and the map is
+// switched with a release store, so an acquire load guarantees that reading
+// ThinString::actual() afterwards is safe.
+V8_INLINE bool IsThinString(Tagged<HeapObject> obj, AcquireLoadTag) {
+  return InstanceTypeChecker::IsThinString(obj->map(kAcquireLoad));
+}
+
 DEF_HEAP_OBJECT_PREDICATE(HeapObject, IsSlicedString) {
   if (!IsString(obj, cage_base)) return false;
   return StringShape(Cast<String>(obj)->map()).IsSliced();
