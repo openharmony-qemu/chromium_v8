@@ -479,17 +479,6 @@ void LateLoadEliminationAnalyzer::ProcessCall(OpIndex op_idx,
   if (builtin_id) {
     switch (*builtin_id) {
       // TODO(dmercadier): extend this list.
-      case Builtin::kCopyFastSmiOrObjectElements:
-        // This function just replaces the Elements array of an object.
-        // It doesn't invalidate any alias or any other memory than this
-        // Elements array.
-        TRACE(
-            ">> Call is CopyFastSmiOrObjectElements, invalidating only "
-            "Elements for "
-            << op.arguments()[0]);
-        memory_.Invalidate(op.arguments()[0], OpIndex::Invalid(),
-                           JSObject::kElementsOffset);
-        return;
       case Builtin::kCreateShallowObjectLiteral:
         // This builtin creates a fresh non-aliasing object.
         non_aliasing_objects_.Set(op_idx, true);
