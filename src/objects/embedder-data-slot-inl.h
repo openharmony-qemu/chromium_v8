@@ -190,7 +190,7 @@ bool EmbedderDataSlot::store_handle(IsolateForSandbox isolate,
   // This method is only used by `EmbedderDataArray::EnsureCapacity` for copying
   // handles in a relocated EmbedderDataArray.
   EXTERNAL_POINTER_WRITE_BARRIER(host, static_cast<int>(offset),
-                                 kAnyEmbedderTag);
+                                 kAnyEmbedderTag, new_handle);
   ObjectSlot(address() + kTaggedPayloadOffset).Relaxed_Store(Smi::zero());
   return true;
 }

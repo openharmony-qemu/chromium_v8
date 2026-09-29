@@ -58,10 +58,9 @@ inline void ExternalPointerMember<tag>::store_encoded(ExternalPointer_t value) {
 }
 
 template <ExternalPointerTag tag>
-V8_INLINE void InitExternalPointerField(Address host_address,
-                                        Address field_address,
-                                        IsolateForSandbox isolate,
-                                        Address value) {
+V8_INLINE ExternalPointerHandle
+InitExternalPointerField(Address host_address, Address field_address,
+                         IsolateForSandbox isolate, Address value) {
 #ifdef V8_ENABLE_SANDBOX
   static_assert(tag != kExternalPointerNullTag);
   ExternalPointerTable& table = isolate.GetExternalPointerTableFor(tag);
@@ -72,15 +71,16 @@ V8_INLINE void InitExternalPointerField(Address host_address,
   // threads may access an uninitialized table entry and crash.
   auto location = reinterpret_cast<ExternalPointerHandle*>(field_address);
   base::AsAtomic32::Release_Store(location, handle);
+  return handle;
 #else
   WriteExternalPointerField<tag>(field_address, isolate, value);
+  return kNullExternalPointerHandle;
 #endif  // V8_ENABLE_SANDBOX
 }
 
-V8_INLINE void InitExternalPointerField(Address host_address,
-                                        Address field_address,
-                                        IsolateForSandbox isolate,
-                                        ExternalPointerTag tag, Address value) {
+V8_INLINE ExternalPointerHandle InitExternalPointerField(
+    Address host_address, Address field_address, IsolateForSandbox isolate,
+    ExternalPointerTag tag, Address value) {
 #ifdef V8_ENABLE_SANDBOX
   DCHECK_NE(tag, kExternalPointerNullTag);
   ExternalPointerTable& table = isolate.GetExternalPointerTableFor(tag);
@@ -91,8 +91,10 @@ V8_INLINE void InitExternalPointerField(Address host_address,
   // threads may access an uninitialized table entry and crash.
   auto location = reinterpret_cast<ExternalPointerHandle*>(field_address);
   base::AsAtomic32::Release_Store(location, handle);
+  return handle;
 #else
   WriteExternalPointerField(field_address, isolate, tag, value);
+  return kNullExternalPointerHandle;
 #endif  // V8_ENABLE_SANDBOX
 }
 
