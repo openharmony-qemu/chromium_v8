@@ -41,6 +41,13 @@ inline void ExternalPointerMember<tag>::store(IsolateForSandbox isolate,
 }
 
 template <ExternalPointerTag tag>
+inline Address ExternalPointerMember<tag>::exchange(IsolateForSandbox isolate,
+                                                    Address value) {
+  return ExchangeExternalPointerField<tag>(reinterpret_cast<Address>(storage_),
+                                           isolate, value);
+}
+
+template <ExternalPointerTag tag>
 inline ExternalPointer_t ExternalPointerMember<tag>::load_encoded() const {
   return base::bit_cast<ExternalPointer_t>(storage_);
 }
@@ -152,6 +159,23 @@ V8_INLINE void WriteExternalPointerField(Address field_address,
   isolate.GetExternalPointerTableFor(tag).Set(handle, value, tag);
 #else
   WriteMaybeUnalignedValue<Address>(field_address, value);
+#endif  // V8_ENABLE_SANDBOX
+}
+
+template <ExternalPointerTag tag>
+V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+                                               IsolateForSandbox isolate,
+                                               Address value) {
+#ifdef V8_ENABLE_SANDBOX
+  static_assert(tag != kExternalPointerNullTag);
+  // See comment above for why this is a Relaxed_Load.
+  auto location = reinterpret_cast<ExternalPointerHandle*>(field_address);
+  ExternalPointerHandle handle = base::AsAtomic32::Relaxed_Load(location);
+  return isolate.GetExternalPointerTableFor(tag).Exchange(handle, value, tag);
+#else
+  Address old_value = ReadMaybeUnalignedValue<Address>(field_address);
+  WriteMaybeUnalignedValue<Address>(field_address, value);
+  return old_value;
 #endif  // V8_ENABLE_SANDBOX
 }
 

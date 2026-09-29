@@ -1521,6 +1521,12 @@ void ExternalOneByteString::set_resource(
   if (resource != nullptr) update_data_cache(isolate);
 }
 
+const ExternalOneByteString::Resource* ExternalOneByteString::ExchangeResource(
+    Isolate* isolate, const ExternalOneByteString::Resource* resource) {
+  return reinterpret_cast<const Resource*>(
+      resource_.exchange(isolate, reinterpret_cast<Address>(resource)));
+}
+
 const uint8_t* ExternalOneByteString::GetChars() const {
   DisallowGarbageCollection no_gc;
   auto res = resource();
@@ -1582,6 +1588,12 @@ void ExternalTwoByteString::set_resource(
     Isolate* isolate, const ExternalTwoByteString::Resource* resource) {
   resource_.store(isolate, reinterpret_cast<Address>(resource));
   if (resource != nullptr) update_data_cache(isolate);
+}
+
+const ExternalTwoByteString::Resource* ExternalTwoByteString::ExchangeResource(
+    Isolate* isolate, const ExternalTwoByteString::Resource* resource) {
+  return reinterpret_cast<const Resource*>(
+      resource_.exchange(isolate, reinterpret_cast<Address>(resource)));
 }
 
 const uint16_t* ExternalTwoByteString::GetChars() const {
