@@ -71,6 +71,11 @@ struct CppHeapPointerTagRange {
   constexpr CppHeapPointerTagRange(CppHeapPointerTag lower,
                                    CppHeapPointerTag upper)
       : lower_bound(lower), upper_bound(upper) {}
+  // A single tag is always implicitly convertible to a tag range. This greatly
+  // increases readability as most of the time, the exact tag of a field is
+  // known and so no tag range needs to explicitly be created for it.
+  constexpr CppHeapPointerTagRange(CppHeapPointerTag tag)  // NOLINT(runtime/explicit)
+      : lower_bound(tag), upper_bound(tag) {}
   CppHeapPointerTag lower_bound;
   CppHeapPointerTag upper_bound;
 
