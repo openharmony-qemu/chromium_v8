@@ -1454,23 +1454,16 @@ Address ExternalString::resource_as_address() const {
   return resource_.load(isolate);
 }
 
-void ExternalString::set_address_as_resource(Isolate* isolate, Address value) {
-  resource_.store(isolate, value);
+void ExternalString::InitResourceDataAfterDeserialization(Isolate* isolate) {
+  if (!is_uncached()) {
+    DCHECK_EQ(resource_data_.load_encoded(), kNullExternalPointer);
+    resource_data_.Init(address(), isolate, kNullAddress);
+  }
   if (IsExternalOneByteString(this)) {
     Cast<ExternalOneByteString>(this)->update_data_cache(isolate);
   } else {
     Cast<ExternalTwoByteString>(this)->update_data_cache(isolate);
   }
-}
-
-uint32_t ExternalString::GetResourceRefForDeserialization() {
-  return static_cast<uint32_t>(resource_.load_encoded());
-}
-
-void ExternalString::SetResourceRefForSerialization(uint32_t ref) {
-  resource_.store_encoded(static_cast<ExternalPointer_t>(ref));
-  if (is_uncached()) return;
-  resource_data_.store_encoded(kNullExternalPointer);
 }
 
 void ExternalString::DisposeResource(Isolate* isolate) {
