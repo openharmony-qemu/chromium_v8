@@ -99,7 +99,7 @@ struct CppHeapPointerTagRange {
 };
 
 constexpr CppHeapPointerTagRange kAnyCppHeapPointer(
-    CppHeapPointerTag::kFirstTag, CppHeapPointerTag::kLastTag);
+    CppHeapPointerTag::kFirstTag, CppHeapPointerTag::kZappedEntryTag);
 
 /**
  * Hardware support for the V8 Sandbox.
