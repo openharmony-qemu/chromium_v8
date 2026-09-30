@@ -25,14 +25,12 @@
 #ifdef DEBUG
 #define DCHECK_WITH_SANDBOX_ACCESS(condition)        \
   do {                                               \
-    v8::internal::AllowSandboxAccess sandbox_access( \
-        "Sandbox access for debug check");           \
+    v8::internal::AllowSandboxAccess sandbox_access; \
     DCHECK(condition);                               \
   } while (false)
 #define DCHECK_WITH_SANDBOX_ACCESS_AND_MSG_AND_LOC(condition, msg, loc) \
   do {                                                                  \
-    v8::internal::AllowSandboxAccess sandbox_access(                    \
-        "Sandbox access for debug check");                              \
+    v8::internal::AllowSandboxAccess sandbox_access;                    \
     DCHECK_WITH_MSG_AND_LOC(condition, msg, loc);                       \
   } while (false)
 #else
