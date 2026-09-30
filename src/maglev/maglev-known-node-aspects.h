@@ -230,6 +230,13 @@ class NodeInfo {
     }
 #endif
     IntersectType(possible_type);
+#ifdef DEBUG
+    DCHECK_IMPLIES(
+        !possible_maps_.is_empty() && NodeTypeCanBe(type_, NodeType::kSmi),
+        std::any_of(
+            possible_maps_.begin(), possible_maps_.end(),
+            [](compiler::MapRef map) { return map.IsHeapNumberMap(); }));
+#endif
   }
 
   bool any_map_is_unstable() const { return any_map_is_unstable_; }
@@ -806,7 +813,9 @@ class KnownMapsMerger {
           // approximation. This filtering is done to avoid creating
           // non-sensical types later (e.g. if we think only a non-string map
           // is possible, after a string check).
-          if (IsInstanceOfNodeType(possible_map, type, broker_)) {
+          if (IsInstanceOfNodeType(possible_map, type, broker_) ||
+              (possible_map.IsHeapNumberMap() &&
+               NodeTypeCanBe(type, NodeType::kSmi))) {
             InsertMap(possible_map);
           }
         } else {
