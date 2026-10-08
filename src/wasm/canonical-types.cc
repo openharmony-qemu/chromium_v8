@@ -21,7 +21,7 @@ TypeCanonicalizer* GetTypeCanonicalizer() {
   return GetWasmEngine()->type_canonicalizer();
 }
 
-TypeCanonicalizer::TypeCanonicalizer() { AddPredefinedArrayTypes(); }
+TypeCanonicalizer::TypeCanonicalizer() { AddPredefinedTypes(); }
 
 void TypeCanonicalizer::AddRecursiveGroup(WasmModule* module, uint32_t size) {
   if (size == 0) return;
@@ -214,7 +214,21 @@ const CanonicalArrayType* TypeCanonicalizer::LookupArray(
   return type->array_type;
 }
 
-void TypeCanonicalizer::AddPredefinedArrayTypes() {
+void TypeCanonicalizer::AddPredefinedSingletonGroup(
+    CanonicalTypeIndex index, const CanonicalType& type) {
+  DCHECK_GT(kNumberOfPredefinedTypes, index.index);
+  DCHECK_EQ(index.index, canonical_singleton_groups_.size());
+  CanonicalSingletonGroup group{.type = type, .index = index};
+  const CanonicalSingletonGroup& stored_group =
+      *canonical_singleton_groups_.emplace(group).first;
+  canonical_types_.set(index, &stored_group.type);
+  canonical_supertypes_.emplace_back(CanonicalTypeIndex{kNoSuperType});
+  DCHECK_LE(canonical_supertypes_.size(), kMaxCanonicalTypes);
+}
+
+void TypeCanonicalizer::AddPredefinedTypes() {
+  static constexpr bool kFinal = true;
+  static constexpr CanonicalTypeIndex kNoSuper{kNoSuperType};
   static constexpr std::pair<CanonicalTypeIndex, CanonicalValueType>
       kPredefinedArrayTypes[] = {
           {kPredefinedArrayI8Index, {kWasmI8}},
@@ -223,23 +237,25 @@ void TypeCanonicalizer::AddPredefinedArrayTypes() {
           {kPredefinedArrayFuncRefIndex, {kWasmFuncRef}}};
   canonical_types_.reserve(kNumberOfPredefinedTypes, &zone_);
   for (auto [index, element_type] : kPredefinedArrayTypes) {
-    DCHECK_GT(kNumberOfPredefinedTypes, index.index);
-    DCHECK_EQ(index.index, canonical_singleton_groups_.size());
     static constexpr bool kMutable = true;
-    static constexpr bool kFinal = true;
-    static constexpr bool kShared = false;  // TODO(14616): Fix this.
     CanonicalArrayType* type =
         zone_.New<CanonicalArrayType>(element_type, kMutable);
-    CanonicalSingletonGroup group{
-        .type = CanonicalType(type, CanonicalTypeIndex{kNoSuperType}, kFinal,
-                              kShared),
-        .index = index};
-    const CanonicalSingletonGroup& stored_group =
-        *canonical_singleton_groups_.emplace(group).first;
-    canonical_types_.set(index, &stored_group.type);
-    canonical_supertypes_.emplace_back(CanonicalTypeIndex{kNoSuperType});
-    DCHECK_LE(canonical_supertypes_.size(), kMaxCanonicalTypes);
+    AddPredefinedSingletonGroup(
+        index, CanonicalType(type, kNoSuper, kFinal, kNotShared));
   }
+
+  CanonicalSig::Builder builder(&zone_, 0, 4);
+  builder.AddParam(CanonicalValueType::RefNull(
+      kPredefinedArrayExternRefIndex, kNotShared, RefTypeKind::kArray));
+  builder.AddParam(CanonicalValueType::RefNull(
+      kPredefinedArrayFuncRefIndex, kNotShared, RefTypeKind::kArray));
+  builder.AddParam(CanonicalValueType::RefNull(
+      kPredefinedArrayI8Index, kNotShared, RefTypeKind::kArray));
+  builder.AddParam(CanonicalValueType{kWasmExternRef});
+  AddPredefinedSingletonGroup(
+      kPredefinedSigIndex_configureAll,
+      CanonicalType(builder.Get(kPredefinedSigIndex_configureAll), kNoSuper,
+                    kFinal, kNotShared));
 }
 
 bool TypeCanonicalizer::IsCanonicalSubtype(CanonicalTypeIndex sub_index,
@@ -288,7 +304,7 @@ void TypeCanonicalizer::EmptyStorageForTesting() {
   canonical_groups_.clear();
   canonical_singleton_groups_.clear();
   zone_.Reset();
-  AddPredefinedArrayTypes();
+  AddPredefinedTypes();
 }
 
 TypeCanonicalizer::CanonicalType TypeCanonicalizer::CanonicalizeTypeDef(
