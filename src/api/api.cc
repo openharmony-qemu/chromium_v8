@@ -151,10 +151,6 @@
 #include "../../../arkweb/chromium_ext/v8/trace.h"
 #endif
 
-#ifdef V8_ENABLE_OHOS_PERF_JIT
-#include "../../../arkweb/chromium_ext/v8/parse-jitcode.h"
-#endif
-
 #if V8_ENABLE_WEBASSEMBLY
 #include "src/debug/debug-wasm-objects.h"
 #include "src/trap-handler/trap-handler.h"
@@ -6388,8 +6384,6 @@ bool v8::Object::CheckGlobalWrappable(v8::Isolate* isolate,
 void v8::V8::InitializePlatform(Platform* platform) {
   i::V8::InitializePlatform(platform);
 }
-
-#include "../../../arkweb/chromium_ext/v8/src/api/api-for-include.cc"
 
 void v8::V8::DisposePlatform() { i::V8::DisposePlatform(); }
 
