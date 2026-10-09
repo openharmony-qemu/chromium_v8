@@ -5880,23 +5880,18 @@ class GraphBuildingNodeProcessor {
               __ HeapConstant(value->Cast<maglev::Constant>()->ref().object()));
           break;
 
-        case maglev::Opcode::kFloat64Constant: {
-          i::Float64 value_as_float =
-              value->Cast<maglev::Float64Constant>()->value();
-          if (value_as_float.is_hole_nan()) {
-            builder.AddInput(
-                MachineType::AnyTagged(),
-                __ HeapConstantHole(local_factory_->the_hole_value()));
-          } else {
-#ifdef V8_ENABLE_UNDEFINED_DOUBLE
-            // TODO(nicohartmann): Handle is_undefined_nan here.
-            DCHECK(!value_as_float.is_undefined_nan());
-#endif  // V8_ENABLE_UNDEFINED_DOUBLE
-            builder.AddInput(MachineType::AnyTagged(),
-                             __ NumberConstant(value_as_float));
-          }
+        case maglev::Opcode::kFloat64Constant:
+          builder.AddInput(
+              MachineType::Float64(),
+              __ Float64Constant(
+                  value->Cast<maglev::Float64Constant>()->value()));
           break;
-        }
+        case maglev::Opcode::kHoleyFloat64Constant:
+          builder.AddInput(
+              MachineType::HoleyFloat64(),
+              __ Float64Constant(
+                  value->Cast<maglev::HoleyFloat64Constant>()->value()));
+          break;
         case maglev::Opcode::kInt32Constant:
           builder.AddInput(
               MachineType::AnyTagged(),
