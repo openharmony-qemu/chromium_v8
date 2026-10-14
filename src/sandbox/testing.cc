@@ -4,6 +4,10 @@
 
 #include "src/sandbox/testing.h"
 
+#include <algorithm>
+#include <sstream>
+#include <string_view>
+
 #include "src/api/api-inl.h"
 #include "src/api/api-natives.h"
 #include "src/base/virtual-address-space.h"
@@ -15,6 +19,7 @@
 #include "src/objects/foreign.h"
 #include "src/objects/instance-type.h"
 #include "src/objects/js-objects.h"
+#include "src/objects/tagged-field-inl.h"
 #include "src/objects/templates.h"
 #include "src/sandbox/sandbox.h"
 
@@ -41,6 +46,15 @@ namespace internal {
 #ifdef V8_ENABLE_SANDBOX
 
 SandboxTesting::Mode SandboxTesting::mode_ = SandboxTesting::Mode::kDisabled;
+
+namespace {
+void ThrowTypeError(v8::Isolate* isolate, std::string_view message) {
+  isolate->ThrowException(v8::Exception::TypeError(
+      v8::String::NewFromUtf8(isolate, message.data(), NewStringType::kNormal,
+                              static_cast<int>(message.size()))
+          .ToLocalChecked()));
+}
+}  // namespace
 
 #ifdef V8_ENABLE_MEMORY_CORRUPTION_API
 
@@ -483,6 +497,205 @@ void SandboxSetFunctionCodeToBuiltin(
   info.GetReturnValue().Set(true);
 }
 
+struct ResolvedField {
+  Tagged<HeapObject> holder;
+  int offset = -1;
+  int bit_size = 32;
+};
+
+bool ResolveObjectField(const v8::FunctionCallbackInfo<v8::Value>& info,
+                        int bit_size_arg_index, ResolvedField* out) {
+  v8::Isolate* isolate = info.GetIsolate();
+  Local<v8::Context> context = isolate->GetCurrentContext();
+
+  Tagged<HeapObject> obj;
+  if (!GetArgumentObjectPassedAsReference(info, &obj)) return false;
+
+  if (!IsValidHeapObject(obj.address(),
+                         reinterpret_cast<Isolate*>(isolate)->heap()))
+    return false;
+
+  int offset;
+  if (!info[1]->IsInt32() || !info[1]->Int32Value(context).To(&offset)) {
+    v8::String::Utf8Value field_name(isolate, info[1]);
+    if (!*field_name) {
+      isolate->ThrowError("Second argument must be an integer or a string");
+      return false;
+    }
+
+    InstanceType instance_type = obj->map()->instance_type();
+    auto& all_fields = SandboxTesting::GetFieldOffsetMap();
+    auto fields_it = all_fields.find(instance_type);
+    if (fields_it == all_fields.end()) {
+      isolate->ThrowError(
+          "Unknown object type. If needed, add it in "
+          "SandboxTesting::GetFieldOffsetMap");
+      return false;
+    }
+    auto field_it = fields_it->second.find(*field_name);
+    if (field_it == fields_it->second.end()) {
+      isolate->ThrowError(
+          "Unknown field. If needed, add it in "
+          "SandboxTesting::GetFieldOffsetMap");
+      return false;
+    }
+    offset = field_it->second;
+  }
+
+  int bit_size = 32;
+  if (info.Length() > bit_size_arg_index) {
+    if (!info[bit_size_arg_index]->IsInt32() ||
+        !info[bit_size_arg_index]->Int32Value(context).To(&bit_size)) {
+      if (bit_size_arg_index == 2) {
+        isolate->ThrowError("Third argument (bit size) must be an integer");
+      } else {
+        isolate->ThrowError("Fourth argument (bit size) must be an integer");
+      }
+      return false;
+    }
+    if (bit_size != 8 && bit_size != 16 && bit_size != 32 && bit_size != 64) {
+      if (bit_size_arg_index == 2) {
+        isolate->ThrowError(
+            "Third argument (bit size) must be 8, 16, 32, or 64");
+      } else {
+        isolate->ThrowError(
+            "Fourth argument (bit size) must be 8, 16, 32, or 64");
+      }
+      return false;
+    }
+  }
+
+  int object_size = obj->Size();
+  DCHECK_EQ(0, object_size % kTaggedSize);
+  int byte_size = bit_size / 8;
+  if (offset < 0 || offset > object_size - byte_size) {
+    std::ostringstream error;
+    error << "Second argument (offset=" << offset << ", size=" << byte_size
+          << ") is out of bounds of the given object of size " << object_size;
+    ThrowTypeError(isolate, error.view());
+    return false;
+  }
+  // Enforce natural alignment up to kTaggedSize.
+  int required_alignment = std::min(byte_size, kTaggedSize);
+  if ((offset % required_alignment) != 0) {
+    std::ostringstream error;
+    error << "Second argument (offset=" << offset << ") is not "
+          << required_alignment << "-byte-aligned";
+    ThrowTypeError(isolate, error.view());
+    return false;
+  }
+
+  out->holder = obj;
+  out->offset = offset;
+  out->bit_size = bit_size;
+  return true;
+}
+
+// Sandbox.dereferenceTaggedPointerField(Object, Number|String) -> Object
+//
+// Reads a tagged pointer field from an object and returns the pointed-to
+// object. The second argument is the field offset (Number) or field name
+// (String). This is a convenience method that combines reading the compressed
+// pointer, decompressing it, and wrapping the result in a V8 handle.
+// Note: this method specifically handles standard tagged (compressed) pointers.
+// If used on fields containing ExternalPointers or TrustedPointerHandles, it
+// will return incorrect results or null.
+void SandboxDereferenceTaggedPointerField(
+    const v8::FunctionCallbackInfo<v8::Value>& info) {
+  DCHECK(ValidateCallbackInfo(info));
+  v8::Isolate* isolate = info.GetIsolate();
+
+  ResolvedField field;
+  if (!ResolveObjectField(info, 2, &field)) return;
+
+  Isolate* i_isolate = reinterpret_cast<Isolate*>(isolate);
+  Tagged<Object> value = TaggedField<Object>::load(field.holder, field.offset);
+
+  if (IsHeapObject(value)) {
+    Handle<HeapObject> handle(Cast<HeapObject>(value), i_isolate);
+    info.GetReturnValue().Set(ToApiHandle<v8::Value>(handle));
+  } else {
+    info.GetReturnValue().Set(v8::Null(isolate));
+  }
+}
+
+// Corrupt one field of an object without setting up a memory view first.
+//
+//   Sandbox.corruptObjectField(obj, offset, value, bit_size);
+// emits a raw memory write, identical to
+//   (new DataView(new Sandbox.MemoryView(0, 0x100000000))).setUint32(
+//      Sandbox.getAddressOf(obj) + offset, value, true);
+// (adjusted for the requested bit size)
+//
+// Note that values are written directly as raw bytes without Smi tagging.
+// Alternatively, a field name can be passed as the second argument; the effect
+// is identical to calling
+// `Sandbox.getFieldOffset(Sandbox.getInstanceTypeIdOf(obj), field_name)` to
+// resolve the offset first.
+//
+// Sandbox.corruptObjectField(Object, Number|String, Number|BigInt, [Number]) ->
+// undefined
+void SandboxCorruptObjectField(
+    const v8::FunctionCallbackInfo<v8::Value>& info) {
+  DCHECK(ValidateCallbackInfo(info));
+  v8::Isolate* isolate = info.GetIsolate();
+  Local<v8::Context> context = isolate->GetCurrentContext();
+
+  ResolvedField field;
+  if (!ResolveObjectField(info, 3, &field)) return;
+
+  uint64_t value = 0;
+  if (field.bit_size != 64) {
+    if (!info[2]->IsInt32() && !info[2]->IsUint32()) {
+      isolate->ThrowError("Third argument must be an integer");
+      return;
+    }
+    int64_t val64;
+    CHECK(info[2]->IntegerValue(context).To(&val64));
+    if (field.bit_size == 8) {
+      if (val64 < -128 || val64 > 255) {
+        isolate->ThrowError("Third argument must fit in 8-bit integer range");
+        return;
+      }
+    } else if (field.bit_size == 16) {
+      if (val64 < -32768 || val64 > 65535) {
+        isolate->ThrowError("Third argument must fit in 16-bit integer range");
+        return;
+      }
+    }
+    value = static_cast<uint64_t>(val64);
+  } else {
+    if (info[2]->IsBigInt()) {
+      value = info[2].As<v8::BigInt>()->Uint64Value();
+    } else if (info[2]->IsNumber()) {
+      int64_t val64;
+      if (info[2]->IntegerValue(context).To(&val64)) {
+        value = static_cast<uint64_t>(val64);
+      } else {
+        isolate->ThrowError(
+            "Third argument must be a 64-bit integer or BigInt");
+        return;
+      }
+    } else {
+      isolate->ThrowError("Third argument must be a 64-bit integer or BigInt");
+      return;
+    }
+  }
+
+  if (field.bit_size == 8) {
+    field.holder->WriteField<uint8_t>(field.offset,
+                                      static_cast<uint8_t>(value));
+  } else if (field.bit_size == 16) {
+    field.holder->WriteField<uint16_t>(field.offset,
+                                       static_cast<uint16_t>(value));
+  } else if (field.bit_size == 32) {
+    field.holder->WriteField<uint32_t>(field.offset,
+                                       static_cast<uint32_t>(value));
+  } else if (field.bit_size == 64) {
+    field.holder->WriteField<uint64_t>(field.offset, value);
+  }
+}
+
 Handle<FunctionTemplateInfo> NewFunctionTemplate(
     Isolate* isolate, FunctionCallback func,
     ConstructorBehavior constructor_behavior) {
@@ -576,6 +789,10 @@ void SandboxTesting::InstallMemoryCorruptionApi(Isolate* isolate) {
   InstallFunction(isolate, sandbox, SandboxGetInstanceTypeIdFor,
                   "getInstanceTypeIdFor", 1);
   InstallFunction(isolate, sandbox, SandboxGetFieldOffset, "getFieldOffset", 2);
+  InstallFunction(isolate, sandbox, SandboxDereferenceTaggedPointerField,
+                  "dereferenceTaggedPointerField", 2);
+  InstallFunction(isolate, sandbox, SandboxCorruptObjectField,
+                  "corruptObjectField", 3);
 
   InstallFunction(isolate, sandbox, SandboxGetBuiltinNames, "getBuiltinNames",
                   0);
