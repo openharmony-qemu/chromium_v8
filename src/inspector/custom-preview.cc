@@ -95,6 +95,10 @@ bool substituteObjectTags(int sessionId, const String16& groupName,
       reportError(context, tryCatch, "attributes should be an Object");
       return false;
     }
+    if (attributesValue->IsProxy()) {
+      reportError(context, tryCatch, "Proxy values are not allowed in JSONML");
+      return false;
+    }
     v8::Local<v8::Object> attributes = attributesValue.As<v8::Object>();
     v8::Local<v8::Value> originValue;
     if (!attributes->Get(context, objectLiteral).ToLocal(&originValue)) {
@@ -146,6 +150,11 @@ bool substituteObjectTags(int sessionId, const String16& groupName,
       v8::Local<v8::Value> value;
       if (!jsonML->Get(context, i).ToLocal(&value)) {
         reportError(context, tryCatch);
+        return false;
+      }
+      if (value->IsProxy()) {
+        reportError(context, tryCatch,
+                    "Proxy values are not allowed in JSONML");
         return false;
       }
       if (value->IsArray() && value.As<v8::Array>()->Length() > 0 &&
