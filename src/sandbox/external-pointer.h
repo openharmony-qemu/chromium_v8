@@ -21,6 +21,8 @@ class ExternalPointerMember {
   inline Address load(const IsolateForSandbox isolate) const;
   inline void store(IsolateForSandbox isolate, Address value);
 
+  inline Address exchange(IsolateForSandbox isolate, Address value);
+
   inline ExternalPointer_t load_encoded() const;
   inline void store_encoded(ExternalPointer_t value);
 
@@ -72,6 +74,15 @@ V8_INLINE void WriteExternalPointerField(Address field_address,
 V8_INLINE void WriteExternalPointerField(Address field_address,
                                          IsolateForSandbox isolate,
                                          ExternalPointerTag tag, Address value);
+
+// If the sandbox is enabled: atomically exchanges the external pointer stored
+// in the entry referenced by the ExternalPointerHandle in the field with the
+// provided value, returning the previous pointer. If the sandbox is disabled:
+// reads the previous value from the field and stores the new value.
+template <ExternalPointerTag tag>
+V8_INLINE Address ExchangeExternalPointerField(Address field_address,
+                                               IsolateForSandbox isolate,
+                                               Address value);
 
 }  // namespace internal
 }  // namespace v8
