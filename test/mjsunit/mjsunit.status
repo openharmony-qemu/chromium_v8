@@ -429,6 +429,9 @@
   'regress/regress-2249': [SKIP],
   'regress/regress-3709': [SKIP],
   'regress/regress-4121': [SKIP],
+  # --concurrent-recompilation-delay sleeps before the compile starts, so the
+  # test's cell rotation finishes before the broker reads the cell.
+  'regress/regress-crbug-560233248': [SKIP],
   'regress/regress-6989': [SKIP],
   'compare-known-objects-slow': [SKIP],
   'compiler/array-multiple-receiver-maps': [SKIP],
