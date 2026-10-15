@@ -4054,11 +4054,6 @@ Reduction JSCallReducer::ReduceArrayForEach(Node* node,
   IteratingArrayBuiltinHelper h(node, broker(), jsgraph(), dependencies());
   if (!h.can_reduce()) return h.inference()->NoChange();
 
-  // The union kind is only an upper bound on each receiver's own kind. Loads
-  // through it widen and are sound; stores narrow and are not. Unlike the
-  // iterating builtins, sort writes its snapshot back into the receiver.
-  if (!h.all_elements_kinds_equal()) return h.inference()->NoChange();
-
   IteratingArrayBuiltinReducerAssembler a(this, node);
   a.InitializeEffectControl(h.effect(), h.control());
   TNode<Object> subgraph = a.ReduceArrayPrototypeForEach(
@@ -4080,6 +4075,11 @@ Reduction JSCallReducer::ReduceArraySort(Node* node,
 
   IteratingArrayBuiltinHelper h(node, broker(), jsgraph(), dependencies());
   if (!h.can_reduce()) return h.inference()->NoChange();
+
+  // The union kind is only an upper bound on each receiver's own kind. Loads
+  // through it widen and are sound; stores narrow and are not. Unlike the
+  // iterating builtins, sort writes its snapshot back into the receiver.
+  if (!h.all_elements_kinds_equal()) return h.inference()->NoChange();
 
   // Only non-holey, non-double PACKED kinds are supported.  Holey arrays need
   // hole handling; double arrays need a FixedDoubleArray temp copy.
