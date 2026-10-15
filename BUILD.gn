@@ -1824,7 +1824,7 @@ config("toolchain") {
   assert(!(v8_enable_runtime_call_stats && v8_enable_hitrace_runtime_call_stats),
          "Cannot enable v8 rcs and hitrace rcs at the same time!")
 
-  if (is_arkweb && !v8_component_build) {
+  if (target_os == "ohos" && enable_arkweb && !v8_component_build) {
     defines += [ "USING_OHOS_WEB" ]
   }
 
