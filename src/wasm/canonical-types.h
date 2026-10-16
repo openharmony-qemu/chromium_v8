@@ -52,7 +52,8 @@ class TypeCanonicalizer {
   static constexpr CanonicalTypeIndex kPredefinedArrayI16Index{1};
   static constexpr CanonicalTypeIndex kPredefinedArrayExternRefIndex{2};
   static constexpr CanonicalTypeIndex kPredefinedArrayFuncRefIndex{3};
-  static constexpr uint32_t kNumberOfPredefinedTypes = 4;
+  static constexpr CanonicalTypeIndex kPredefinedSigIndex_configureAll{4};
+  static constexpr uint32_t kNumberOfPredefinedTypes = 5;
 
   TypeCanonicalizer();
 
@@ -531,7 +532,9 @@ class TypeCanonicalizer {
     std::atomic<Segment*> segments_[kNumSegments]{};
   };
 
-  void AddPredefinedArrayTypes();
+  void AddPredefinedSingletonGroup(CanonicalTypeIndex index,
+                                   const CanonicalType& type);
+  void AddPredefinedTypes();
 
   CanonicalTypeIndex FindCanonicalGroup(const CanonicalGroup&) const;
   CanonicalTypeIndex FindCanonicalGroup(const CanonicalSingletonGroup&) const;
