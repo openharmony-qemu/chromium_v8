@@ -448,8 +448,15 @@ Maybe<bool> JSReceiver::SetOrCopyDataProperties(
       KeyAccumulator::GetKeys(isolate, from, KeyCollectionMode::kOwnOnly,
                               ALL_PROPERTIES, GetKeysConversion::kKeepNumbers));
 
+  InstanceType target_instance_type = target->map()->instance_type();
   if (!from->HasFastProperties() && target->HasFastProperties() &&
-      IsJSObject(*target) && !IsJSGlobalProxy(*target)) {
+      InstanceTypeChecker::IsJSObject(target_instance_type) &&
+      !InstanceTypeChecker::IsJSGlobalProxy(target_instance_type) &&
+      // Exclude remote objects (they don't have local properties anyway).
+      !(InstanceTypeChecker::IsJSSpecialApiObject(target_instance_type) &&
+        !target->GetCreationContext().has_value()) &&
+      !InstanceTypeChecker::IsAlwaysSharedSpaceJSObject(
+          target_instance_type)) {
     // Convert to slow properties if we're guaranteed to overflow the number of
     // descriptors.
     int source_length;
