@@ -35,6 +35,8 @@ class ConsoleCallArguments;
 namespace api_internal {
 V8_EXPORT JSVM_EXPORT v8::Local<v8::Value> GetFunctionTemplateData(
     v8::Isolate* isolate, v8::Local<v8::Data> raw_target);
+V8_EXPORT JSVM_EXPORT v8::Local<v8::Data> GetFunctionTemplateDataV2(
+    v8::Isolate* isolate, v8::Local<v8::Data> raw_target);
 }  // namespace api_internal
 
 template <typename T>
@@ -132,6 +134,8 @@ class FunctionCallbackInfo {
   V8_INLINE bool IsConstructCall() const;
   /** The data argument specified when creating the callback. */
   V8_INLINE Local<Value> Data() const;
+  /** The data argument specified when creating the callback as `v8::Data`. */
+  V8_INLINE Local<v8::Data> DataV2() const;
   /** The current Isolate. */
   V8_INLINE Isolate* GetIsolate() const;
   /** The ReturnValue for the call. */
@@ -197,6 +201,11 @@ class PropertyCallbackInfo {
    * `IndexedPropertyHandlerConfiguration.`
    */
   V8_INLINE Local<Value> Data() const;
+
+  /**
+   * \return The data set in the callback configuration as `v8::Data`.
+   */
+  V8_INLINE Local<v8::Data> DataV2() const;
 
   /**
    * \return The receiver. In many cases, this is the object on which the
@@ -642,6 +651,16 @@ Local<Value> FunctionCallbackInfo<T>::Data() const {
 }
 
 template <typename T>
+Local<v8::Data> FunctionCallbackInfo<T>::DataV2() const {
+  // Upstream V8 keeps the target in `values_[kTargetIndex]` (flattened
+  // ApiCallbackExitFrame layout), but this fork stores implicit args
+  // (isolate/context/target/new_target) in `implicit_args_`, so the target is
+  // read from there, matching Data() and internal::GetTarget().
+  auto target = Local<v8::Data>::FromSlot(&implicit_args_[kTargetIndex]);
+  return api_internal::GetFunctionTemplateDataV2(GetIsolate(), target);
+}
+
+template <typename T>
 Isolate* FunctionCallbackInfo<T>::GetIsolate() const {
   return *reinterpret_cast<Isolate**>(&implicit_args_[kIsolateIndex]);
 }
@@ -673,6 +692,15 @@ Local<Value> PropertyCallbackInfo<T>::Data() const {
   internal::Address data =
       I::ReadTaggedPointerField(callback_info, I::kCallbackInfoDataOffset);
   return Local<Value>::New(GetIsolate(), data);
+}
+
+template <typename T>
+Local<v8::Data> PropertyCallbackInfo<T>::DataV2() const {
+  using I = internal::Internals;
+  internal::Address callback_info = args_[kCallbackInfoIndex];
+  internal::Address data =
+      I::ReadTaggedPointerField(callback_info, I::kCallbackInfoDataOffset);
+  return Local<v8::Data>::New(GetIsolate(), data);
 }
 
 template <typename T>
