@@ -1607,8 +1607,7 @@ class WasmSuspenderObject
       WithExternalPointer<kStackOffset, kWasmStackMemoryTag>,
       WithProtectedPointer<kParentOffset>>;
   enum State : int { kInactive = 0, kActive, kSuspended };
-  inline wasm::StackMemory* stack() const;
-  inline void set_stack(wasm::StackMemory* value);
+  DECL_EXTERNAL_POINTER_ACCESSORS(stack, wasm::StackMemory*)
   DECL_PROTECTED_POINTER_ACCESSORS(parent, WasmSuspenderObject)
   DECL_PRINTER(WasmSuspenderObject)
   TQ_OBJECT_CONSTRUCTORS(WasmSuspenderObject)
