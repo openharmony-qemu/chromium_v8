@@ -1604,7 +1604,6 @@ class WasmSuspenderObject
   using BodyDescriptor = StackedBodyDescriptor<
       FixedExposedTrustedObjectBodyDescriptor<WasmSuspenderObject,
                                               kWasmSuspenderIndirectPointerTag>,
-      WithExternalPointer<kStackOffset, kWasmStackMemoryTag>,
       WithProtectedPointer<kParentOffset>>;
   enum State : int { kInactive = 0, kActive, kSuspended };
   DECL_EXTERNAL_POINTER_ACCESSORS(stack, wasm::StackMemory*)
