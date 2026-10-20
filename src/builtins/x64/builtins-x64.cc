@@ -3462,7 +3462,9 @@ void SwitchToAllocatedStack(MacroAssembler* masm, Register wasm_instance,
   ResetWasmJspiFrameStackSlots(masm);
   Register stack = new_wrapper_buffer;
   __ LoadRootRelative(stack, IsolateData::active_suspender_offset());
-  __ movq(stack, FieldOperand(stack, WasmSuspenderObject::kStackOffset));
+  __ LoadExternalPointerField(
+      stack, FieldOperand(stack, WasmSuspenderObject::kStackOffset),
+      kWasmStackMemoryTag, kScratchRegister);
   SwitchStacks(masm, ExternalReference::wasm_start_stack(), stack, suspend,
                no_reg, {kWasmImplicitArgRegister, wrapper_buffer});
   Register target_stack = scratch;
@@ -3826,7 +3828,9 @@ void Builtins::Generate_WasmSuspend(MacroAssembler* masm) {
   __ LoadProtectedPointerField(
       parent, FieldOperand(suspender, WasmSuspenderObject::kParentOffset));
   Register target_stack = rcx;
-  __ movq(target_stack, FieldOperand(parent, WasmSuspenderObject::kStackOffset));
+  __ LoadExternalPointerField(
+      target_stack, FieldOperand(parent, WasmSuspenderObject::kStackOffset),
+      kWasmStackMemoryTag, kScratchRegister);
 
   // Switch stacks.
   SwitchStacks(masm, ExternalReference::wasm_suspend_stack(), target_stack,
@@ -3900,8 +3904,9 @@ void Generate_WasmResumeHelper(MacroAssembler* masm, wasm::OnResume on_resume) {
   // Call the C function.
   // -------------------------------------------
   Register target_stack = rbx;
-  __ movq(target_stack, 
-          FieldOperand(suspender, WasmSuspenderObject::kStackOffset));
+  __ LoadExternalPointerField(
+      target_stack, FieldOperand(suspender, WasmSuspenderObject::kStackOffset),
+      kWasmStackMemoryTag, kScratchRegister);
   SwitchStacks(masm, ExternalReference::wasm_resume_jspi_stack(), target_stack,
                &suspend, suspender, {target_stack});
   suspender = no_reg;

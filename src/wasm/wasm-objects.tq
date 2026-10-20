@@ -165,7 +165,7 @@ extern class WasmResumeData extends HeapObject {
 }
 
 extern class WasmSuspenderObject extends ExposedTrustedObject {
-  stack: RawPtr;
+  stack: ExternalPointer;
   parent: ProtectedPointer<WasmSuspenderObject>;
   promise: JSPromise|Undefined;
   resume: JSObject|Undefined;
