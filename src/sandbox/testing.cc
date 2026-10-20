@@ -621,6 +621,42 @@ void SandboxDereferenceTaggedPointerField(
   }
 }
 
+// Read one field of an object without setting up a memory view first.
+//
+//   let value = Sandbox.readObjectField(obj, offset, bit_size);
+// emits a raw memory read, identical to
+//   (new DataView(new Sandbox.MemoryView(0, 0x100000000))).getUint32(
+//      Sandbox.getAddressOf(obj) + offset, true);
+// (adjusted for the requested bit size)
+//
+// Alternatively, a field name can be passed as the second argument; the effect
+// is identical to calling
+// `Sandbox.getFieldOffset(Sandbox.getInstanceTypeIdOf(obj), field_name)` to
+// resolve the offset first.
+//
+// Sandbox.readObjectField(Object, Number|String, [Number]) -> Number|BigInt
+void SandboxReadObjectField(const v8::FunctionCallbackInfo<v8::Value>& info) {
+  DCHECK(ValidateCallbackInfo(info));
+  v8::Isolate* isolate = info.GetIsolate();
+ 
+  ResolvedField field;
+  if (!ResolveObjectField(info, 2, &field)) return;
+ 
+  if (field.bit_size == 8) {
+    uint8_t value = field.holder->ReadField<uint8_t>(field.offset);
+    info.GetReturnValue().Set(value);
+  } else if (field.bit_size == 16) {
+    uint16_t value = field.holder->ReadField<uint16_t>(field.offset);
+    info.GetReturnValue().Set(value);
+  } else if (field.bit_size == 32) {
+    uint32_t value = field.holder->ReadField<uint32_t>(field.offset);
+    info.GetReturnValue().Set(v8::Integer::NewFromUnsigned(isolate, value));
+  } else if (field.bit_size == 64) {
+    uint64_t value = field.holder->ReadField<uint64_t>(field.offset);
+    info.GetReturnValue().Set(v8::BigInt::NewFromUnsigned(isolate, value));
+  }
+}
+
 // Corrupt one field of an object without setting up a memory view first.
 //
 //   Sandbox.corruptObjectField(obj, offset, value, bit_size);
@@ -793,6 +829,8 @@ void SandboxTesting::InstallMemoryCorruptionApi(Isolate* isolate) {
   InstallFunction(isolate, sandbox, SandboxGetFieldOffset, "getFieldOffset", 2);
   InstallFunction(isolate, sandbox, SandboxDereferenceTaggedPointerField,
                   "dereferenceTaggedPointerField", 2);
+  InstallFunction(isolate, sandbox, SandboxReadObjectField, "readObjectField",
+                  3);
   InstallFunction(isolate, sandbox, SandboxCorruptObjectField,
                   "corruptObjectField", 3);
 
@@ -1201,6 +1239,8 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
         SharedFunctionInfo::kUntrustedFunctionDataOffset;
     fields[SHARED_FUNCTION_INFO_TYPE]["script"] =
         SharedFunctionInfo::kScriptOffset;
+    fields[SHARED_FUNCTION_INFO_TYPE]["unique_id"] =
+        SharedFunctionInfo::kUniqueIdOffset;
     fields[SCRIPT_TYPE]["wasm_managed_native_module"] =
         Script::kEvalFromPositionOffset;
     fields[JS_PROMISE_TYPE]["reactions_or_result"] =

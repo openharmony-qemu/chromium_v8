@@ -1308,7 +1308,7 @@ const Operator* JSOperatorBuilder::DeleteProperty() {
 
 const Operator* JSOperatorBuilder::CreateGeneratorObject() {
   return zone()->New<Operator>(                                     // --
-      IrOpcode::kJSCreateGeneratorObject, Operator::kEliminatable,  // opcode
+      IrOpcode::kJSCreateGeneratorObject, Operator::kNoThrow,  // opcode
       "JSCreateGeneratorObject",                                    // name
       2, 1, 1, 1, 1, 0);                                            // counts
 }
