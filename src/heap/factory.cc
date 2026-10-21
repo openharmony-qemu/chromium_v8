@@ -1951,7 +1951,7 @@ DirectHandle<WasmSuspenderObject> Factory::NewWasmSuspenderObject() {
           map->instance_size(), AllocationType::kTrusted, map));
   auto suspender = handle(obj, isolate());
   DisallowGarbageCollection no_gc;
-  suspender->init_stack(IsolateForSandbox(isolate()), nullptr);
+  suspender->set_stack(nullptr);
   suspender->clear_parent();
   suspender->set_promise(*undefined_value());
   suspender->set_resume(*undefined_value());
