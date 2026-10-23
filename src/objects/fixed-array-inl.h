@@ -748,6 +748,11 @@ Tagged<MaybeObject> WeakArrayList::Get(int index) const {
   return Get(cage_base, index);
 }
 Tagged<MaybeObject> WeakArrayList::get(int index) const { return Get(index); }
+Tagged<MaybeObject> WeakArrayList::get(int index, AcquireLoadTag) const {
+  DCHECK_LT(static_cast<unsigned>(index), static_cast<unsigned>(capacity()));
+  const int offset = kObjectsOffset + index * kTaggedSize;
+  return TaggedField<MaybeObject>::Acquire_Load(*this, offset);
+}
 
 Tagged<MaybeObject> WeakArrayList::Get(PtrComprCageBase cage_base,
                                        int index) const {
@@ -758,6 +763,14 @@ Tagged<MaybeObject> WeakArrayList::Get(PtrComprCageBase cage_base,
 void WeakArrayList::Set(int index, Tagged<MaybeObject> value,
                         WriteBarrierMode mode) {
   set_objects(index, value, kRelaxedStore, mode);
+}
+
+void WeakArrayList::set(int index, Tagged<MaybeObject> value,
+                        ReleaseStoreTag, WriteBarrierMode mode) {
+  DCHECK_LT(static_cast<unsigned>(index), static_cast<unsigned>(capacity()));
+  const int offset = kObjectsOffset + index * kTaggedSize;
+  TaggedField<MaybeObject>::Release_Store(*this, offset, value);
+  CONDITIONAL_WRITE_BARRIER(*this, offset, value, mode);
 }
 
 void WeakArrayList::Set(int index, Tagged<Smi> value) {
