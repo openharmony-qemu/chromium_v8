@@ -852,6 +852,23 @@ var prettyPrinted;
         'should be optimized: ' + name_opt);
   }
 
+  assertMaglevved = function assertMaglevved(fun, name_opt = undefined) {
+    var opt_status = OptimizationStatus(fun);
+    name_opt = name_opt ?? fun.name;
+    // Tests that use assertMaglevved() do not make sense for Lite mode where
+    // optimization is always disabled, explicitly exit the test with a warning.
+    if (opt_status & V8OptimizationStatus.kLiteMode) {
+      print("Warning: Test uses assertMaglevved in Lite mode, skipping test.");
+      quit(0);
+    }
+    assertTrue(
+        (opt_status & V8OptimizationStatus.kIsFunction) !== 0,
+        'should be a function: ' + name_opt);
+    assertTrue(
+        (opt_status & V8OptimizationStatus.kMaglevved) !== 0,
+        'should be maglevved: ' + name_opt);
+  }
+
   isNeverOptimizeLiteMode = function isNeverOptimizeLiteMode() {
     var opt_status = OptimizationStatus(undefined, "");
     return (opt_status & V8OptimizationStatus.kLiteMode) !== 0;
