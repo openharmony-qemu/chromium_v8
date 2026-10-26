@@ -1975,7 +1975,11 @@ void Deoptimizer::DoComputeUnoptimizedFrame(TranslatedFrame* translated_frame,
     std::optional<Tagged<DebugInfo>> debug_info =
         translated_frame->raw_shared_info()->TryGetDebugInfo(isolate());
     if (debug_info.has_value() && debug_info.value()->HasBreakInfo()) {
-      // TODO(leszeks): Validate this bytecode.
+      // Ensure the DebugInfo belongs to this frame's trusted BytecodeArray in
+      // case the untrusted SFI reference in the DeoptimizationLiteralArray was
+      // swapped.
+      SBXCHECK_EQ(debug_info.value()->OriginalBytecodeArray(isolate()),
+                  bytecode_array);
       bytecode_array = debug_info.value()->DebugBytecodeArray(isolate());
     }
   }
