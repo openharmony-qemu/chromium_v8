@@ -2945,6 +2945,10 @@ FunctionLiteral* Parser::ParseFunctionLiteral(
                   &num_parameters, &function_length, &has_duplicate_parameters,
                   &expected_property_count, &suspend_count,
                   arguments_for_wrapped_function);
+    if (should_preparse) {
+      CHECK(has_error());
+      return nullptr;
+    }
   }
 
   if (V8_UNLIKELY(v8_flags.log_function_events)) {
