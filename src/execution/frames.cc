@@ -3895,6 +3895,16 @@ int WasmLiftoffSetupFrame::GetDeclaredFunctionIndex() const {
   return Smi::ToInt(func_index);
 }
 
+void WasmLiftoffSetupFrame::ComputeCallerState(State* state) const {
+  TypedFrame::ComputeCallerState(state);
+  // The calling PC is spilled at a non-standard offset (see
+  // {Generate_WasmLiftoffFrameSetup}). Read it here so that
+  // {HasTaggedOutgoingParams} can correctly identify the Wasm callee during GC
+  // stack iteration.
+  state->callee_pc = unauthenticated_pc(reinterpret_cast<Address*>(
+      fp() + WasmLiftoffSetupFrameConstants::kCallingPCOffset));
+}
+
 wasm::NativeModule* WasmLiftoffSetupFrame::GetNativeModule() const {
   return Memory<wasm::NativeModule*>(
       sp() + WasmLiftoffSetupFrameConstants::kNativeModuleOffset);
