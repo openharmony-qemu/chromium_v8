@@ -834,8 +834,13 @@ int WasmArray::DecodeElementSizeFromMap(Tagged<Map> map) {
   return map->WasmByte1();
 }
 
-EXTERNAL_POINTER_ACCESSORS(WasmSuspenderObject, stack, wasm::StackMemory*,
-                           kStackOffset, kWasmStackMemoryTag)
+wasm::StackMemory* WasmSuspenderObject::stack() const {
+  return reinterpret_cast<wasm::StackMemory*>(TorqueGeneratedClass::stack());
+}
+
+void WasmSuspenderObject::set_stack(wasm::StackMemory* value) {
+  TorqueGeneratedClass::set_stack(reinterpret_cast<Address>(value));
+}
 
 EXTERNAL_POINTER_ACCESSORS(WasmContinuationObject, stack, wasm::StackMemory*,
                            kStackOffset, kWasmStackMemoryTag)

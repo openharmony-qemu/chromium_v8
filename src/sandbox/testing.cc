@@ -18,6 +18,7 @@
 #include "src/objects/backing-store.h"
 #include "src/objects/foreign.h"
 #include "src/objects/instance-type.h"
+#include "src/objects/js-array-buffer.h"
 #include "src/objects/js-objects.h"
 #include "src/objects/tagged-field-inl.h"
 #include "src/objects/templates.h"
@@ -26,6 +27,7 @@
 #ifdef V8_OS_LINUX
 #include <signal.h>
 #include <sys/mman.h>
+#undef MAP_TYPE
 #include <sys/ucontext.h>
 #include <unistd.h>
 #endif  // V8_OS_LINUX
@@ -1173,12 +1175,15 @@ SandboxTesting::InstanceTypeMap& SandboxTesting::GetInstanceTypeMap() {
     types["PROMISE_REACTION"] = PROMISE_REACTION_TYPE;
     types["JS_FUNCTION"] = JS_FUNCTION_TYPE;
     types["SHARED_FUNCTION_INFO"] = SHARED_FUNCTION_INFO_TYPE;
+    types["MAP_TYPE"] = MAP_TYPE;
 #ifdef V8_ENABLE_WEBASSEMBLY
     types["WASM_MODULE_OBJECT_TYPE"] = WASM_MODULE_OBJECT_TYPE;
     types["WASM_INSTANCE_OBJECT_TYPE"] = WASM_INSTANCE_OBJECT_TYPE;
     types["WASM_FUNC_REF_TYPE"] = WASM_FUNC_REF_TYPE;
     types["WASM_TABLE_OBJECT_TYPE"] = WASM_TABLE_OBJECT_TYPE;
     types["WASM_RESUME_DATA"] = WASM_RESUME_DATA_TYPE;
+    types["WASM_TAG_OBJECT_TYPE"] = WASM_TAG_OBJECT_TYPE;
+    types["WASM_STACK_OBJECT_TYPE"] = WASM_CONTINUATION_OBJECT_TYPE;
 #endif  // V8_ENABLE_WEBASSEMBLY
   }
   return types;
@@ -1193,6 +1198,8 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
   auto& fields = *g_known_fields.get();
   bool is_initialized = fields.size() != 0;
   if (!is_initialized) {
+    fields[MAP_TYPE]["instance_type"] = Map::kInstanceTypeOffset;
+    fields[JS_ARRAY_BUFFER_TYPE]["extension"] = JSArrayBuffer::kExtensionOffset;
     fields[JS_FUNCTION_TYPE]["dispatch_handle"] =
         JSFunction::kDispatchHandleOffset;
     fields[JS_FUNCTION_TYPE]["shared_function_info"] =
@@ -1259,6 +1266,9 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
         WasmTableObject::kRawTypeOffset;
     fields[WASM_RESUME_DATA_TYPE]["trusted_suspender"] =
         WasmResumeData::kTrustedSuspenderOffset;
+    fields[WASM_TAG_OBJECT_TYPE]["tag"] = WasmTagObject::kTagOffset;
+    fields[WASM_CONTINUATION_OBJECT_TYPE]["stack"] =
+        WasmContinuationObject::kStackOffset;
 #endif  // V8_ENABLE_WEBASSEMBLY
   }
   return fields;

@@ -1328,7 +1328,7 @@ RUNTIME_FUNCTION(Runtime_WasmAllocateSuspender) {
 
   // Update the suspender state.
   suspender->set_parent(isolate->isolate_data()->active_suspender());
-  suspender->set_stack(isolate, target_stack.get());
+  suspender->set_stack(target_stack.get());
   // The active stack is updated in {Isolate::SwitchStacks}.
   isolate->isolate_data()->set_active_suspender(*suspender);
 
