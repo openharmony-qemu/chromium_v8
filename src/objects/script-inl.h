@@ -158,6 +158,14 @@ void Script::set_deserialized(bool value) {
   set_flags(DeserializedBit::update(flags(), value));
 }
 
+bool Script::is_function_constructor() const {
+  return IsFunctionConstructorBit::decode(flags());
+}
+
+void Script::set_is_function_constructor(bool value) {
+  set_flags(IsFunctionConstructorBit::update(flags(), value));
+}
+
 bool Script::is_repl_mode() const { return IsReplModeBit::decode(flags()); }
 
 void Script::set_is_repl_mode(bool value) {

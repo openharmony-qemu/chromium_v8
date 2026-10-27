@@ -49,6 +49,9 @@ UnoptimizedCompileFlags UnoptimizedCompileFlags::ForFunctionCompile(
 
   flags.SetFlagsForFunctionFromScript(script);
   flags.SetFlagsFromFunction(shared);
+  if (flags.is_toplevel() && script->is_function_constructor()) {
+    flags.set_parse_restriction(ONLY_SINGLE_FUNCTION_LITERAL);
+  }
   flags.set_allow_lazy_parsing(true);
   flags.set_is_lazy_compile(true);
 
@@ -75,6 +78,9 @@ UnoptimizedCompileFlags UnoptimizedCompileFlags::ForScriptCompile(
       script->origin_options().IsModule() ? ScriptType::kModule
                                           : ScriptType::kClassic,
       v8_flags.lazy);
+  if (script->is_function_constructor()) {
+    flags.set_parse_restriction(ONLY_SINGLE_FUNCTION_LITERAL);
+  }
   if (script->is_wrapped()) {
     flags.set_function_syntax_kind(FunctionSyntaxKind::kWrapped);
   }
@@ -272,6 +278,9 @@ Handle<Script> ParseInfo::CreateScript(
         *maybe_wrapped_arguments.ToHandleChecked());
   } else if (flags().is_eval()) {
     raw_script->set_compilation_type(Script::CompilationType::kEval);
+    if (flags().parse_restriction() == ONLY_SINGLE_FUNCTION_LITERAL) {
+      raw_script->set_is_function_constructor(true);
+    }
   }
   CheckFlagsForToplevelCompileFromScript(raw_script);
 

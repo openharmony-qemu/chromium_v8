@@ -913,7 +913,7 @@ class V8_EXPORT_PRIVATE Parser : public NON_EXPORTED_BASE(ParserBase<Parser>) {
   // Returns true iff we're parsing the first function literal during
   // CreateDynamicFunction().
   V8_INLINE bool ParsingDynamicFunctionDeclaration() const {
-    return parameters_end_pos_ != kNoSourcePosition;
+    return parsing_dynamic_function_declaration_;
   }
 
   V8_INLINE void ConvertBinaryToNaryOperationSourceRange(
@@ -1134,6 +1134,11 @@ class V8_EXPORT_PRIVATE Parser : public NON_EXPORTED_BASE(ParserBase<Parser>) {
   // indicates the correct position of the ')' that closes the parameter list.
   // After that ')' is encountered, this field is reset to kNoSourcePosition.
   int parameters_end_pos_;
+  // Set when the flags request ONLY_SINGLE_FUNCTION_LITERAL, which is how the
+  // source created by the Function constructor is compiled. Unlike
+  // parameters_end_pos_, this is also set when the top-level function of such
+  // a script is re-parsed.
+  bool parsing_dynamic_function_declaration_;
 };
 
 }  // namespace internal
