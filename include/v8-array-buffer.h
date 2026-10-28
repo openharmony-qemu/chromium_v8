@@ -496,7 +496,7 @@ class V8_EXPORT JSVM_EXPORT DataView : public ArrayBufferView {
 /**
  * An instance of the built-in SharedArrayBuffer constructor.
  */
-class V8_EXPORT SharedArrayBuffer : public Object {
+class V8_EXPORT JSVM_EXPORT SharedArrayBuffer : public Object {
  public:
   /**
    * Data length in bytes.
