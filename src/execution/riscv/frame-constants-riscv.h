@@ -37,11 +37,20 @@ class WasmLiftoffSetupFrameConstants : public TypedFrameConstants {
   static constexpr int kNumberOfSavedFpParamRegs = 8;
   static constexpr int kNumberOfSavedAllParamRegs =
       kNumberOfSavedGpParamRegs + kNumberOfSavedFpParamRegs;
+  // Vector registers alias FPU registers; we save the same count.
+  static constexpr int kNumberOfSavedVpParamRegs = kNumberOfSavedFpParamRegs;
 
   // The instance is pushed separately from the other saved parameters. It is
   // the saved register closest to fp at index 0.
   static constexpr int kInstanceSpillOffset =
       TYPED_FRAME_PUSHED_VALUE_OFFSET(0);
+  // We then spill floating-point param regs and finally ra (calling PC).
+  // Offset computation:
+  // 1 for the instance, and counting each 128bit vector reg as two slots.
+  static_assert(kSimd128Size == 2 * kSystemPointerSize);
+  static constexpr int kCallingPCOffset = TYPED_FRAME_PUSHED_VALUE_OFFSET(
+      1 + kNumberOfSavedGpParamRegs + kNumberOfSavedFpParamRegs +
+      kNumberOfSavedVpParamRegs * 2);
 
   // The parameters are pushed onto the stack using MacroAssembler::MultiPush;
   // see src/codegen/riscv/macro-assembler-riscv.cc. That means that the last
