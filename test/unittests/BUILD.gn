@@ -468,6 +468,7 @@ v8_source_set("v8_unittests_sources") {
     "regress/regress-crbug-938251-unittest.cc",
     "run-all-unittests.cc",
     "runtime/runtime-debug-unittest.cc",
+    "sandbox/code-cache-unittest.cc",
     "sandbox/pointer-table-unittest.cc",
     "sandbox/sandbox-hardware-support-unittest.cc",
     "sandbox/sandbox-unittest.cc",

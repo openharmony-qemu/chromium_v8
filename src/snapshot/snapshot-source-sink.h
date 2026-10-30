@@ -51,7 +51,10 @@ class SnapshotByteSource final {
   void Advance(int by) { position_ += by; }
 
   void CopyRaw(void* to, int number_of_bytes) {
-    DCHECK_LE(position_ + number_of_bytes, length_);
+    CHECK_GE(number_of_bytes, 0);
+    CHECK_GE(position_, 0);
+    CHECK_LE(position_, length_);
+    CHECK_LE(number_of_bytes, length_ - position_);
     memcpy(to, data_ + position_, number_of_bytes);
     position_ += number_of_bytes;
   }
