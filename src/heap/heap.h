@@ -1909,6 +1909,22 @@ class Heap final {
 
   void CheckHeapLimitReached();
   bool ReachedHeapLimit();
+
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+  // Notifies the OHOS OOM monitor callback. Only called on JS heap OOM,
+  // never on process OOM, where the heap is not yet initialized and
+  // querying heap statistics is unsafe.
+  void InvokeOOMMonitorCallback(const char* location,
+                                const OOMDetails& details);
+#endif
+
+#ifdef OHOS_JS_ENGINE
+  // Notifies the JSVM OOM handler installed via SetOOMErrorHandlerWithIsolate,
+  // passing a JSON dump of the heap statistics. Only called on JS heap OOM,
+  // never on process OOM, where dumping heap statistics is both meaningless
+  // and unsafe.
+  void InvokeJSVMOOMCallback(const char* location);
+#endif
   bool HasConsecutiveIneffectiveMarkCompact() const;
 
   // Make all LABs of all threads iterable.
