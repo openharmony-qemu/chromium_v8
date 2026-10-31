@@ -1231,9 +1231,7 @@ V8_OBJECT class ExternalString : public UncachedExternalString {
 
   // Used in the serializer/deserializer.
   inline Address resource_as_address() const;
-  inline void set_address_as_resource(Isolate* isolate, Address address);
-  inline uint32_t GetResourceRefForDeserialization();
-  inline void SetResourceRefForSerialization(uint32_t ref);
+  inline void InitResourceDataAfterDeserialization(Isolate* isolate);
 
   // Disposes string's resource object if it has not already been disposed.
   inline void DisposeResource(Isolate* isolate);

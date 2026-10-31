@@ -89,14 +89,6 @@ size_t JSArrayBuffer::GetByteLength() const {
   return byte_length();
 }
 
-uint32_t JSArrayBuffer::GetBackingStoreRefForDeserialization() const {
-  return static_cast<uint32_t>(ReadField<Address>(kBackingStoreOffset));
-}
-
-void JSArrayBuffer::SetBackingStoreRefForSerialization(uint32_t ref) {
-  WriteField<Address>(kBackingStoreOffset, static_cast<Address>(ref));
-}
-
 void JSArrayBuffer::init_extension() {
 #if V8_COMPRESS_POINTERS
   // The extension field is lazily-initialized, so set it to null initially.
@@ -327,30 +319,13 @@ Address JSTypedArray::ExternalPointerCompensationForOnHeapArray(
 #endif
 }
 
-uint32_t JSTypedArray::GetExternalBackingStoreRefForDeserialization() const {
-  DCHECK(!is_on_heap());
-  return static_cast<uint32_t>(ReadField<Address>(kExternalPointerOffset));
-}
-
-void JSTypedArray::SetExternalBackingStoreRefForSerialization(uint32_t ref) {
-  DCHECK(!is_on_heap());
-  WriteField<Address>(kExternalPointerOffset, static_cast<Address>(ref));
-}
-
-void JSTypedArray::RemoveExternalPointerCompensationForSerialization(
-    Isolate* isolate) {
+void JSTypedArray::InitOnHeapDataPtrAfterDeserialization(Isolate* isolate) {
   DCHECK(is_on_heap());
+  DCHECK_EQ(ReadField<Address>(kExternalPointerOffset), kNullAddress);
   Address offset =
-      external_pointer() - ExternalPointerCompensationForOnHeapArray(isolate);
-  WriteField<Address>(kExternalPointerOffset, offset);
-}
-
-void JSTypedArray::AddExternalPointerCompensationForDeserialization(
-    Isolate* isolate) {
-  DCHECK(is_on_heap());
-  Address pointer = ReadField<Address>(kExternalPointerOffset) +
-                    ExternalPointerCompensationForOnHeapArray(isolate);
-  set_external_pointer(isolate, pointer);
+      OFFSET_OF_DATA_START(ByteArray) - kHeapObjectTag + byte_offset();
+  set_external_pointer(
+      isolate, offset + ExternalPointerCompensationForOnHeapArray(isolate));
 }
 
 void* JSTypedArray::DataPtr() {
