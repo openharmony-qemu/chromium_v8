@@ -141,9 +141,12 @@ void WriteBarrier::MarkingSlow(Tagged<DescriptorArray> descriptor_array,
 }
 
 void WriteBarrier::MarkingSlow(Tagged<HeapObject> host,
-                               ExternalPointerSlot slot) {
+                               ExternalPointerSlot slot,
+                               ExternalPointerHandle handle) {
 #ifdef V8_COMPRESS_POINTERS
   if (!slot.HasExternalPointerHandle()) return;
+
+  DCHECK_EQ(handle, slot.Relaxed_LoadHandle());
 
   MarkingBarrier* marking_barrier = CurrentMarkingBarrier(host);
   IsolateForPointerCompression isolate(marking_barrier->heap()->isolate());
@@ -153,7 +156,6 @@ void WriteBarrier::MarkingSlow(Tagged<HeapObject> host,
   ExternalPointerTable::Space* space =
       isolate.GetExternalPointerTableSpaceFor(slot.tag_range(), host.address());
 
-  ExternalPointerHandle handle = slot.Relaxed_LoadHandle();
   table.Mark(space, handle, slot.address(), slot.tag_range());
 #endif  // V8_COMPRESS_POINTERS
 }

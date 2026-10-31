@@ -101,7 +101,7 @@ JSSynchronizationPrimitive::SetWaiterQueueHead(Isolate* requester,
       base::AsAtomic32::Release_Store(waiter_queue_head_handle_location(),
                                       handle);
       EXTERNAL_POINTER_WRITE_BARRIER(*this, kWaiterQueueHeadOffset,
-                                     kWaiterQueueNodeTag);
+                                     kWaiterQueueNodeTag, handle);
       return new_state;
     }
     if (DEBUG_BOOL) {
