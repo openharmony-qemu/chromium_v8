@@ -1130,9 +1130,11 @@ bool V8DebuggerAgentImpl::acceptsPause(bool isOOMBreak) const {
   return enabled() && (isOOMBreak || !m_skipAllPauses);
 }
 
-std::unique_ptr<protocol::Debugger::Location> V8DebuggerAgentImpl::setBreakpointImpl(
-    const String16& breakpointId, const String16& scriptId,
-    const String16& condition, int lineNumber, int columnNumber) {
+std::unique_ptr<protocol::Debugger::Location>
+V8DebuggerAgentImpl::setBreakpointImpl(const String16& breakpointId,
+                                       const String16& scriptId,
+                                       const String16& condition,
+                                       int lineNumber, int columnNumber) {
   v8::HandleScope handles(m_isolate);
   DCHECK(enabled());
 
