@@ -451,7 +451,7 @@ Response InjectedScript::getProperties(
     if (mirror.value) {
       Response response = wrapObjectMirror(
           *mirror.value, groupName, wrapOptions, v8::MaybeLocal<v8::Value>(),
-          kMaxCustomPreviewDepth, &remoteObject);
+          kMaxCustomPreviewDepth, nullptr, &remoteObject);
       if (!response.IsSuccess()) return response;
       descriptor->setValue(std::move(remoteObject));
       descriptor->setWritable(mirror.writable);
@@ -606,26 +606,28 @@ Response InjectedScript::wrapObject(
     const WrapOptions& wrapOptions,
     std::unique_ptr<protocol::Runtime::RemoteObject>* result) {
   return wrapObject(value, groupName, wrapOptions, v8::MaybeLocal<v8::Value>(),
-                    kMaxCustomPreviewDepth, result);
+                    kMaxCustomPreviewDepth, nullptr, result);
 }
 
 Response InjectedScript::wrapObject(
     v8::Local<v8::Value> value, const String16& groupName,
     const WrapOptions& wrapOptions,
     v8::MaybeLocal<v8::Value> customPreviewConfig, int maxCustomPreviewDepth,
+    CustomPreviewBudget* budget,
     std::unique_ptr<protocol::Runtime::RemoteObject>* result) {
   v8::Local<v8::Context> context = m_context->context();
   v8::Context::Scope contextScope(context);
   std::unique_ptr<ValueMirror> mirror = ValueMirror::create(context, value);
   if (!mirror) return Response::InternalError();
   return wrapObjectMirror(*mirror, groupName, wrapOptions, customPreviewConfig,
-                          maxCustomPreviewDepth, result);
+                          maxCustomPreviewDepth, budget, result);
 }
 
 Response InjectedScript::wrapObjectMirror(
     const ValueMirror& mirror, const String16& groupName,
     const WrapOptions& wrapOptions,
     v8::MaybeLocal<v8::Value> customPreviewConfig, int maxCustomPreviewDepth,
+    CustomPreviewBudget* budget,
     std::unique_ptr<protocol::Runtime::RemoteObject>* result) {
   int customPreviewEnabled = m_customPreviewEnabled;
   int sessionId = m_sessionId;
@@ -641,7 +643,8 @@ Response InjectedScript::wrapObjectMirror(
     std::unique_ptr<protocol::Runtime::CustomPreview> customPreview;
     generateCustomPreview(m_context->isolate(), sessionId, groupName,
                           value.As<v8::Object>(), customPreviewConfig,
-                          maxCustomPreviewDepth, &customPreview);
+                          maxCustomPreviewDepth, budget, &customPreview);
+    if (budget && budget->exhausted) return Response::InternalError();
     if (customPreview) (*result)->setCustomPreview(std::move(customPreview));
   }
   if (wrapOptions.mode == WrapMode::kDeep) {
