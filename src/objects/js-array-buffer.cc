@@ -8,6 +8,7 @@
 #include "src/logging/counters.h"
 #include "src/objects/js-array-buffer-inl.h"
 #include "src/objects/property-descriptor.h"
+#include "src/sandbox/check.h"
 
 namespace v8 {
 namespace internal {
@@ -167,13 +168,21 @@ Maybe<bool> JSArrayBuffer::Detach(DirectHandle<JSArrayBuffer> buffer,
 
 void JSArrayBuffer::DetachInternal(bool force_for_wasm_memory,
                                    Isolate* isolate) {
-  ArrayBufferExtension* extension = this->extension();
-
-  if (extension) {
+  {
     DisallowGarbageCollection disallow_gc;
-    isolate->heap()->DetachArrayBufferExtension(extension);
-    std::shared_ptr<BackingStore> backing_store = RemoveExtension();
-    CHECK_IMPLIES(force_for_wasm_memory, backing_store->is_wasm_memory());
+    // Read the extension exactly once and atomically clear the field, so that
+    // the extension that is detached from the heap and the one whose backing
+    // store is removed are guaranteed to be the same object.
+    ArrayBufferExtension* extension = extract_extension(isolate, disallow_gc);
+    if (extension) {
+      isolate->heap()->DetachArrayBufferExtension(extension);
+      std::shared_ptr<BackingStore> backing_store =
+          extension->RemoveBackingStore();
+      // Prevent concurrent detachment vs background copying if an attacker
+      // swapped the extension pointer to a shared buffer's extension.
+      SBXCHECK(backing_store && !backing_store->is_shared());
+      CHECK_IMPLIES(force_for_wasm_memory, backing_store->is_wasm_memory());
+    }
   }
 
   if (Protectors::IsArrayBufferDetachingIntact(isolate)) {
@@ -265,16 +274,6 @@ ArrayBufferExtension* JSArrayBuffer::CreateExtension(
   set_extension(extension);
   isolate->heap()->AppendArrayBufferExtension(extension);
   return extension;
-}
-
-std::shared_ptr<BackingStore> JSArrayBuffer::RemoveExtension() {
-  ArrayBufferExtension* extension = this->extension();
-  DCHECK_NOT_NULL(extension);
-  auto result = extension->RemoveBackingStore();
-  // Remove pointer to extension such that the next GC will free it
-  // automatically.
-  set_extension(nullptr);
-  return result;
 }
 
 void JSArrayBuffer::MarkExtension() {
