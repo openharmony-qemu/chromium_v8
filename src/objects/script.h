@@ -131,6 +131,12 @@ class Script : public TorqueGeneratedScript<Script, Struct> {
   inline bool deserialized() const;
   inline void set_deserialized(bool value);
 
+  // [is_function_constructor]: whether the script was created by the
+  // Function constructor (CreateDynamicFunction). Encoded in the 'flags'
+  // field.
+  inline bool is_function_constructor() const;
+  inline void set_is_function_constructor(bool value);
+
   // [compilation_state]: determines whether the script has already been
   // compiled. Encoded in the 'flags' field.
   inline CompilationState compilation_state();
