@@ -119,6 +119,12 @@ class MaglevGraphOptimizer {
       ValueNode* node, UseRepresentation repr,
       std::optional<TaggedToFloat64ConversionType> conversion_type);
 
+  // Returns true if reusing the cached conversion 'alt' safely preserves all
+  // required type checks for 'node'.
+  bool CanReuseAlternative(
+      ValueNode* node, ValueNode* alt, UseRepresentation repr,
+      std::optional<TaggedToFloat64ConversionType> conversion_type);
+
   void PreProcessNode(Node*, const ProcessingState& state);
   void PostProcessNode(Node*);
 
