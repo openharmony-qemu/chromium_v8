@@ -31,6 +31,7 @@
 #include "src/objects/trusted-object-inl.h"
 #include "src/roots/roots.h"
 #include "src/sandbox/bytecode-verifier.h"
+#include "src/sandbox/check.h"
 #include "src/sandbox/js-dispatch-table-inl.h"
 #include "src/snapshot/embedded/embedded-data-inl.h"
 #include "src/snapshot/references.h"
@@ -1189,7 +1190,12 @@ template <typename IsolateT>
 template <typename SlotAccessor>
 int Deserializer<IsolateT>::ReadRootArray(uint8_t data,
                                           SlotAccessor slot_accessor) {
-  int id = source_.GetUint30();
+  // GetUint30 reads four bytes before decoding the encoded length.
+  SBXCHECK_GE(source_.position(), 0);
+  SBXCHECK_LE(source_.position(), source_.length());
+  SBXCHECK_GE(source_.length() - source_.position(), kUInt32Size);
+  uint32_t id = source_.GetUint30();
+  SBXCHECK_LT(id, RootsTable::kEntriesCount);
   RootIndex root_index = static_cast<RootIndex>(id);
   DirectHandle<HeapObject> heap_object =
       Cast<HeapObject>(isolate()->root_handle(root_index));
@@ -1396,9 +1402,19 @@ template <typename IsolateT>
 template <typename SlotAccessor>
 int Deserializer<IsolateT>::ReadOffHeapBackingStore(
     uint8_t data, SlotAccessor slot_accessor) {
-  int byte_length = source_.GetUint32();
+  uint32_t byte_length = source_.GetUint32();
+  uint32_t max_byte_length = data == kOffHeapResizableBackingStore
+                                 ? source_.GetUint32()
+                                 : byte_length;
+  // Validate before allocation, and subtract only after checking the cursor
+  // to avoid overflow in position + byte_length on this version's int source.
+  SBXCHECK_GE(source_.position(), 0);
+  SBXCHECK_LE(source_.position(), source_.length());
+  SBXCHECK_LE(byte_length,
+               static_cast<uint32_t>(source_.length() - source_.position()));
+  SBXCHECK_LE(byte_length, max_byte_length);
   if (v8_flags.trace_deserialization) {
-    PrintF("%*sOffHeapBackingStore [%d]\n", depth_, "", byte_length);
+    PrintF("%*sOffHeapBackingStore [%u]\n", depth_, "", byte_length);
   }
 
   std::unique_ptr<BackingStore> backing_store;
@@ -1407,13 +1423,12 @@ int Deserializer<IsolateT>::ReadOffHeapBackingStore(
                                            SharedFlag::kNotShared,
                                            InitializedFlag::kUninitialized);
   } else {
-    int max_byte_length = source_.GetUint32();
     size_t page_size, initial_pages, max_pages;
     Maybe<bool> result =
         JSArrayBuffer::GetResizableBackingStorePageConfiguration(
             nullptr, byte_length, max_byte_length, kDontThrow, &page_size,
             &initial_pages, &max_pages);
-    DCHECK(result.FromJust());
+    SBXCHECK(result.FromMaybe(false));
     USE(result);
     backing_store = BackingStore::TryAllocateAndPartiallyCommitMemory(
         main_thread_isolate(), byte_length, max_byte_length, page_size,
@@ -1421,7 +1436,7 @@ int Deserializer<IsolateT>::ReadOffHeapBackingStore(
         SharedFlag::kNotShared);
   }
   CHECK_NOT_NULL(backing_store);
-  source_.CopyRaw(backing_store->buffer_start(), byte_length);
+  source_.CopyRaw(backing_store->buffer_start(), static_cast<int>(byte_length));
   backing_stores_.push_back(std::move(backing_store));
   return 0;
 }
