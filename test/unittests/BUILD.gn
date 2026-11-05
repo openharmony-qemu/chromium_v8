@@ -470,6 +470,7 @@ v8_source_set("v8_unittests_sources") {
     "runtime/runtime-debug-unittest.cc",
     "sandbox/code-cache-unittest.cc",
     "sandbox/pointer-table-unittest.cc",
+    "sandbox/sandbox-crash-filter-unittest.cc",
     "sandbox/sandbox-hardware-support-unittest.cc",
     "sandbox/sandbox-unittest.cc",
     "sandbox/sandbox-violation-unittest.cc",

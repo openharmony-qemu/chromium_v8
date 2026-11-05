@@ -1525,8 +1525,14 @@ class WasmStruct : public TorqueGeneratedWasmStruct<WasmStruct, WasmObject> {
 
   class BodyDescriptor;
 
+  static const int kMaxInstanceSize;
+
   TQ_OBJECT_CONSTRUCTORS(WasmStruct)
 };
+
+inline constexpr int WasmStruct::kMaxInstanceSize =
+    WasmStruct::kHeaderSize +
+    wasm::kMaxValueTypeSize * wasm::kV8MaxWasmStructFields;
 
 int WasmStruct::Size(const wasm::StructType* type) {
   // Object size must fit into a Smi (because of filler objects), and its

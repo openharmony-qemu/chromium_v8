@@ -2521,6 +2521,7 @@ filegroup(
         "src/sandbox/sandbox.cc",
         "src/sandbox/sandbox.h",
         "src/sandbox/sandbox-malloc.h",
+        "src/sandbox/sandbox-zero-segment.h",
         "src/sandbox/sandboxed-pointer.h",
         "src/sandbox/sandboxed-pointer-inl.h",
         "src/sandbox/tagged-payload.h",
