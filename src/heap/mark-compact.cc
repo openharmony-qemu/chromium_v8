@@ -3847,13 +3847,13 @@ void MarkCompactCollector::RightTrimDescriptorArray(
   MutablePageMetadata* chunk =
       MutablePageMetadata::FromHeapObject(heap_->isolate(), array);
   RememberedSet<OLD_TO_NEW>::RemoveRange(chunk, start, end,
-                                         SlotSet::FREE_EMPTY_BUCKETS);
+                                         SlotSet::KEEP_EMPTY_BUCKETS);
   RememberedSet<OLD_TO_NEW_BACKGROUND>::RemoveRange(
-      chunk, start, end, SlotSet::FREE_EMPTY_BUCKETS);
+      chunk, start, end, SlotSet::KEEP_EMPTY_BUCKETS);
   RememberedSet<OLD_TO_SHARED>::RemoveRange(chunk, start, end,
-                                            SlotSet::FREE_EMPTY_BUCKETS);
+                                            SlotSet::KEEP_EMPTY_BUCKETS);
   RememberedSet<OLD_TO_OLD>::RemoveRange(chunk, start, end,
-                                         SlotSet::FREE_EMPTY_BUCKETS);
+                                         SlotSet::KEEP_EMPTY_BUCKETS);
   if (V8_COMPRESS_POINTERS_8GB_BOOL) {
     Address aligned_start = ALIGN_TO_ALLOCATION_ALIGNMENT(start);
     Address aligned_end = ALIGN_TO_ALLOCATION_ALIGNMENT(end);
