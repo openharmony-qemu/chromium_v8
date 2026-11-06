@@ -5586,9 +5586,9 @@ MaybeReduceResult MaglevGraphBuilder::TryBuildNamedAccess(
               {receiver, GetConstant(feedback.name()), GetAccumulator()},
               feedback_source);
         case compiler::AccessMode::kDefine:
+        case compiler::AccessMode::kStoreInLiteral:
           return {};
         case compiler::AccessMode::kHas:
-        case compiler::AccessMode::kStoreInLiteral:
           UNREACHABLE();
       }
     }

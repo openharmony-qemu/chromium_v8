@@ -652,6 +652,25 @@ void Shell::StoreInCodeCache(Isolate* isolate, Local<Value> source,
                                      ScriptCompiler::CachedData::BufferOwned));
 }
 
+namespace internal {
+
+// Owns a copy of a one-byte string buffer for use as an external string
+// resource. Used by CreateStringFromExternalData when --use-external-strings
+// is set and the source is ASCII.
+class OwningExternalOneByteStringResource
+    : public v8::String::ExternalOneByteStringResource {
+ public:
+  explicit OwningExternalOneByteStringResource(std::string_view source)
+      : data_(source) {}
+  const char* data() const override { return data_.data(); }
+  size_t length() const override { return data_.size(); }
+
+ private:
+  std::string data_;
+};
+
+}  // namespace internal
+
 MaybeLocal<String> CreateStringFromExternalData(Isolate* isolate,
                                                 std::string_view source) {
   int size = static_cast<int>(source.size());
