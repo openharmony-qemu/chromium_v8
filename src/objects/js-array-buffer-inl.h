@@ -124,17 +124,14 @@ void JSArrayBuffer::set_extension(ArrayBufferExtension* extension) {
   Address value = reinterpret_cast<Address>(extension);
   ExternalPointerTable& table = isolate.GetExternalPointerTableFor(tag);
 
-  ExternalPointerHandle current_handle =
-      base::AsAtomic32::Relaxed_Load(extension_handle_location());
-  if (current_handle == kNullExternalPointerHandle) {
-    // We need Release semantics here, see above.
-    ExternalPointerHandle handle = table.AllocateAndInitializeEntry(
-        isolate.GetExternalPointerTableSpaceFor(tag, address()), value, tag);
-    base::AsAtomic32::Release_Store(extension_handle_location(), handle);
-    EXTERNAL_POINTER_WRITE_BARRIER(*this, kExtensionOffset, tag, handle);
-  } else {
-    table.Set(current_handle, value, tag);
-  }
+  // Always allocate a fresh entry instead of reusing the handle stored in the
+  // object: that handle may have been corrupted, and reusing it would then
+  // overwrite the external pointer of a different object.
+  // We need Release semantics here, see above.
+  ExternalPointerHandle handle = table.AllocateAndInitializeEntry(
+      isolate.GetExternalPointerTableSpaceFor(tag, address()), value, tag);
+  base::AsAtomic32::Release_Store(extension_handle_location(), handle);
+  EXTERNAL_POINTER_WRITE_BARRIER(*this, kExtensionOffset, tag, handle);
 #else
   base::AsAtomicPointer::Release_Store(extension_location(), extension);
 #endif  // V8_COMPRESS_POINTERS
