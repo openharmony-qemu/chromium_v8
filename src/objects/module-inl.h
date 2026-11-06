@@ -25,6 +25,17 @@ namespace internal {
 TQ_OBJECT_CONSTRUCTORS_IMPL(Module)
 TQ_OBJECT_CONSTRUCTORS_IMPL(JSModuleNamespace)
 
+void Module::set_exports(Tagged<ObjectHashTable> value, WriteBarrierMode mode) {
+  CHECK(!ExportsFinalized());
+  TorqueGeneratedModule<Module, HeapObject>::set_exports(value, mode);
+}
+
+bool Module::ExportsFinalized() const {
+  bool result = IsJSModuleNamespace(module_namespace());
+  DCHECK_IMPLIES(result, status() >= kLinking);
+  return result;
+}
+
 Tagged<Object> ScriptOrModule::resource_name() const {
   return resource_name_.load();
 }
