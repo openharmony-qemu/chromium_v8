@@ -122,10 +122,8 @@ const pthread_t kNoThread = static_cast<pthread_t>(0);
 
 const char* g_gc_fake_mmap = nullptr;
 
-#if OHOS_JS_ENGINE
 #define MAP_JIT_PROTECTED 0x1000
 #define MAP_JIT 0x1040
-#endif
 
 #if defined(V8_HOST_ARCH_ARM64) && !defined(V8_OS_DARWIN)
 static long Syscall(unsigned long n, unsigned long a,
