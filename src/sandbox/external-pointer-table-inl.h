@@ -156,10 +156,8 @@ void ExternalPointerTableEntry::Evacuate(ExternalPointerTableEntry& dest,
   DCHECK(payload.ContainsPointer());
 
   switch (mode) {
-    case EvacuateMarkMode::kTransferMark:
-      break;
     case EvacuateMarkMode::kLeaveUnmarked:
-      DCHECK(!payload.HasMarkBitSet());
+      SBXCHECK(!payload.HasMarkBitSet());
       break;
     case EvacuateMarkMode::kClearMark:
       DCHECK(payload.HasMarkBitSet());
@@ -323,10 +321,8 @@ ExternalPointerHandle ExternalPointerTable::Evacuate(
                .payload_.compare_exchange_strong(old_payload, zapped_payload,
                                                  std::memory_order_acq_rel));
   switch (mode) {
-    case EvacuateMarkMode::kTransferMark:
-      break;
     case EvacuateMarkMode::kLeaveUnmarked:
-      DCHECK(!old_payload.HasMarkBitSet());
+      SBXCHECK(!old_payload.HasMarkBitSet());
       break;
     case EvacuateMarkMode::kClearMark:
       DCHECK(old_payload.HasMarkBitSet());
