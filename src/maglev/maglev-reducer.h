@@ -514,6 +514,13 @@ class MaglevReducer {
 
   ValueNode* GetNumberConstant(double constant);
 
+  ValueNode* TryGetParentContext(ValueNode* node);
+  // Fold constant context loads, including PREVIOUS_INDEX loads rooted at a
+  // known parent context, immutable context slots, and kConst ContextCell
+  // loads. Returns a folded value if possible, or an empty MaybeReduceResult.
+  MaybeReduceResult TryGetConstantContextValue(
+      ValueNode* context, int offset, ContextSlotMutability slot_mutability);
+
   ReduceResult BuildCheckedSmiSizedInt32(ValueNode* input);
 
   template <Operation kOperation>

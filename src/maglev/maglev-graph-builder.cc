@@ -3195,6 +3195,14 @@ ValueNode* MaglevGraphBuilder::LoadAndCacheContextSlot(
     known_node_aspects().UpdateMayHaveAliasingContexts(
         broker(), local_isolate(), context);
   }
+  // Try folding constant context loads (PREVIOUS_INDEX parents, immutable
+  // slots, and kConst ContextCells) before emitting an explicit load.
+  if (MaybeReduceResult folded = reducer_.TryGetConstantContextValue(
+          context, offset, slot_mutability);
+      folded.HasValue()) {
+    cached_value = folded.value();
+    return cached_value;
+  }
   if (context_mode == ContextMode::kHasContextCells &&
       (v8_flags.script_context_cells || v8_flags.function_context_cells) &&
       slot_mutability == kMutable) {

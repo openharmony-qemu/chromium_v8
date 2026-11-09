@@ -1513,6 +1513,82 @@ ReduceResult MaglevReducer<BaseT>::BuildNumberOrOddballToFloat64OrHoleyFloat64(
 }
 
 template <typename BaseT>
+ValueNode* MaglevReducer<BaseT>::TryGetParentContext(ValueNode* node) {
+  if (CreateFunctionContext* n = node->TryCast<CreateFunctionContext>()) {
+    return n->ContextInput().node()->UnwrapIdentities();
+  }
+
+  if (InlinedAllocation* alloc = node->TryCast<InlinedAllocation>()) {
+    return alloc->object()
+        ->get(Context::OffsetOfElementAt(Context::PREVIOUS_INDEX))
+        ->UnwrapIdentities();
+  }
+
+  if (CallRuntime* n = node->TryCast<CallRuntime>()) {
+    switch (n->function_id()) {
+      case Runtime::kPushBlockContext:
+      case Runtime::kPushCatchContext:
+      case Runtime::kNewFunctionContext:
+        return n->ContextInput().node()->UnwrapIdentities();
+      default:
+        break;
+    }
+  }
+
+  return nullptr;
+}
+
+template <typename BaseT>
+MaybeReduceResult MaglevReducer<BaseT>::TryGetConstantContextValue(
+    ValueNode* context, int offset, ContextSlotMutability slot_mutability) {
+  if (offset == Context::OffsetOfElementAt(Context::PREVIOUS_INDEX)) {
+    if (ValueNode* parent = TryGetParentContext(context)) {
+      return parent;
+    }
+  }
+
+  auto context_ref = TryGetConstant<Context>(context);
+  if (!context_ref) return {};
+
+  int index = (offset - Context::OffsetOfElementAt(0)) / kTaggedSize;
+  DCHECK_EQ(Context::OffsetOfElementAt(index), offset);
+  compiler::OptionalObjectRef maybe_slot_value =
+      context_ref->get(broker(), index);
+  if (!maybe_slot_value.has_value()) return {};
+
+  compiler::ObjectRef slot_value = maybe_slot_value.value();
+
+  if (slot_mutability == ContextSlotMutability::kMutable) {
+    if (!slot_value.IsContextCell() || slot_value.IsUndefinedContextCell()) {
+      return {};
+    }
+    compiler::ContextCellRef slot_ref = slot_value.AsContextCell();
+    ContextCell::State state = slot_ref.state();
+    if (state != ContextCell::kConst) return {};
+    auto constant = slot_ref.tagged_value(broker());
+    if (!constant.has_value()) return {};
+    broker()->dependencies()->DependOnContextCell(slot_ref, state);
+    return GetConstant(*constant);
+  }
+
+  if (slot_value.IsHeapObject()) {
+    // Even though the context slot is immutable, the context might have
+    // escaped before the function to which it belongs has initialized the
+    // slot. We must be conservative and check if the value in the slot is
+    // currently the hole or undefined. Only if it is neither of these, can we
+    // be sure that it won't change anymore.
+    //
+    // See also: JSContextSpecialization::ReduceJSLoadContext.
+    if (slot_value.IsTheHole()) return {};
+    if (slot_value.IsUndefined()) return {};
+    DCHECK(!slot_value.IsContextCell());
+  }
+
+  // Fold the load of the immutable slot.
+  return GetConstant(slot_value);
+}
+
+template <typename BaseT>
 ValueNode* MaglevReducer<BaseT>::GetNumberConstant(double constant) {
   if (IsSmiDouble(constant)) {
     return GetInt32Constant(FastD2I(constant));
