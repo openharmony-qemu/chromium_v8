@@ -385,17 +385,6 @@ Node* WasmGraphAssembler::LoadByteArrayElement(Node* byte_array,
   return LoadFromObject(type, byte_array, offset);
 }
 
-Node* WasmGraphAssembler::LoadImmutableTrustedPointerFromObject(
-    Node* object, int field_offset, IndirectPointerTag tag) {
-  Node* offset = IntPtrConstant(field_offset);
-#ifdef V8_ENABLE_SANDBOX
-  Node* handle = LoadImmutableFromObject(MachineType::Uint32(), object, offset);
-  return BuildDecodeTrustedPointer(handle, tag);
-#else
-  return LoadImmutableFromObject(MachineType::TaggedPointer(), object, offset);
-#endif
-}
-
 Node* WasmGraphAssembler::LoadTrustedPointerFromObject(Node* object,
                                                        int field_offset,
                                                        IndirectPointerTag tag) {
@@ -405,19 +394,6 @@ Node* WasmGraphAssembler::LoadTrustedPointerFromObject(Node* object,
   return BuildDecodeTrustedPointer(handle, tag);
 #else
   return LoadFromObject(MachineType::TaggedPointer(), object, offset);
-#endif
-}
-
-std::pair<Node*, Node*>
-WasmGraphAssembler::LoadTrustedPointerFromObjectTrapOnNull(
-    Node* object, int field_offset, IndirectPointerTag tag) {
-  Node* offset = IntPtrConstant(field_offset);
-#ifdef V8_ENABLE_SANDBOX
-  Node* handle = LoadTrapOnNull(MachineType::Uint32(), object, offset);
-  return {handle, BuildDecodeTrustedPointer(handle, tag)};
-#else
-  Node* value = LoadTrapOnNull(MachineType::TaggedPointer(), object, offset);
-  return {value, value};
 #endif
 }
 
@@ -443,7 +419,11 @@ Node* WasmGraphAssembler::LoadContextNoCellFromJSFunction(Node* js_function) {
 
 Node* WasmGraphAssembler::LoadFunctionDataFromJSFunction(Node* js_function) {
   Node* shared = LoadSharedFunctionInfo(js_function);
-  return LoadImmutableTrustedPointerFromObject(
+  // Use a mutable load instead of an immutable one: the trusted pointer handle
+  // in SharedFunctionInfo can be rewritten (e.g. tiering updates swap the
+  // trusted function data), and load elimination must be able to invalidate
+  // a previously loaded handle across such writes. Fixed: 573378812.
+  return LoadTrustedPointerFromObject(
       shared,
       wasm::ObjectAccess::ToTagged(
           SharedFunctionInfo::kTrustedFunctionDataOffset),
@@ -611,7 +591,9 @@ Node* WasmGraphAssembler::StringPrepareForGetCodeunit(Node* string) {
 
 Node* WasmGraphAssembler::LoadTrustedDataFromInstanceObject(
     Node* instance_object) {
-  return LoadImmutableTrustedPointerFromObject(
+  // Mutable load, mirroring LoadFunctionDataFromJSFunction above: the trusted
+  // data handle can be rewritten and must be re-loaded rather than eliminated.
+  return LoadTrustedPointerFromObject(
       instance_object,
       wasm::ObjectAccess::ToTagged(WasmInstanceObject::kTrustedDataOffset),
       kWasmTrustedInstanceDataIndirectPointerTag);
