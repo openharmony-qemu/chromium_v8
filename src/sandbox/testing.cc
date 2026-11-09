@@ -21,6 +21,7 @@
 #include "src/objects/instance-type.h"
 #include "src/objects/js-array-buffer.h"
 #include "src/objects/js-objects.h"
+#include "src/objects/literal-objects.h"
 #include "src/objects/tagged-field-inl.h"
 #include "src/objects/templates.h"
 #include "src/sandbox/sandbox.h"
@@ -1176,6 +1177,7 @@ SandboxTesting::InstanceTypeMap& SandboxTesting::GetInstanceTypeMap() {
     types["JS_FUNCTION"] = JS_FUNCTION_TYPE;
     types["SHARED_FUNCTION_INFO"] = SHARED_FUNCTION_INFO_TYPE;
     types["MAP_TYPE"] = MAP_TYPE;
+    types["CLASS_BOILERPLATE_TYPE"] = CLASS_BOILERPLATE_TYPE;
 #ifdef V8_ENABLE_WEBASSEMBLY
     types["WASM_MODULE_OBJECT_TYPE"] = WASM_MODULE_OBJECT_TYPE;
     types["WASM_INSTANCE_OBJECT_TYPE"] = WASM_INSTANCE_OBJECT_TYPE;
@@ -1249,6 +1251,8 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
         offsetof(PromiseReaction, fulfill_handler_);
     fields[JS_FUNCTION_TYPE]["shared_function_info"] =
         JSFunction::kSharedFunctionInfoOffset;
+    fields[CLASS_BOILERPLATE_TYPE]["instance_properties_template"] =
+        offsetof(ClassBoilerplate, instance_properties_template_);
 #ifdef V8_ENABLE_WEBASSEMBLY
     fields[WASM_MODULE_OBJECT_TYPE]["managed_native_module"] =
         WasmModuleObject::kManagedNativeModuleOffset;
