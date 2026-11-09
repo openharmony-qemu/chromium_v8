@@ -1128,6 +1128,7 @@ V8_OBJECT class ThinString : public String {
   friend class maglev::CheckedInternalizedString;
   friend class compiler::AccessBuilder;
   friend class FullStringForwardingTableCleaner;
+  friend class SandboxTesting;
   friend class TorqueGeneratedThinStringAsserts;
 #ifdef OH_ENABLE_HEAP_TRANSLATE
   friend class dfx::ObjectTranslator;
