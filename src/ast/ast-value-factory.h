@@ -73,6 +73,9 @@ class AstRawString final : public ZoneObject {
 
   // Access the physical representation:
   bool is_one_byte() const { return is_one_byte_; }
+#ifdef OHOS_JS_ENGINE
+  bool is_base_std_builtin_name() const { return is_base_std_builtin_name_; }
+#endif
   int byte_length() const { return literal_bytes_.length(); }
   const unsigned char* raw_data() const { return literal_bytes_.begin(); }
 
