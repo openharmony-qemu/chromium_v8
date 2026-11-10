@@ -78,7 +78,7 @@ class V8_EXPORT StringView {
   };
 };
 
-class V8_EXPORT StringBuffer {
+class V8_EXPORT JSVM_EXPORT StringBuffer {
  public:
   virtual ~StringBuffer() = default;
   virtual StringView string() const = 0;

@@ -35,7 +35,7 @@ using EmbedderDataTypeTag = uint16_t;
 
 constexpr EmbedderDataTypeTag kEmbedderDataTypeTagDefault = 0;
 
-V8_EXPORT internal::ExternalPointerTag ToExternalPointerTag(
+V8_EXPORT JSVM_EXPORT internal::ExternalPointerTag ToExternalPointerTag(
     v8::EmbedderDataTypeTag api_tag);
 
 /**
@@ -43,7 +43,7 @@ V8_EXPORT internal::ExternalPointerTag ToExternalPointerTag(
  *
  * This is an experimental feature. Use at your own risk.
  */
-class V8_EXPORT Private : public Data {
+class V8_EXPORT JSVM_EXPORT Private : public Data {
  public:
   /**
    * Returns the print name string of the private symbol, or undefined if none.
@@ -103,7 +103,7 @@ class V8_EXPORT Private : public Data {
  * v8::PropertyDescriptor d(v8::Undefined(isolate), Local<Value>()));
  * \endcode
  */
-class V8_EXPORT PropertyDescriptor {
+class V8_EXPORT JSVM_EXPORT PropertyDescriptor {
  public:
   // GenericDescriptor
   PropertyDescriptor();
@@ -264,7 +264,7 @@ enum class IntegrityLevel { kFrozen, kSealed };
 /**
  * A JavaScript object (ECMA-262, 4.3.3)
  */
-class V8_EXPORT Object : public Value {
+class V8_EXPORT JSVM_EXPORT Object : public Value {
  public:
   /**
    * Set only return Just(true) or Empty(), so if it should never fail, use

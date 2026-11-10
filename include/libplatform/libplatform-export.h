@@ -13,15 +13,18 @@
 #define V8_PLATFORM_EXPORT __declspec(dllimport)
 #else
 #define V8_PLATFORM_EXPORT
+#define JSVM_PLATFORM_EXPORT
 #endif  // BUILDING_V8_PLATFORM_SHARED
 
 #else  // defined(_WIN32)
 
 // Setup for Linux shared library export.
-#if defined(BUILDING_V8_PLATFORM_SHARED) || USING_V8_PLATFORM_SHARED
+#if (defined(BUILDING_V8_PLATFORM_SHARED) || USING_V8_PLATFORM_SHARED) && !defined(OHOS_JS_ENGINE)
 #define V8_PLATFORM_EXPORT __attribute__((visibility("default")))
+#define JSVM_PLATFORM_EXPORT
 #else
 #define V8_PLATFORM_EXPORT
+#define JSVM_PLATFORM_EXPORT __attribute__((visibility("default")))
 #endif  // defined(BUILDING_V8_PLATFORM_SHARED) || ...
 
 #endif  // defined(_WIN32)
