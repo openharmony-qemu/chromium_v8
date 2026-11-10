@@ -2098,10 +2098,10 @@ DirectHandle<Code> WasmExportedFunction::GetWrapper(
         Builtin::kGenericJSToWasmInterpreterWrapper);
   }
 #endif  // V8_ENABLE_DRUMBRAKE
-  Tagged<CodeWrapper> entry = wasm::WasmExportWrapperCache::Get(
+  Tagged<Code> entry = wasm::WasmExportWrapperCache::Get(
       isolate, sig->index(), receiver_is_first_param);
   if (!entry.is_null()) {
-    return direct_handle(entry->code(isolate), isolate);
+    return direct_handle(entry, isolate);
   }
   if (wasm::CanUseGenericJsToWasmWrapper(origin, sig)) {
     if (v8_flags.stress_wasm_stack_switching) {
@@ -2114,7 +2114,7 @@ DirectHandle<Code> WasmExportedFunction::GetWrapper(
       wasm::JSToWasmWrapperCompilationUnit::CompileJSToWasmWrapper(
           isolate, sig, receiver_is_first_param);
   // This should have added an entry in the per-isolate cache.
-  DCHECK_EQ(compiled->wrapper(),
+  DCHECK_EQ(*compiled,
             wasm::WasmExportWrapperCache::Get(isolate, sig->index(),
                                               receiver_is_first_param));
   return compiled;

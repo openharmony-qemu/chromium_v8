@@ -414,7 +414,7 @@ class RootVisitor;
   V(WeakArrayList, shared_wasm_memories, SharedWasmMemories)                \
   /* EphemeronHashTable for debug scopes (local debug evaluate) */          \
   V(HeapObject, locals_block_list_cache, DebugLocalsBlockListCache)         \
-  IF_WASM(V, WeakFixedArray, js_to_wasm_wrappers, JSToWasmWrappers)         \
+  IF_WASM(V, ProtectedWeakFixedArray, js_to_wasm_wrappers, JSToWasmWrappers) \
   IF_WASM(V, WeakFixedArray, wasm_canonical_rtts, WasmCanonicalRtts)        \
   /* Internal SharedFunctionInfos */                                        \
   V(FunctionTemplateInfo, error_stack_getter_fun_template,                  \

@@ -148,7 +148,8 @@ void Heap::SetDoubleStringCache(Tagged<DoubleStringCache> cache) {
 void Heap::SetWasmCanonicalRtts(Tagged<WeakFixedArray> rtts) {
   set_wasm_canonical_rtts(rtts);
 }
-void Heap::SetJSToWasmWrappers(Tagged<WeakFixedArray> js_to_wasm_wrappers) {
+void Heap::SetJSToWasmWrappers(
+    Tagged<ProtectedWeakFixedArray> js_to_wasm_wrappers) {
   set_js_to_wasm_wrappers(js_to_wasm_wrappers);
 }
 #endif  // V8_ENABLE_WEBASSEMBLY

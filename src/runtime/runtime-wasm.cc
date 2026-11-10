@@ -547,12 +547,9 @@ RUNTIME_FUNCTION(Runtime_TierUpJSToWasmWrapper) {
   const wasm::CanonicalSig* sig =
       wasm::GetTypeCanonicalizer()->LookupFunctionSignature(sig_id);
 
-  Tagged<CodeWrapper> maybe_cached_wrapper = wasm::WasmExportWrapperCache::Get(
+  Tagged<Code> wrapper_code = wasm::WasmExportWrapperCache::Get(
       isolate, sig_id, receiver_is_first_param);
-  Tagged<Code> wrapper_code;
-  if (!maybe_cached_wrapper.is_null()) {
-    wrapper_code = maybe_cached_wrapper->code(isolate);
-  } else {
+  if (wrapper_code.is_null()) {
     // Set the context on the isolate and open a handle scope for allocation of
     // new objects. Wrap {trusted_data} in a handle so it survives GCs.
     DCHECK(isolate->context().is_null());
@@ -565,7 +562,7 @@ RUNTIME_FUNCTION(Runtime_TierUpJSToWasmWrapper) {
             isolate, sig, receiver_is_first_param);
 
     // Compilation must have installed the wrapper into the cache.
-    DCHECK_EQ(new_wrapper_code->wrapper(),
+    DCHECK_EQ(*new_wrapper_code,
               wasm::WasmExportWrapperCache::Get(isolate, sig_id,
                                                 receiver_is_first_param));
 
