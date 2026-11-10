@@ -1,0 +1,18 @@
+diff a/src/ic/keyed-store-generic.cc b/src/ic/keyed-store-generic.cc	(rejected hunks)
+@@ -679,10 +679,16 @@ void KeyedStoreGenericAssembler::EmitGenericElementStore(
+   }
+   BIND(&if_array);
+   {
+     TNode<IntPtrT> length =
+         PositiveSmiUntag(LoadFastJSArrayLength(CAST(receiver)));
++#if defined(OHOS_MEM_USAGE_REPORT) && defined(USING_OHOS_WEB)
++    TNode<Smi> capacity2_smi = LoadFixedArrayBaseLength(elements);
++    CSA_MURCHECK(this, TaggedIsSmi(capacity2_smi), 5);
++    TNode<IntPtrT> capacity2 = SmiUntag(capacity2_smi);
++    CSA_MURCHECK(this, UintPtrLessThanOrEqual(length, capacity2), 0);
++#endif // OHOS_MEM_USAGE_REPORT && USING_OHOS_WEB
+     GotoIf(UintPtrLessThan(index, length), &if_in_bounds);
+     TNode<IntPtrT> capacity = LoadAndUntagFixedArrayBaseLength(elements);
+     GotoIf(UintPtrGreaterThanOrEqual(index, capacity), &if_grow);
+     Branch(WordEqual(index, length), &if_increment_length_by_one,
+            &if_bump_length_with_gap);
