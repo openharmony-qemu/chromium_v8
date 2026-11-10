@@ -1,0 +1,27 @@
+diff a/include/v8-primitive.h b/include/v8-primitive.h	(rejected hunks)
+@@ -119,11 +119,11 @@ enum class NewStringType {
+ };
+ 
+ /**
+  * A JavaScript string value (ECMA-262, 4.3.17).
+  */
+-class V8_EXPORT String : public Name {
++class V8_EXPORT JSVM_EXPORT String : public Name {
+  public:
+   static constexpr int kMaxLength =
+       internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+ 
+   enum Encoding {
+@@ -881,11 +881,11 @@ class V8_EXPORT Uint32 : public Integer {
+ };
+ 
+ /**
+  * A JavaScript BigInt value (https://tc39.github.io/proposal-bigint)
+  */
+-class V8_EXPORT BigInt : public Numeric {
++class V8_EXPORT JSVM_EXPORT BigInt : public Numeric {
+  public:
+   static Local<BigInt> New(Isolate* isolate, int64_t value);
+   static Local<BigInt> NewFromUnsigned(Isolate* isolate, uint64_t value);
+   /**
+    * Creates a new BigInt object using a specified sign bit and a

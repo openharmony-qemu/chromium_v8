@@ -1,0 +1,14 @@
+diff a/include/v8-inspector.h b/include/v8-inspector.h	(rejected hunks)
+@@ -361,11 +361,11 @@ struct V8_EXPORT V8StackTraceId {
+ 
+   bool IsInvalid() const;
+   std::unique_ptr<StringBuffer> ToString();
+ };
+ 
+-class V8_EXPORT V8Inspector {
++class V8_EXPORT JSVM_EXPORT V8Inspector {
+  public:
+   static std::unique_ptr<V8Inspector> create(v8::Isolate*, V8InspectorClient*);
+   virtual ~V8Inspector() = default;
+ 
+   // Contexts instrumentation.

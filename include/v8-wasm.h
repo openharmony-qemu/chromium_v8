@@ -42,7 +42,7 @@ struct OwnedBuffer {
  * Wrapper around a compiled WebAssembly module, which is potentially shared by
  * different WasmModuleObjects.
  */
-class V8_EXPORT CompiledWasmModule {
+class V8_EXPORT JSVM_EXPORT CompiledWasmModule {
  public:
   /**
    * Serialize the compiled module. The serialized data does not include the
@@ -90,8 +90,20 @@ class V8_EXPORT WasmMemoryObject : public Object {
   static void CheckCast(Value* object);
 };
 
+#ifdef OHOS_JS_ENGINE
+// All the tiers of Wasm execution.
+enum class WasmExecutionTier : int8_t {
+  kNone,
+#if V8_ENABLE_DRUMBRAKE
+  kInterpreter,
+#endif  // V8_ENABLE_DRUMBRAKE
+  kLiftoff,
+  kTurbofan,
+};
+#endif
+
 // An instance of WebAssembly.Module.
-class V8_EXPORT WasmModuleObject : public Object {
+class V8_EXPORT JSVM_EXPORT WasmModuleObject : public Object {
  public:
   WasmModuleObject() = delete;
 
