@@ -2708,6 +2708,7 @@ void Debug::OnException(DirectHandle<Object> exception,
       promise_object = isolate_->factory()->undefined_value();
     }
     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
     debug_delegate_->ExceptionThrown(
         v8::Utils::ToLocal(isolate_->native_context()),
         v8::Utils::ToLocal(exception), v8::Utils::ToLocal(promise_object),
@@ -2825,6 +2826,7 @@ bool Debug::IsBlackboxed(DirectHandle<SharedFunctionInfo> shared) {
       DCHECK(script->IsUserJavaScript());
       {
         RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+        HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
         is_blackboxed = this->IsFunctionBlackboxed(
             script, shared->StartPosition(), shared->EndPosition());
       }
@@ -2853,6 +2855,7 @@ bool Debug::ShouldBeSkipped() {
   Script::GetPositionInfo(script, source_position, &info);
   {
     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
     return debug_delegate_->ShouldBeSkipped(ToApiHandle<debug::Script>(script),
                                             info.line, info.column);
   }

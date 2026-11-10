@@ -1,0 +1,14 @@
+diff a/src/sandbox/sandbox.cc b/src/sandbox/sandbox.cc	(rejected hunks)
+@@ -199,10 +200,12 @@ bool Sandbox::Initialize(v8::VirtualAddressSpace* vas, size_t size,
+   // TODO(40070746): remove this workaround again once we have a proper fix.
+   size_t true_reservation_size = size;
+ #if defined(V8_TARGET_OS_ANDROID)
+   // On Android, we often won't have sufficient virtual address space available.
+   const size_t kAdditionalTrailingGuardRegionSize = 0;
++#elif defined(V8_TARGET_OS_OHOS)
++  const size_t kAdditionalTrailingGuardRegionSize = 0;
+ #else
+   // Worst-case, we currently need 8 (max element size) * 32GB (max ArrayBuffer
+   // size) + 4GB (additional offset for TypedArray access).
+   const size_t kTotalTrailingGuardRegionSize = 260ULL * GB;
+   const size_t kAdditionalTrailingGuardRegionSize =
