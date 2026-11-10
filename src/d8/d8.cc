@@ -173,6 +173,23 @@ bool fuzzilli_reprl = true;
 bool fuzzilli_reprl = false;
 #endif  // V8_FUZZILLI
 
+#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST))
+int RunTranslateOnce(const ShellOptions& options) {
+  dfx::BinaryReader reader(std::string(options.translate_path));
+  dfx::SnapshotGenerator generator;
+
+  dfx::HeapTranslator translator(&reader, &generator);
+  translator.TranslateHeap();
+
+  dfx::SnapshotJSONSerializer serializer(&generator);
+  if (options.translate_out) {
+    serializer.SetOutputFile(std::string(options.translate_out));
+  }
+  serializer.Serialize();
+  return 0;
+}
+#endif
+
 Isolate::CreateParams GetDefaultIsolateCreateParams() {
   Isolate::CreateParams create_params;
   create_params.constraints.ConfigureDefaults(
@@ -1273,6 +1290,13 @@ bool Shell::ExecuteSource(Isolate* isolate, const Source& source,
   }
 
   MaybeLocal<Value> maybe_result = script->Run(realm);
+
+#if (defined(OH_ENABLE_HEAP_DUMP) || defined(OH_ENABLE_HEAP_DUMP_TEST))
+  if (options.heapdump_out) {
+    dfx::DumpRawHeap(i_isolate->heap(),
+                     std::string(options.heapdump_out.get()));
+  }
+#endif
 
   if (options.code_cache_options ==
           ShellOptions::CodeCacheOptions::kProduceCacheAfterExecute &&
@@ -7197,8 +7221,43 @@ bool Shell::SetOptions(int argc, char* argv[]) {
       options.dump_counters_nvp = true;
     } else if (FlagMatches("--dump-system-memory-stats", &argv[i])) {
       options.dump_system_memory_stats = true;
-    } else if (FlagWithArgMatches("--icu-data-file", &flag_value, argc, argv,
+    }
+#if (defined(OH_ENABLE_HEAP_DUMP) || defined(OH_ENABLE_HEAP_DUMP_TEST))
+    else if (FlagWithArgMatches("--heapdump-out", &flag_value, argc, argv,
+                                &i)) {
+      std::cout << "--heapdump-out " << flag_value << std::endl;
+      options.heapdump_out = flag_value;
+      if (!ends_with(options.heapdump_out, ".rawheap")) {
+        std::cout << "you should use it like: d8 --heapdump-out xx.rawheap"
+                  << std::endl;
+        return false;
+      }
+    }
+#endif
+#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST))
+
+    else if (FlagWithArgMatches("--translate", &flag_value, argc, argv, &i)) {
+      std::cout << "--translate " << flag_value << std::endl;
+      options.translate_path = flag_value;
+      if (!ends_with(options.translate_path, ".rawheap")) {
+        std::cout << "you should use it like: d8 --translate xx.rawheap"
+                  << std::endl;
+        return false;
+      }
+    } else if (FlagWithArgMatches("--translate-out", &flag_value, argc, argv,
                                   &i)) {
+      std::cout << "--translate-out " << flag_value << std::endl;
+      if (!ends_with(flag_value, ".heapsnapshot")) {
+        std::cout << "you should use it like: d8 --translate xx.rawheap "
+                     "--translate-out xxx.heapsnapshot"
+                  << std::endl;
+        return false;
+      }
+      options.translate_out = flag_value;
+    }
+#endif
+    else if (FlagWithArgMatches("--icu-data-file", &flag_value, argc, argv,
+                                &i)) {
       options.icu_data_file = flag_value;
     } else if (FlagWithArgMatches("--icu-locale", &flag_value, argc, argv,
                                   &i)) {

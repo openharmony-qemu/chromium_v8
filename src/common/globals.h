@@ -122,6 +122,12 @@ namespace internal {
 #define COMPRESS_POINTERS_IN_SHARED_CAGE_BOOL false
 #endif
 
+#ifdef V8_ENABLE_ENUM_CACHE_FOR_SLOW_PROPERTIES && OHOS_JS_ENGINE
+#define V8_ENABLE_ENUM_CACHE_FOR_SLOW_PROPERTIES_BOOL true
+#else
+#define V8_ENABLE_ENUM_CACHE_FOR_SLOW_PROPERTIES_BOOL false
+#endif
+
 #ifdef V8_CONTIGUOUS_COMPRESSED_RO_SPACE
 #define CONTIGUOUS_COMPRESSED_READ_ONLY_SPACE_BOOL true
 #else
@@ -308,7 +314,7 @@ const size_t kShortBuiltinCallsOldSpaceSizeThreshold = size_t{2} * GB;
 //    deleted while the cage is still alive then attempt to configure
 //    permissions of pages that were previously set to RWX will fail.
 //
-#if V8_HAS_PTHREAD_JIT_WRITE_PROTECT && \
+#if (V8_HAS_PTHREAD_JIT_WRITE_PROTECT || V8_HAS_JIT_FORT_PROTECT) && \
     !(defined(V8_COMPRESS_POINTERS) && !defined(V8_EXTERNAL_CODE_SPACE))
 #define V8_HEAP_USE_PTHREAD_JIT_WRITE_PROTECT true
 #else
@@ -509,6 +515,13 @@ constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 32;
 // big reservations, and to ensure that distances within a code space fit
 // within a 32-bit signed integer.
 constexpr uint32_t kDefaultMaxWasmCodeSpaceSizeMb = 1024;
+#endif
+
+#ifdef OHOS_JS_ENGINE
+constexpr int kEnumTimesCacheMaxPropertiesNum = 1000;
+constexpr int kSlowEnumTimesCacheCapacity = 5;
+constexpr size_t kOperateEnumTimeCacheInvalidPos = -1;
+constexpr int kHitsObjTimesThreshold = 4;
 #endif
 
 // Align IsolateData to a most common CPU cache line size.

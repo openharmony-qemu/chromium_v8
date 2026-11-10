@@ -1,0 +1,52 @@
+diff a/src/d8/d8.h b/src/d8/d8.h	(rejected hunks)
+@@ -14,12 +14,10 @@
+ #include <unordered_map>
+ #include <unordered_set>
+ #include <vector>
+ 
+ #include "include/v8-array-buffer.h"
+-#include "include/v8-data.h"
+-#include "include/v8-external.h"
+ #include "include/v8-isolate.h"
+ #include "include/v8-script.h"
+ #include "include/v8-value-serializer.h"
+ #include "src/base/once.h"
+ #include "src/base/platform/time.h"
+@@ -439,10 +437,20 @@ class ShellOptions {
+     const char* name_;
+     T value_;
+     bool specified_ = false;
+   };
+   DisallowReassignment<bool> can_block = {"can_block", true};
++
++#if (defined(OH_ENABLE_HEAP_DUMP) || defined(OH_ENABLE_HEAP_DUMP_TEST))
++  DisallowReassignment<const char*> heapdump_out = {"heapdump-out", nullptr};
++#endif
++
++#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST))
++  DisallowReassignment<const char*> translate_path = {"translate", nullptr};
++  DisallowReassignment<const char*> translate_out = {"translate-out", nullptr};
++#endif
++
+   DisallowReassignment<const char*> d8_path = {"d8-path", ""};
+   DisallowReassignment<bool> fuzzilli_coverage_statistics = {
+       "fuzzilli-coverage-statistics", false};
+   DisallowReassignment<bool> fuzzilli_enable_builtins_coverage = {
+       "fuzzilli-enable-builtins-coverage", false};
+@@ -767,12 +775,14 @@ class Shell : public i::AllStatic {
+ 
+ #ifdef V8_FUZZILLI
+   static void Fuzzilli(const v8::FunctionCallbackInfo<v8::Value>& info);
+ #endif  // V8_FUZZILLI
+ 
+-  // Data is of type DynamicImportData* wrapped in v8::External.
+-  static void DoHostImportModuleDynamically(v8::Local<v8::Data> data);
++  // Data is of type DynamicImportData*. We use void* here to be able
++  // to conform with MicrotaskCallback interface and enqueue this
++  // function in the microtask queue.
++  static void DoHostImportModuleDynamically(void* data);
+   static void AddOSMethods(v8::Isolate* isolate,
+                            Local<ObjectTemplate> os_template);
+ 
+   static const char* kPrompt;
+   static ShellOptions options;
