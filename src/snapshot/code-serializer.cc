@@ -24,6 +24,8 @@
 #include "src/objects/shared-function-info.h"
 #include "src/objects/slots.h"
 #include "src/objects/visitors.h"
+#include "src/sandbox/check.h"
+#include "src/sandbox/sandbox.h"
 #include "src/snapshot/object-deserializer.h"
 #include "src/snapshot/snapshot-utils.h"
 #include "src/snapshot/snapshot.h"
@@ -268,6 +270,7 @@ void CodeSerializer::SerializeObjectImpl(Handle<HeapObject> obj,
   // --interpreted-frames-native-stack is on. See v8:9122 for more context
   if (V8_UNLIKELY(isolate()->interpreted_frames_native_stack()) &&
       IsInterpreterData(*obj)) {
+    SBXCHECK(OutsideSandbox(obj->address()));
     obj =
         handle(TrustedCast<InterpreterData>(*obj)->bytecode_array(), isolate());
   }

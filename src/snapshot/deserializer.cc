@@ -1196,6 +1196,7 @@ int Deserializer<IsolateT>::ReadRootArray(uint8_t data,
   SBXCHECK_GE(source_.length() - source_.position(), kUInt32Size);
   uint32_t id = source_.GetUint30();
   SBXCHECK_LT(id, RootsTable::kEntriesCount);
+  SBXCHECK_LT(static_cast<size_t>(id), RootsTable::kEntriesCount);
   RootIndex root_index = static_cast<RootIndex>(id);
   DirectHandle<HeapObject> heap_object =
       Cast<HeapObject>(isolate()->root_handle(root_index));
@@ -1436,6 +1437,7 @@ int Deserializer<IsolateT>::ReadOffHeapBackingStore(
         SharedFlag::kNotShared);
   }
   CHECK_NOT_NULL(backing_store);
+  SBXCHECK_LE(byte_length, source_.length() - source_.position());
   source_.CopyRaw(backing_store->buffer_start(), static_cast<int>(byte_length));
   backing_stores_.push_back(std::move(backing_store));
   return 0;

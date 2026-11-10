@@ -24,6 +24,7 @@
 #include "src/objects/slots.h"
 #include "src/objects/smi.h"
 #include "src/sandbox/check.h"
+#include "src/sandbox/sandbox.h"
 #include "src/sandbox/js-dispatch-table-inl.h"
 #include "src/snapshot/embedded/embedded-data.h"
 #include "src/snapshot/serializer-deserializer.h"
@@ -170,6 +171,7 @@ void Serializer::SerializeObject(Handle<HeapObject> obj, SlotType slot_type) {
       // For now just serialize the BytecodeArray instead of baseline code.
       // TODO(v8:11429,pthier): Handle Baseline code in cases we want to
       // serialize it.
+      SBXCHECK(OutsideSandbox(code.address()));
       obj = handle(code->bytecode_or_interpreter_data(), isolate());
     } else {
       CHECK(code->is_builtin());
@@ -1230,6 +1232,7 @@ void Serializer::ObjectSerializer::VisitTrustedPointerTableEntry(
 
 void Serializer::ObjectSerializer::VisitProtectedPointer(
     Tagged<TrustedObject> host, ProtectedPointerSlot slot) {
+  SBXCHECK(OutsideSandbox(host.address()));
   Tagged<Object> content = slot.load(isolate());
 
   // Similar to the indirect pointer case, if the slot is empty (i.e. contains
@@ -1252,6 +1255,7 @@ void Serializer::ObjectSerializer::VisitProtectedPointer(
 
 void Serializer::ObjectSerializer::VisitProtectedPointer(
     Tagged<TrustedObject> host, ProtectedMaybeObjectSlot slot) {
+  SBXCHECK(OutsideSandbox(host.address()));
   Tagged<MaybeObject> maybe_content = slot.load();
   // Empty slots (Smi::zero()) and Smi slots can be skipped here.
   if (maybe_content.IsSmi()) return;
