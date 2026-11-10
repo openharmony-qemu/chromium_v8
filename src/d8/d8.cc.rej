@@ -1,0 +1,104 @@
+diff a/src/d8/d8.cc b/src/d8/d8.cc	(rejected hunks)
+@@ -23,12 +23,10 @@
+ #include "third_party/vtune/v8-vtune.h"
+ #endif
+ 
+ #include "include/libplatform/libplatform.h"
+ #include "include/libplatform/v8-tracing.h"
+-#include "include/v8-data.h"
+-#include "include/v8-external.h"
+ #include "include/v8-function.h"
+ #include "include/v8-initialization.h"
+ #include "include/v8-inspector.h"
+ #include "include/v8-isolate.h"
+ #include "include/v8-json.h"
+@@ -121,10 +119,26 @@
+ #include "src/wasm/wasm-js.h"
+ #include "src/wasm/wasm-result.h"
+ #include "src/wasm/wasm-serialization.h"
+ #endif  // V8_ENABLE_WEBASSEMBLY
+ 
++#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST) || \
++     defined(OH_ENABLE_HEAP_DUMP))
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/binary-writer-base.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/binary-writer.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/dump-heap.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/binary-reader.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/snapshot-generator.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/snapshot-serializer.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/translate-heap.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/translate-objects.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/ut/binary-reader-ut.h"
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/ut/binary-writer-ut.h"
++
++#endif
++
+ #ifndef DCHECK
+ #define DCHECK(condition) assert(condition)
+ #endif
+ 
+ #ifndef CHECK
+@@ -1590,13 +1628,11 @@ MaybeLocal<Promise> Shell::HostImportModuleWithPhaseDynamically(
+   } else {
+     DynamicImportData* data =
+         new DynamicImportData(isolate, context, resource_name, specifier, phase,
+                               import_attributes, resolver);
+     PerIsolateData::Get(isolate)->AddDynamicImportData(data);
+-    isolate->EnqueueMicrotask(
+-        Shell::DoHostImportModuleDynamically,
+-        External::New(isolate, data, v8::kExternalPointerTypeTagDefault));
++    isolate->EnqueueMicrotask(Shell::DoHostImportModuleDynamically, data);
+   }
+   return resolver->GetPromise();
+ }
+ 
+ void Shell::HostInitializeImportMetaObject(Local<Context> context,
+@@ -1684,16 +1720,14 @@ Maybe<bool> ChainDynamicImportPromise(Isolate* isolate, Local<Context> realm,
+   }
+   return Just(true);
+ }
+ }  // namespace
+ 
+-void Shell::DoHostImportModuleDynamically(v8::Local<v8::Data> data) {
++void Shell::DoHostImportModuleDynamically(void* data) {
+   Isolate* current_isolate = reinterpret_cast<Isolate*>(i::Isolate::Current());
+-  void* raw_data =
+-      data.As<v8::External>()->Value(v8::kExternalPointerTypeTagDefault);
+   DynamicImportData* import_data =
+-      PerIsolateData::Get(current_isolate)->LookupImportData(raw_data);
++      PerIsolateData::Get(current_isolate)->LookupImportData(data);
+   CHECK_EQ(current_isolate, import_data->isolate);
+ 
+   Isolate* isolate(import_data->isolate);
+   Global<Context> global_realm;
+   Global<Promise::Resolver> global_resolver;
+@@ -5093,11 +5127,11 @@ V8_NOINLINE void FuzzerMonitor::SimulateErrors() {
+   }
+ }
+ 
+ V8_NOINLINE void FuzzerMonitor::ControlFlowViolation() {
+   // Control flow violation caught by CFI.
+-  void (*func)() = (void (*)()) & Dummy;
++  void (*func)() = (void (*)())&Dummy;
+   func();
+ }
+ 
+ V8_NOINLINE void FuzzerMonitor::DCheck() {
+   // Caught in debug builds.
+@@ -7083,10 +7153,15 @@ void ConfigurePartitionAllocIfEnabled() {
+ 
+ int Shell::Main(int argc, char* argv[]) {
+   ConfigurePartitionAllocIfEnabled();
+   v8::base::EnsureConsoleOutput();
+   if (!SetOptions(argc, argv)) return 1;
++#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST))
++  if (options.translate_path) {
++    return RunTranslateOnce(options);
++  }
++#endif
+   if (!i::v8_flags.fuzzing) d8_install_sigterm_handler();
+ 
+   base::FlushDenormalsScope denormals_scope(options.flush_denormals);
+ 
+   v8::V8::InitializeICUDefaultLocation(argv[0], options.icu_data_file);
