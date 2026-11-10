@@ -154,7 +154,7 @@ declare_args() {
       (is_win && (is_asan || is_ubsan || is_msan || is_tsan)) ||
       !(is_win || is_linux || is_mac || is_ios) ||
       (v8_current_cpu != "x64" && v8_current_cpu != "arm64") || !is_clang ||
-      (is_component_build && target_os != "ios")
+      (is_component_build && target_os != "ios") || target_os == "ohos"
 
   # Enable the Turbofan compiler.
   # Sets -dV8_ENABLE_TURBOFAN.
@@ -354,10 +354,10 @@ if (v8_enable_pointer_compression == "") {
 # Windows, Linux, MacOS and tvOS.
 is_drumbrake_supported =
     v8_enable_webassembly && v8_enable_pointer_compression &&
-    (v8_current_cpu == "x64" || v8_current_cpu == "arm64" ||
+    (v8_current_cpu == "x64" || v8_current_cpu == "arm64"  ||
      v8_current_cpu == "riscv64") &&
     (target_os == "win" || target_os == "linux" || target_os == "mac" ||
-     target_os == "ios")
+     target_os == "ios" || target_os == "ohos")
 
 # Turbofan is enabled by default, except in lite mode.
 if (v8_enable_turbofan == "") {
@@ -526,9 +526,13 @@ template("v8_executable") {
         configs -= invoker.remove_configs
       }
       configs += invoker.configs
+      ldflags = []
       if (is_linux || is_chromeos) {
         # For enabling ASLR.
-        ldflags = [ "-pie" ]
+        ldflags = [ 
+          "-pie",
+          "-lgcc_s", 
+          ]
       }
       deps += [ v8_path_prefix + ":v8_dump_build_config" ]
 
