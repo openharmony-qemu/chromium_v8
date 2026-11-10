@@ -130,8 +130,13 @@ class Reader {
 };
 
 size_t MeasureHeader(const CompileTimeImports& compile_imports) {
+#ifdef OHOS_JS_ENGINE
+  return 6 * kUInt32Size +  // magic number, version hash, cpu features, flags
+                            // hash, enabled features, wasm cache length
+#else
   return 5 * kUInt32Size +  // magic number, version hash, cpu features, flags
                             // hash, enabled features
+#endif
          sizeof(typename CompileTimeImportFlags::StorageType) +
          sizeof(uint32_t) +  // length of constants_module.
          compile_imports.constants_module().size();
@@ -718,6 +723,9 @@ bool NativeModuleSerializer::Write(Writer* writer) {
   CHECK_EQ(total_written_code_, total_code_size);
 
   WriteTieringBudget(writer);
+#ifdef OHOS_JS_ENGINE
+  WriteCacheLength(buffer, writer->bytes_written());
+#endif
   return true;
 }
 
@@ -741,8 +749,11 @@ bool WasmSerializer::SerializeNativeModule(base::Vector<uint8_t> buffer) const {
   Writer writer(buffer);
   WriteHeader(&writer, native_module_->enabled_features(),
               native_module_->compile_imports());
-
+#ifdef OHOS_JS_ENGINE
+  if (!serializer.Write(&writer, buffer)) return false;
+#else
   if (!serializer.Write(&writer)) return false;
+#endif
   DCHECK_EQ(measured_size, writer.bytes_written());
   return true;
 }
@@ -1193,6 +1204,10 @@ bool HeaderMatches(base::Vector<const uint8_t> data,
   base::SmallVector<uint8_t, 32> current_header(header_size);
   Writer writer(base::VectorOf(current_header));
   WriteHeader(&writer, enabled_features, compile_imports);
+#ifdef OHOS_JS_ENGINE
+  WriteCacheLength(base::VectorOf(current_header), data.size());
+#endif
+
   DCHECK_EQ(header_size, writer.bytes_written());
   return base::VectorOf(current_header) == data.SubVector(0, header_size);
 }

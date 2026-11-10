@@ -1,0 +1,62 @@
+diff a/src/wasm/wasm-serialization.cc b/src/wasm/wasm-serialization.cc	(rejected hunks)
+@@ -156,17 +161,28 @@ void WriteHeader(Writer* writer, WasmEnabledFeatures enabled_features,
+   writer->Write(SerializedData::kMagicNumber);
+   writer->Write(Version::Hash());
+   writer->Write(static_cast<uint32_t>(CpuFeatures::SupportedFeatures()));
+   writer->Write(FlagList::Hash());
+   writer->Write(enabled_features.ToIntegral());
++#ifdef OHOS_JS_ENGINE
++  writer->Write(static_cast<uint32_t>(0));  // placeholder for cache length.
++#endif
+   writer->Write(compile_imports.flags().ToIntegral());
+   const std::string& constants_module = compile_imports.constants_module();
+   writer->Write(static_cast<uint32_t>(constants_module.size()));
+   writer->WriteVector(base::VectorOf(constants_module));
+   DCHECK_EQ(MeasureHeader(compile_imports), writer->bytes_written());
+ }
+ 
++#ifdef OHOS_JS_ENGINE
++void WriteCacheLength(base::Vector<uint8_t> buffer, size_t size) {
++  Writer code_cache_write(buffer);
++  code_cache_write.Skip(WasmSerializer::kCacheLengthOffset);
++  code_cache_write.Write(static_cast<uint32_t>(size));
++}
++#endif
++
+ // On Intel, call sites are encoded as a displacement. For linking and for
+ // serialization/deserialization, we want to store/retrieve a tag (the function
+ // index). On Intel, that means accessing the raw displacement.
+ // On ARM64, call sites are encoded as either a literal load or a direct branch.
+ // Other platforms simply require accessing the target address.
+@@ -341,11 +357,15 @@ class V8_EXPORT_PRIVATE NativeModuleSerializer {
+                          base::Vector<WellKnownImport const>);
+   NativeModuleSerializer(const NativeModuleSerializer&) = delete;
+   NativeModuleSerializer& operator=(const NativeModuleSerializer&) = delete;
+ 
+   size_t Measure() const;
++#ifdef OHOS_JS_ENGINE
++  bool Write(Writer* writer, base::Vector<uint8_t> buffer);
++#else
+   bool Write(Writer* writer);
++#endif
+ 
+  private:
+   size_t MeasureCode(const WasmCode*) const;
+   void WriteHeader(Writer*, size_t total_code_size);
+   void WriteCode(const WasmCode*, Writer*,
+@@ -624,11 +644,15 @@ uint32_t NativeModuleSerializer::CanonicalSigIdToModuleLocalTypeId(
+   auto it = canonical_sig_ids_to_module_local_ids_.find(canonical_sig_id);
+   DCHECK_NE(canonical_sig_ids_to_module_local_ids_.end(), it);
+   return it->second;
+ }
+ 
++#ifdef OHOS_JS_ENGINE
++bool NativeModuleSerializer::Write(Writer* writer, base::Vector<uint8_t> buffer) {
++#else
+ bool NativeModuleSerializer::Write(Writer* writer) {
++#endif
+   DCHECK(!write_called_);
+   write_called_ = true;
+ 
+   size_t total_code_size = 0;
+   for (WasmCode* code : code_table_) {
