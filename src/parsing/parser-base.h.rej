@@ -1,0 +1,18 @@
+diff a/src/parsing/parser-base.h b/src/parsing/parser-base.h	(rejected hunks)
+@@ -1689,13 +1689,13 @@ class ParserBase {
+   V8_INLINE ExpressionScope* expression_scope() const {
+     DCHECK_NOT_NULL(expression_scope_);
+     return expression_scope_;
+   }
+ 
+- public:
+-  V8_INLINE void set_max_drift(int drift) { max_drift_ = drift; }
+-  V8_INLINE int max_drift() const { return max_drift_; }
++  public:
++    V8_INLINE void set_max_drift(int drift) { max_drift_ = drift; }
++    V8_INLINE int max_drift() const { return max_drift_; }
+ 
+   bool MaybeParsingArrowhead() const {
+     return expression_scope_ != nullptr &&
+            expression_scope_->has_possible_arrow_parameter_in_scope_chain();
+   }

@@ -5976,12 +5976,23 @@ typename ParserBase<Impl>::BlockT ParserBase<Impl>::ParseBlock(
 
   CheckStackOverflow();
 
+#ifdef OHOS_JS_ENGINE
+  auto outer_scope = scope_;
+#endif
   {
     BlockState block_state(&scope_, block_scope);
     scope()->set_start_position(peek_position());
     Target target(this, body, labels, nullptr, Target::TARGET_FOR_NAMED_ONLY);
 
     Expect(Token::kLeftBrace);
+
+#ifdef OHOS_JS_ENGINE
+    if (peek() != Token::kRightBrace && outer_scope->is_with_scope() &&
+        scanner()->HasNeverHideBaseStdHint()) {
+      outer_scope->set_has_never_hide_base_std_hint();
+      scanner()->ResetHasNeverHideBaseStdHint();
+    }
+#endif
 
     while (peek() != Token::kRightBrace) {
       StatementT stat = ParseStatementListItem();
@@ -6322,6 +6333,11 @@ typename ParserBase<Impl>::StatementT ParserBase<Impl>::ParseWithStatement(
   // WithStatement ::
   //   'with' '(' Expression ')' Statement
 
+#ifdef OHOS_JS_ENGINE
+  // Consume it before the 'with' token so only hints scanned after this point -
+  // after ')' or at the body head - can reach the checks below.
+  scanner()->ResetHasNeverHideBaseStdHint();
+#endif  // OHOS_JS_ENGINE
   Consume(Token::kWith);
   int pos = position();
 
@@ -6340,6 +6356,12 @@ typename ParserBase<Impl>::StatementT ParserBase<Impl>::ParseWithStatement(
   {
     BlockState block_state(&scope_, with_scope);
     with_scope->set_start_position(position());
+#ifdef OHOS_JS_ENGINE
+    if (peek() != Token::kLeftBrace && scanner()->HasNeverHideBaseStdHint()) {
+      with_scope->set_has_never_hide_base_std_hint();
+      scanner()->ResetHasNeverHideBaseStdHint();
+    }
+#endif
     body = ParseStatement(labels, nullptr);
     with_scope->set_end_position(end_position());
   }

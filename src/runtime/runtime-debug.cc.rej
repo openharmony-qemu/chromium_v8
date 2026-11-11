@@ -1,0 +1,17 @@
+diff a/src/runtime/runtime-debug.cc b/src/runtime/runtime-debug.cc	(rejected hunks)
+@@ -27,10 +27,15 @@
+ #if V8_ENABLE_WEBASSEMBLY
+ #include "src/debug/debug-wasm-objects.h"
+ #include "src/wasm/wasm-objects-inl.h"
+ #endif  // V8_ENABLE_WEBASSEMBLY
+ 
++#ifdef V8_ENABLE_OHOS_ASYNC_STACK
++#include "src/objects/promise-inl.h"
++#include "../../../arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h"
++#endif // V8_ENABLE_OHOS_ASYNC_STACK
++
+ namespace v8 {
+ namespace internal {
+ 
+ RUNTIME_FUNCTION_RETURN_PAIR(Runtime_DebugBreakOnBytecode) {
+   using interpreter::Bytecode;

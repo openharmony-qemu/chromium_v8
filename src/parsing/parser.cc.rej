@@ -1,0 +1,43 @@
+diff a/src/parsing/parser.cc b/src/parsing/parser.cc	(rejected hunks)
+@@ -705,10 +709,13 @@ void Parser::ParseProgram(Isolate* isolate, DirectHandle<Script> script,
+   DCHECK(parsing_on_main_thread_);
+   RCS_SCOPE(runtime_call_stats_, flags().is_eval()
+                                      ? RuntimeCallCounterId::kParseEval
+                                      : RuntimeCallCounterId::kParseProgram);
+   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.ParseProgram");
++#ifdef OHOS_JS_ENGINE
++  auto trace = HiTrace("RCS_v8.compile_V8.ParseProgram");
++#endif
+   base::ElapsedTimer timer;
+   if (V8_UNLIKELY(v8_flags.log_function_events)) timer.Start();
+ 
+   // Initialize parser state.
+   DeserializeScopeChain(isolate, info, maybe_outer_scope_info,
+@@ -1032,10 +1039,13 @@ void Parser::ParseFunction(Isolate* isolate, ParseInfo* info,
+   // It's OK to use the Isolate & counters here, since this function is only
+   // called in the main thread.
+   DCHECK(parsing_on_main_thread_);
+   RCS_SCOPE(runtime_call_stats_, RuntimeCallCounterId::kParseFunction);
+   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.ParseFunction");
++#ifdef OHOS_JS_ENGINE
++  auto trace = HiTrace("RCS_v8.compile_V8.ParseFunction");
++#endif
+   base::ElapsedTimer timer;
+   if (V8_UNLIKELY(v8_flags.log_function_events)) timer.Start();
+ 
+   MaybeDirectHandle<ScopeInfo> maybe_outer_scope_info;
+   if (shared_info->HasOuterScopeInfo()) {
+@@ -3042,10 +3052,13 @@ bool Parser::SkipFunction(const AstRawString* function_name, FunctionKind kind,
+   }
+ 
+   // With no cached data, we partially parse the function, without building an
+   // AST. This gathers the data needed to build a lazy function.
+   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.PreParse");
++#ifdef OHOS_JS_ENGINE
++  auto trace = HiTrace("RCS_v8.compile_V8.PreParse");
++#endif
+ 
+   std::optional<base::ElapsedTimer> timer;
+   if (v8_flags.enable_preparser_ablation &&
+       base::TimeTicks::IsHighResolution()) {
+     timer.emplace();

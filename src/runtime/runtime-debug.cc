@@ -1046,3 +1046,6 @@ RUNTIME_FUNCTION(Runtime_ProfileCreateSnapshotDataBlob) {
 
 }  // namespace internal
 }  // namespace v8
+
+// Used for OHOS. OpenHarmony OS.
+#include "../../../arkweb/chromium_ext/v8/dfx/async_stack/runtime.cpp"

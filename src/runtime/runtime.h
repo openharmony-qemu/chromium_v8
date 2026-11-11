@@ -309,6 +309,10 @@ constexpr bool CanTriggerGC(T... properties) {
   F(NewTypeError, -1 /* [1, 4] */, 1)                      \
   F(OrdinaryHasInstance, 2, 1)                             \
   F(PropagateException, 0, 1)                              \
+  /* Used for OHOS. OpenHarmony OS. */                     \
+  F(SetAsyncTraceOfMicrotask, 1, 1)                        \
+  F(ClearAsyncTraceOfMicrotask, 1, 1)                      \
+  /* end */                                                \
   F(ReportMessageFromMicrotask, 1, 1)                      \
   F(RunMicrotaskCallback, 2, 1)                            \
   F(PerformMicrotaskCheckpoint, 0, 1)                      \
