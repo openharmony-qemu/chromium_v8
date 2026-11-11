@@ -1,0 +1,425 @@
+diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
+@@ -1,24 +1,45 @@
+ # Copyright 2014 The Chromium Authors. All rights reserved.
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
++declare_args() {
++  # build_host = true and build_arkweb = false is used to build d8
++  build_host = false
++  build_arkweb = true
++}
++if (build_host && !build_arkweb) {
++  is_ohos = build_host == false
++  is_arkweb = build_arkweb
++}
++
+ import("//build/config/android/config.gni")
++if (is_ohos) {
++  import("//build/config/ohos/config.gni")
++}
+ import("//build/config/arm.gni")
+ import("//build/config/coverage/coverage.gni")
+ import("//build/config/dcheck_always_on.gni")
+ import("//build/config/host_byteorder.gni")
+ import("//build/config/mips.gni")
+ import("//build/config/riscv.gni")
+ import("//build/config/rust.gni")
+ import("//build/config/sanitizers/sanitizers.gni")
+ import("//build_overrides/build.gni")
+-import("//cef/libcef/features/features.gni")
++if (build_host) {
++  enable_cef = false
++} else {
++  import("//cef/libcef/features/features.gni")
++}
+ import("//third_party/icu/config.gni")
+ 
+ import("gni/snapshot_toolchain.gni")
+ import("gni/v8.gni")
++import("//arkweb/chromium_ext/v8/build.gni")
++
++import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
++
+ 
+ if (is_clang) {
+   import("//build/config/clang/clang.gni")
+ }
+ 
+@@ -500,11 +540,29 @@ declare_args() {
+ 
+   # Enable compilation of riscv32.
+   v8_riscv_enable_deprecated_riscv32 = false
+ }
+ 
++declare_args() {
++  # Enable jit memroy W^X protection.
++  v8_enable_jitfort = false
++
++  v8_enable_hitrace_runtime_call_stats = v8_enable_ohos_js_engine
++}
++
+ # Derived defaults.
++pgo_exists_flag = false
++if(is_ohos) {
++  pgo_exists_flag = exec_script("tools/builtins-pgo/check_pgo.py", ["--pgo_path", "profiles/ohos.profile"], "value")
++}
++if (pgo_exists_flag) {
++  v8_builtins_profiling_log_file = "tools/builtins-pgo/profiles/ohos.profile"
++} else {
++  v8_builtins_profiling_log_file = "default"
++}
++print("Using v8_builtins_profiling from: ")
++print(v8_builtins_profiling_log_file)
+ if (cppgc_enable_verify_heap == "") {
+   cppgc_enable_verify_heap =
+       v8_enable_verification_features || v8_dcheck_always_on
+ }
+ if (v8_enable_verify_heap == "") {
+@@ -1005,10 +1070,11 @@ external_v8_defines = [
+   "V8_TARGET_OS_IOS",
+   "V8_TARGET_OS_LINUX",
+   "V8_TARGET_OS_MACOS",
+   "V8_TARGET_OS_WIN",
+   "V8_TARGET_OS_CHROMEOS",
++  "V8_TARGET_OS_OHOS",
+ ]
+ 
+ enabled_external_v8_defines = [
+   "V8_ARRAY_BUFFER_INTERNAL_FIELD_COUNT=${v8_array_buffer_internal_field_count}",
+   "V8_ARRAY_BUFFER_VIEW_INTERNAL_FIELD_COUNT=${v8_array_buffer_view_internal_field_count}",
+@@ -1085,10 +1151,13 @@ if (target_os == "android") {
+   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
+   enabled_external_v8_defines += [ "V8_TARGET_OS_WIN" ]
+ } else if (target_os == "chromeos") {
+   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
+   enabled_external_v8_defines += [ "V8_TARGET_OS_CHROMEOS" ]
++} else if (target_os == "ohos") {
++  enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
++  enabled_external_v8_defines += [ "V8_TARGET_OS_OHOS" ]
+ }
+ 
+ disabled_external_v8_defines = external_v8_defines - enabled_external_v8_defines
+ 
+ # Put defines that are used in public headers here; public headers are
+@@ -1491,29 +1563,68 @@ config("features") {
+     defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
+   }
+   if (v8_wasm_random_fuzzers) {
+     defines += [ "V8_WASM_RANDOM_FUZZERS" ]
+   }
++  if (v8_enable_ohos_js_engine) {
++    defines += [ "OHOS_JS_ENGINE" ]
++  }
++  if (v8_enable_longque_api) {
++    defines += [ "V8_ENABLE_LONGQUE_API" ]
++  }
++  if (v8_enable_ohos_perf_jit) {
++    defines += [ "V8_ENABLE_OHOS_PERF_JIT" ]
++  }
++  if (v8_enable_ohos_async_stack) {
++    defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
++  }
++  if (v8_enable_restrace) {
++    defines += [ "OH_ENABLE_RESTRACE" ]
++  }
++  if (v8_ohos_enable_heapdump) {
++    if (enable_heap_dump) {
++      defines += [ "OH_ENABLE_HEAP_DUMP" ]
++    }
++    if (enable_heap_dump_translate) {
++      defines += [ "OH_ENABLE_HEAP_TRANSLATE" ]
++    }
++    if (enable_heap_dump_test) {
++      defines += [ "OH_ENABLE_HEAP_DUMP_TEST" ]
++    }
++    if (enable_heap_dump_json_metadata) {
++      defines += [ "OH_ENABLE_HEAP_DUMP_JSON_METADATA" ]
++    }
++  }
+   if (v8_lower_limits_mode) {
+     defines += [ "V8_LOWER_LIMITS_MODE" ]
+   }
+   if (v8_target_is_simulator) {
+     defines += [ "USE_SIMULATOR" ]
+   }
+   if (v8_function_arguments_caller_are_own_props) {
+     defines += [ "V8_FUNCTION_ARGUMENTS_CALLER_ARE_OWN_PROPS" ]
+   }
++  if (v8_enable_oom_repoter) {
++    defines += [ "V8_ENABLE_OHOS_OOM_MONITOR" ]
++  }
++  if (is_ohos && v8_enable_jitfort) {
++    defines += [ "V8_ENABLE_JITFORT" ]
++  }
+ }
+ 
+ config("toolchain") {
+   # Only targets in this file and its subdirs can depend on this.
+   visibility = [ "./*" ]
+ 
+   defines = []
+   cflags = []
+   ldflags = []
+ 
++  if (build_host) {
++    cflags += [ "-Wno-extra-tokens" ]
++  }
++
+   if (v8_current_cpu == "arm") {
+     defines += [ "V8_TARGET_ARCH_ARM" ]
+     if (arm_version >= 7) {
+       defines += [ "CAN_USE_ARMV7_INSTRUCTIONS" ]
+     }
+@@ -4503,10 +4636,52 @@ v8_header_set("v8_internal_headers") {
+     "third_party/rapidhash-v8/secret.h",
+     "third_party/siphash/halfsiphash.h",
+     "third_party/utf8-decoder/utf8-decoder.h",
+   ]
+ 
++
++  if (v8_enable_ohos_perf_jit) {
++    sources += [
++      "//arkweb/chromium_ext/v8/ohos-perf-jit.h",
++      "//arkweb/chromium_ext/v8/ohos-perf-jit.cc",
++      "//arkweb/chromium_ext/v8/parse-jitcode.cc",
++    ]
++  } else {
++    sources += [
++      "src/diagnostics/perf-jit.h",
++      "src/diagnostics/perf-jit.cc"
++    ]
++  }
++
++  if (v8_enable_ohos_async_stack) {
++    sources += [
++      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h",
++      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.cpp"
++    ]
++  }
++
++  if (v8_enable_restrace) {
++    sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
++  }
++
++  if (v8_enable_oom_repoter) {
++    sources += [ "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h" ]
++  }
++
++  if (v8_ohos_enable_heapdump) {
++    sources += heap_dump_base_include
++    if (enable_heap_dump) {
++      sources += heap_dump_include
++    }
++    if (enable_heap_dump_translate) {
++      sources += heap_dump_translator_include
++    }
++    if (enable_heap_dump_test) {
++      sources += heap_dump_ut_include
++    }
++  }
++
+   if (v8_enable_snapshot_compression) {
+     sources += [ "src/snapshot/snapshot-compression.h" ]
+   }
+ 
+   if (v8_enable_temporal_support) {
+@@ -5500,10 +5675,17 @@ v8_source_set("v8_compiler_for_mksnapshot_source_set") {
+     # Without this else branch, gn fails to generate build files for non-debug
+     # builds (because we try to remove a config that is not present).
+     # So we include it, even if this config is not used outside of debug builds.
+     configs = [ ":internal_config" ]
+   }
++
++  if (use_llvm_backend) {
++    if (v8_current_cpu == "arm64" && !target_is_simulator) {
++      configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config" ]
++      cflags = [ "-DV8_USE_LLVM_BACKEND" ]
++    }
++  }
+ }
+ 
+ # The src/compiler files with default behavior.
+ v8_source_set("v8_compiler") {
+   visibility = [ ":*" ]  # Only targets in this file can depend on this.
+@@ -5827,10 +6012,11 @@ v8_source_set("v8_base_without_compiler") {
+     "src/logging/log-file.cc",
+     "src/logging/log.cc",
+     "src/logging/metrics.cc",
+     "src/logging/runtime-call-stats.cc",
+     "src/logging/tracing-flags.cc",
++    "//arkweb/chromium_ext/v8/ohlog.cc",
+     "src/numbers/conversions.cc",
+     "src/numbers/ieee754.cc",
+     "src/numbers/math-random.cc",
+     "src/objects/abstract-code.cc",
+     "src/objects/backing-store.cc",
+@@ -6055,10 +6241,16 @@ v8_source_set("v8_base_without_compiler") {
+ 
+   if (v8_enable_snapshot_compression) {
+     sources += [ "src/snapshot/snapshot-compression.cc" ]
+   }
+ 
++  if (v8_enable_longque_api) {
++    sources += [
++      "//arkweb/chromium_ext/v8/builtins-longque.cc",
++    ]
++  }
++
+   if (v8_enable_temporal_support) {
+     sources += [
+       "src/builtins/builtins-temporal.cc",
+       "src/objects/js-temporal-objects.cc",
+       "src/objects/js-temporal-zoneinfo64.cc",
+@@ -6504,10 +6696,17 @@ v8_source_set("v8_base_without_compiler") {
+         "src/diagnostics/etw-jit-win.h",
+       ]
+     }
+   }
+ 
++  if (v8_enable_jitfort) {
++    sources += [
++      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.h",
++      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.cc",
++    ]
++  }
++  
+   configs = [
+     ":internal_config",
+     ":cppgc_base_config",
+   ]
+ 
+@@ -6622,17 +6821,53 @@ v8_source_set("v8_base_without_compiler") {
+       "src/extensions/vtunedomain-support-extension.cc",
+       "src/extensions/vtunedomain-support-extension.h",
+     ]
+     deps += [ "third_party/vtune:v8_vtune_trace_mark" ]
+   }
++
++  if (v8_enable_ohos_js_engine) {
++    sources += [
++      "//arkweb/chromium_ext/v8/dfx/heap_profiler/dfx-heap-profiler.cc"
++    ]
++  }
++  if (is_arkweb && v8_ohos_enable_heapdump && enable_heap_dump) {
++    sources += [
++      "//arkweb/chromium_ext/v8/dfx/heap_profiler/heap-profile.h",
++      "//arkweb/chromium_ext/v8/dfx/heap_profiler/heap-profile.cc",
++      "//arkweb/chromium_ext/v8/dfx/heap_profiler/stream-utils.h",
++      "//arkweb/chromium_ext/v8/dfx/heap_profiler/stream-utils.cc",
++    ]
++  }
++  if (v8_ohos_enable_heapdump) {
++    sources += heap_dump_base_source
++    if (enable_heap_dump) {
++      sources += heap_dump_source
++    }
++    if (enable_heap_dump_translate) {
++      sources += heap_dump_translator_source
++    }
++    if (enable_heap_dump_test) {
++      sources += heap_dump_ut_include
++    }
++  }
++
++  if (v8_enable_oom_repoter) {
++    sources += [
++      "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.cc",
++    ]
++  }
+ }
+ 
+ group("v8_base") {
+   public_deps = [
+     ":v8_base_without_compiler",
+     ":v8_compiler",
+   ]
++
++  if(is_component_build) {
++    deps = [ "//base" ]
++  }
+ }
+ 
+ v8_source_set("torque_base") {
+   visibility = [ ":*" ]  # Only targets in this file can depend on this.
+ 
+@@ -7644,10 +7891,18 @@ if (current_toolchain == v8_snapshot_toolchain) {
+     configs = [
+       ":internal_config",
+       ":disable_icf",
+     ]
+ 
++    if (use_llvm_backend) {
++      if (v8_current_cpu == "arm64" && !target_is_simulator) {
++        sources += llvm_backend_ext_sources
++        configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config", ]
++        cflags = [ "-DV8_USE_LLVM_BACKEND" ]
++      }
++    }
++
+     deps = [
+       ":v8_base_without_compiler",
+       ":v8_compiler_for_mksnapshot",
+       ":v8_init",
+       ":v8_libbase",
+@@ -7963,10 +8226,12 @@ if (is_component_build) {
+     }
+ 
+     configs = [ ":internal_config" ]
+ 
+     public_configs = [ ":external_config" ]
++
++    ldflags += [ "-lgcc_s" ]
+   }
+ 
+   v8_component("cppgc") {
+     public_deps = [ ":cppgc_base" ]
+ 
+@@ -8066,10 +8331,20 @@ v8_executable("d8") {
+     "src/d8/d8-test.cc",
+     "src/d8/d8.cc",
+     "src/d8/d8.h",
+   ]
+ 
++  if (v8_ohos_enable_heapdump) {
++    sources += heap_dump_base_include
++    if (enable_heap_dump) {
++      sources += heap_dump_include
++    }
++    if (enable_heap_dump_translate) {
++      sources += heap_dump_translator_include
++    }
++  }
++
+   configs = [
+     # Note: don't use :internal_config here because this target will get
+     # the :external_config applied to it by virtue of depending on :v8, and
+     # you can't have both applied to the same target.
+     ":internal_config_base",
+@@ -8495,10 +8829,26 @@ if (!build_with_chromium && v8_use_perfetto) {
+       "//third_party/perfetto/src/tracing:client_api",
+     ]
+   }
+ }  # if (!build_with_chromium && v8_use_perfetto)
+ 
++action("copy_v8_include") {
++  script = "//arkweb/chromium_ext/v8/cp_v8_include.py"
++  report_file = "$target_gen_dir/v8-include.txt"
++  outputs = [ report_file ]
++}
++
++v8_shared_library("v8_shared") {
++  public_deps = [
++    ":v8_base",
++    ":v8_snapshot",
++    ":copy_v8_include",
++  ]
++
++  public_configs = [ ":external_config" ]
++}
++
+ # GN evaluates each .gn file once per toolchain, so restricting to default
+ # toolchain will ensure write_file() is called only once.
+ if (current_toolchain == default_toolchain) {
+   import("//build/gn_logs.gni")
+ 
