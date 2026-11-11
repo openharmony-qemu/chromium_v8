@@ -1,0 +1,16 @@
+diff a/src/utils/version.cc b/src/utils/version.cc	(rejected hunks)
+@@ -22,11 +22,13 @@ int Version::build_ = V8_BUILD_NUMBER;
+ int Version::patch_ = V8_PATCH_LEVEL;
+ const char* Version::embedder_ = V8_EMBEDDER_STRING;
+ bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
+ const char* Version::soname_ = SONAME;
+ const char* Version::version_string_ = V8_VERSION_STRING;
+-
++#ifdef OHOS_JS_ENGINE
++int Version::inner_ = V8_INNER_VERSION;
++#endif
+ // Calculate the V8 version string.
+ void Version::GetString(base::Vector<char> str) {
+   const char* candidate = IsCandidate() ? " (candidate)" : "";
+   if (GetPatch() > 0) {
+     base::SNPrintF(str, "%d.%d.%d.%d%s%s", GetMajor(), GetMinor(), GetBuild(),

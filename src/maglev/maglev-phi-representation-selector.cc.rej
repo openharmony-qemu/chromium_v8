@@ -1,0 +1,15 @@
+diff a/src/maglev/maglev-phi-representation-selector.cc b/src/maglev/maglev-phi-representation-selector.cc	(rejected hunks)
+@@ -381,12 +381,11 @@ void MaglevPhiRepresentationSelector::EnsurePhiInputsTagged(Phi* phi) {
+   // {phi} is an untagged Phi. However, if this function is called, then we've
+   // decided that {phi} is going to stay tagged, and thus, all of its inputs
+   // should be tagged. We'll thus insert tagging operation on the untagged phi
+   // inputs of {phi}.
+ 
+-  const int skip_backedge = phi->is_loop_phi() ? 1 : 0;
+-  for (int i = 0; i < phi->input_count() - skip_backedge; i++) {
++  for (int i = 0; i < phi->input_count(); i++) {
+     ValueNode* input = phi->input(i).node();
+     if (Phi* phi_input = input->TryCast<Phi>()) {
+       phi->change_input(i,
+                         EnsurePhiTagged(phi_input, phi->predecessor_at(i),
+                                         BasicBlockPosition::End(), nullptr, i));

@@ -1,0 +1,30 @@
+diff a/src/init/v8.cc b/src/init/v8.cc	(rejected hunks)
+@@ -42,17 +45,28 @@
+ 
+ #if defined(V8_ENABLE_ETW_STACK_WALKING)
+ #include "src/diagnostics/etw-jit-win.h"
+ #endif  // V8_ENABLE_ETW_STACK_WALKING
+ 
++#ifdef USING_OHOS_WEB
++#include "../../../arkweb/chromium_ext/v8/ohlog.h"
++#endif
++
++#if V8_HAS_JIT_FORT_PROTECT
++#include "src/base/platform/jitfort.h"
++#endif
++
+ namespace v8 {
+ namespace internal {
+ 
+ // static
+ v8::Platform* V8::platform_ = nullptr;
+ const OOMDetails V8::kNoOOMDetails{false, nullptr};
+ const OOMDetails V8::kHeapOOM{true, nullptr};
++#ifdef OHOS_JS_ENGINE
++bool rcs_enable = false;
++#endif
+ 
+ namespace {
+ enum class V8StartupState {
+   kIdle,
+   kPlatformInitializing,
