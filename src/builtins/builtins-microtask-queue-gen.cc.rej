@@ -1,0 +1,34 @@
+diff a/src/builtins/builtins-microtask-queue-gen.cc b/src/builtins/builtins-microtask-queue-gen.cc	(rejected hunks)
+@@ -166,10 +166,15 @@ void MicrotaskQueueBuiltinsAssembler::RunSingleMicrotask(
+                            PROMISE_RESOLVE_THENABLE_JOB_TASK_TYPE};
+   Label* case_labels[] = {
+       &is_callable, &is_callback, &is_promise_fulfill_reaction_job,
+       &is_promise_reject_reaction_job, &is_promise_resolve_thenable_job};
+   static_assert(arraysize(case_values) == arraysize(case_labels), "");
++#ifdef V8_ENABLE_OHOS_ASYNC_STACK
++  CallRuntime(Runtime::kSetAsyncTraceOfMicrotask, GetCurrentContext(),
++              microtask);
++  // Jump to excute mocrotask.
++#endif
+   Switch(microtask_type, &is_unreachable, case_values, case_labels,
+          arraysize(case_labels));
+ 
+   BIND(&is_callable);
+   {
+@@ -361,10 +366,16 @@ void MicrotaskQueueBuiltinsAssembler::RunSingleMicrotask(
+     SetCurrentContext(current_context);
+     Goto(&done);
+   }
+ 
+   BIND(&done);
++#ifdef V8_ENABLE_OHOS_ASYNC_STACK
++  {
++    CallRuntime(Runtime::kClearAsyncTraceOfMicrotask, GetCurrentContext(),
++              microtask);
++  }
++#endif
+ }
+ 
+ void MicrotaskQueueBuiltinsAssembler::IncrementFinishedMicrotaskCount(
+     TNode<RawPtrT> microtask_queue) {
+   TNode<IntPtrT> count = Load<IntPtrT>(

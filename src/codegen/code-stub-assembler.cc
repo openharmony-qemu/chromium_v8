@@ -3133,6 +3133,10 @@ TNode<TValue> CodeStubAssembler::LoadArrayElement(TNode<Array> array,
       ElementOffsetFromIndex(index_node, HOLEY_ELEMENTS, header_size);
   CSA_DCHECK(this, IsOffsetInBounds(offset, LoadArrayLength(array),
                                     array_header_size));
+#if defined(OHOS_MEM_USAGE_REPORT) && defined(USING_OHOS_WEB)
+  CSA_MURCHECK(this, IsOffsetInBounds(offset, LoadArrayLength(array),
+                                    array_header_size), 2);
+#endif // OHOS_MEM_USAGE_REPORT && USING_OHOS_WEB
   constexpr MachineType machine_type = MachineTypeOf<TValue>::value;
   return UncheckedCast<TValue>(LoadFromObject(machine_type, array, offset));
 }
@@ -20121,6 +20125,15 @@ TNode<BoolT> CodeStubAssembler::HasAsyncEventDelegate() {
   const TNode<RawPtrT> async_event_delegate = Load<RawPtrT>(ExternalConstant(
       ExternalReference::async_event_delegate_address(isolate())));
   return WordNotEqual(async_event_delegate, IntPtrConstant(0));
+}
+
+// Used for OHOS. OpenHarmony OS.
+TNode<BoolT> CodeStubAssembler::HasDfxAsyncStack() {
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+  return BoolConstant(true);
+#else
+  return BoolConstant(false);
+#endif
 }
 
 TNode<Uint32T> CodeStubAssembler::PromiseHookFlags() {
