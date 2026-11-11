@@ -1,0 +1,130 @@
+diff a/src/heap/heap.cc b/src/heap/heap.cc	(rejected hunks)
+@@ -141,10 +141,22 @@
+ #endif  // V8_ENABLE_WEBASSEMBLY
+ 
+ // Has to be the last include (doesn't have include guards):
+ #include "src/objects/object-macros.h"
+ 
++#ifdef OH_ENABLE_RESTRACE
++#include "../../../arkweb/chromium_ext/v8/restrace.h"
++#endif
++
++#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
++#include "arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.h"
++#endif
++
++#ifdef V8_ENABLE_OHOS_OOM_MONITOR
++#include "arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h"
++#endif
++
+ namespace v8 {
+ namespace internal {
+ 
+ class Heap::AllocationTrackerForDebugging final
+     : public HeapObjectAllocationTracker {
+@@ -1430,10 +1442,16 @@ void Heap::CollectAllAvailableGarbage(GarbageCollectionReason gc_reason) {
+ 
+   if (gc_reason == GarbageCollectionReason::kLastResort &&
+       v8_flags.heap_snapshot_on_oom) {
+     heap_profiler()->WriteSnapshotToDiskAfterGC();
+   }
++#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
++  if (gc_reason == GarbageCollectionReason::kLastResort &&
++      v8_flags.heap_dump_on_oom) {
++    dfx::DumpHeapAfterOOM(this);
++  }
++#endif
+ 
+   collection_barrier_->ResumeThreadsAwaitingCollection(
+       RequestedGCKind::kLastResort);
+ }
+ 
+@@ -1826,17 +1844,50 @@ bool Heap::ReachedHeapLimit() { return !CanExpandOldGeneration(0); }
+ bool Heap::HasConsecutiveIneffectiveMarkCompact() const {
+   return consecutive_ineffective_mark_compacts_.load(
+              std::memory_order_relaxed) > 0;
+ }
+ 
++#ifdef V8_ENABLE_OHOS_OOM_MONITOR
++void Heap::InvokeOOMMonitorCallback(const char* location,
++                                    const OOMDetails& details) {
++  if (dfx::V8OOMReportCallbackWithData report = dfx::GetOOMReportCallback();
++      report) {
++    report(location, details, nullptr);
++  }
++}
++#endif
++
++#ifdef OHOS_JS_ENGINE
++void Heap::InvokeJSVMOOMCallback(const char* location) {
++  auto callback = isolate()->oom_behavior_with_isolate();
++  if (callback == nullptr) return;
++  std::stringstream stream;
++  DumpJSONHeapStatistics(stream);
++  std::string heap_stat = stream.str();
++  callback(reinterpret_cast<v8::Isolate*>(isolate()), location, V8::kHeapOOM,
++           heap_stat.c_str());
++}
++#endif
++
+ void Heap::CheckHeapLimitReached() {
+   if (ReachedHeapLimit()) {
+     InvokeNearHeapLimitCallback();
+     if (ReachedHeapLimit()) {
+       if (v8_flags.heap_snapshot_on_oom) {
+         heap_profiler()->WriteSnapshotToDiskAfterGC();
+       }
++#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
++      if (v8_flags.heap_dump_on_oom) {
++        dfx::DumpHeapAfterOOM(this);
++      }
++#endif
++#ifdef V8_ENABLE_OHOS_OOM_MONITOR
++      InvokeOOMMonitorCallback("Reached heap limit", V8::kHeapOOM);
++#endif
++#ifdef OHOS_JS_ENGINE
++      InvokeJSVMOOMCallback("Reached heap limit");
++#endif
+       FatalProcessOutOfMemory("Reached heap limit");
+     }
+   }
+ }
+ 
+@@ -3426,10 +3479,14 @@ void Heap::OnMoveEvent(Tagged<HeapObject> source, Tagged<HeapObject> target,
+   if (heap_profiler()->is_tracking_object_moves()) {
+     heap_profiler()->ObjectMoveEvent(source.address(), target.address(),
+                                      size_in_bytes,
+                                      /*is_embedder_object=*/false);
+   }
++#ifdef OH_ENABLE_RESTRACE
++  OH_RESTRACE_MOVE(reinterpret_cast<void*>(source.address()),
++                   reinterpret_cast<void*>(target.address()), size_in_bytes);
++#endif
+   for (auto& tracker : allocation_trackers_) {
+     tracker->MoveEvent(source.address(), target.address(), size_in_bytes);
+   }
+   if (IsSharedFunctionInfo(target, isolate_)) {
+     LOG_CODE_EVENT(isolate_, SharedFunctionInfoMoveEvent(source.address(),
+@@ -3828,10 +3897,22 @@ void Heap::CheckIneffectiveMarkCompact(size_t old_generation_size,
+       return;
+     }
+     if (v8_flags.heap_snapshot_on_oom) {
+       heap_profiler()->WriteSnapshotToDiskAfterGC();
+     }
++#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
++    if (v8_flags.heap_dump_on_oom) {
++      dfx::DumpHeapAfterOOM(this);
++    }
++#endif
++#ifdef V8_ENABLE_OHOS_OOM_MONITOR
++    InvokeOOMMonitorCallback("Ineffective mark-compacts near heap limit",
++                             V8::kHeapOOM);
++#endif
++#ifdef OHOS_JS_ENGINE
++    InvokeJSVMOOMCallback("Ineffective mark-compacts near heap limit");
++#endif
+     FatalProcessOutOfMemory("Ineffective mark-compacts near heap limit");
+   }
+ }
+ 
+ bool Heap::HasHighFragmentation() {

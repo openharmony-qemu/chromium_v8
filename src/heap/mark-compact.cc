@@ -98,6 +98,10 @@
 #include "src/wasm/wasm-code-pointer-table.h"
 #endif
 
+#ifdef OH_ENABLE_RESTRACE
+#include "../../../arkweb/chromium_ext/v8/restrace.h"
+#endif
+
 namespace v8 {
 namespace internal {
 

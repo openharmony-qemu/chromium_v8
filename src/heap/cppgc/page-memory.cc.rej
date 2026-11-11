@@ -1,0 +1,30 @@
+diff a/src/heap/cppgc/page-memory.cc b/src/heap/cppgc/page-memory.cc	(rejected hunks)
+@@ -16,10 +16,14 @@
+ 
+ #if V8_OS_POSIX
+ #include <errno.h>
+ #endif
+ 
++#ifdef USING_OHOS_WEB
++#include <sys/prctl.h>
++#endif
++
+ namespace cppgc {
+ namespace internal {
+ 
+ namespace {
+ 
+@@ -56,10 +60,13 @@ std::optional<MemoryRegion> ReserveMemoryRegion(PageAllocator& allocator,
+ void FreeMemoryRegion(PageAllocator& allocator,
+                       const MemoryRegion& reserved_region) {
+   // Make sure pages returned to OS are unpoisoned.
+   ASAN_UNPOISON_MEMORY_REGION(reserved_region.base(), reserved_region.size());
+   allocator.FreePages(reserved_region.base(), reserved_region.size());
++#ifdef USING_OHOS_WEB
++  prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, reserved_region.base(), reserved_region.size(), "blink_gc_cage");
++#endif
+ }
+ 
+ std::unique_ptr<PageMemoryRegion> CreateNormalPageMemoryRegion(
+     PageAllocator& allocator) {
+   DCHECK_EQ(0u, kPageSize % allocator.AllocatePageSize());

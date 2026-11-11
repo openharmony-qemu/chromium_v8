@@ -237,6 +237,18 @@ MemoryAllocator::AllocateUninitializedChunkAt(BaseSpace* space,
   LOG(isolate_,
       NewEvent("MemoryChunk", reinterpret_cast<void*>(base), chunk_size));
 
+#if defined(USING_OHOS) || defined(USING_OHOS_WEB)
+  std::stringstream tagss;
+  constexpr uint32_t THREAD_NAME_LEN_MAX = 17;
+  char name[THREAD_NAME_LEN_MAX] = {0};
+  prctl(PR_GET_NAME, name);
+  tagss << MEMTAG_PREFIX << isolate_->id() << "_" << name;
+  int ret = prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, reinterpret_cast<void*>(base), chunk_size, tagss.str().c_str());
+  if (ret == -1) {
+    base::OS::PrintError("PR set name V8_HEAP failed!");
+  }
+#endif
+
   Address area_start = base + MemoryChunkLayout::ObjectStartOffsetInMemoryChunk(
                                   space->identity());
   Address area_end = area_start + area_size;
