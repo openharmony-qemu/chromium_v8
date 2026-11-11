@@ -286,6 +286,7 @@ declare_args() {
   # 5. Build again with v8_builtins_profiling_log_file set to the file created
   #    in step 3 or 4.
   v8_builtins_profiling_log_file = "default"
+  pgo_exists_flag = false
 
   # Enable gearbox (instruction set extension) for builtins, the gearbox
   # feature only supports x64 arch yet.
@@ -377,12 +378,13 @@ declare_args() {
   # Enable snapshot compression (enabled by default for desktop) devices.
   v8_enable_snapshot_compression =
       target_os == "android" || target_os == "chromeos" ||
-      target_os == "fuchsia"
+      target_os == "fuchsia" || target_os == "ohos"
 
   # Enable control-flow integrity features, such as pointer authentication for
   # ARM64. Enable it by default for simulator builds and when native code
   # supports it as well. On Mac, control-flow integrity does not work so we
   # avoid enabling it when using the simulator.
+  #v8_control_flow_integrity = false
   v8_control_flow_integrity = v8_current_cpu == "arm64" &&
                               ((v8_target_is_simulator && target_os != "mac") ||
                                arm_control_flow_integrity != "none")
@@ -424,6 +426,9 @@ declare_args() {
   # Experimental feature that uses SwissNameDictionary instead of NameDictionary
   # as the backing store for all dictionary mode objects.
   v8_enable_swiss_name_dictionary = false
+
+  # Enable forin enum cache for slow properties
+  v8_enable_enum_cache_for_slow_properties = true
 
   # If enabled then macro definitions that are used in externally visible
   # header files are placed in a separate header file v8-gn.h.
@@ -479,9 +484,23 @@ declare_args() {
   # optimizations.
   v8_jitless = v8_enable_lite_mode
 
+  v8_enable_ohos_js_engine = !is_component_build
+
+  v8_enable_ohos_perf_jit = is_ohos
+
+  v8_enable_ohos_async_stack = false
+
+  v8_enable_restrace = is_ohos && (is_arkweb || v8_component_build)
+
+  v8_enable_oom_repoter = is_ohos && is_arkweb
+
+  v8_ohos_enable_heapdump = is_ohos && !is_component_build
+
   # Enable Sparkplug
   # Sets -DV8_ENABLE_SPARKPLUG.
   v8_enable_sparkplug = ""
+
+  v8_enable_longque_api = true
 
   # Enable Maglev's graph printer.
   # Sets -DV8_ENABLE_MAGLEV_GRAPH_PRINTER.
@@ -499,7 +518,7 @@ declare_args() {
 
   # Whether custom embedder snapshots may extend (= allocate new objects in)
   # ReadOnlySpace.
-  v8_enable_extensible_ro_snapshot = true
+  v8_enable_extensible_ro_snapshot = false
 
   # Black allocate objects on separate pages.
   v8_enable_black_allocated_pages = ""
@@ -989,6 +1008,13 @@ config("internal_config_base") {
     "$target_gen_dir",
     "$target_gen_dir/include",
   ]
+  cflags = []
+  if (v8_component_build) {
+    cflags += [ "-U_FORTIFY_SOURCE" ]
+    include_dirs += [
+      "//arkweb/chromium_ext/v8"
+    ]
+  }
 }
 
 config("internal_config") {
@@ -1006,7 +1032,7 @@ config("internal_config") {
 
   if (is_component_build) {
     defines += [ "BUILDING_V8_SHARED_PRIVATE" ]
-  } else if (v8_expose_public_symbols) {
+  } else if (v8_expose_public_symbols || v8_component_build) {
     defines += [ "BUILDING_V8_SHARED" ]
   }
 
@@ -1035,14 +1061,14 @@ config("v8_tracing_config") {
 # This config should be applied to code using the libplatform.
 config("libplatform_config") {
   include_dirs = [ "include" ]
-  if (is_component_build) {
+  if (is_component_build || v8_component_build) {
     defines = [ "USING_V8_PLATFORM_SHARED" ]
   }
 }
 
 # This config should be applied to code using the libbase.
 config("libbase_config") {
-  if (is_component_build) {
+  if (is_component_build || v8_component_build) {
     defines = [ "USING_V8_BASE_SHARED" ]
   }
   libs = []
@@ -1086,7 +1112,7 @@ config("headers_config") {
 config("external_config") {
   configs = [ ":headers_config" ]
   defines = []
-  if (is_component_build) {
+  if (is_component_build || v8_component_build) {
     defines += [
       "USING_V8_SHARED",
       "USING_V8_SHARED_PRIVATE",
@@ -1599,6 +1625,9 @@ config("features") {
   if (v8_enable_swiss_name_dictionary) {
     defines += [ "V8_ENABLE_SWISS_NAME_DICTIONARY" ]
   }
+  if (v8_enable_enum_cache_for_slow_properties) {
+    defines += [ "V8_ENABLE_ENUM_CACHE_FOR_SLOW_PROPERTIES" ]
+  }
   if (v8_enable_system_instrumentation) {
     defines += [ "V8_ENABLE_SYSTEM_INSTRUMENTATION" ]
   }
@@ -1907,8 +1936,21 @@ config("toolchain") {
     defines += [ "ENABLE_VERIFY_CSA" ]
   }
 
+  # "HITRACE_RUNTIME_CALL_STATS" is enbaled by default to show blink callback in HiTrace.
+  # If you want to enable v8 runtime call stats, please set v8_enable_runtime_call_stats=true.
   if (v8_enable_runtime_call_stats) {
     defines += [ "V8_RUNTIME_CALL_STATS" ]
+  }
+
+  if (v8_enable_hitrace_runtime_call_stats) {
+    defines += [ "HITRACE_RUNTIME_CALL_STATS" ]
+  }
+
+  assert(!(v8_enable_runtime_call_stats && v8_enable_hitrace_runtime_call_stats),
+         "Cannot enable v8 rcs and hitrace rcs at the same time!")
+
+  if (target_os == "ohos" && enable_arkweb && !v8_component_build) {
+    defines += [ "USING_OHOS_WEB" ]
   }
 
   if (v8_no_inline) {
@@ -1966,6 +2008,15 @@ config("toolchain") {
         "blink-gc-plugin",
       ]
     }
+  }
+
+  if (is_ohos && v8_component_build) {
+    include_dirs = [ "../ohos_sdk/openharmony/native/sysroot/usr/include/hilog" ]
+    defines += [ "USING_OHOS" ]
+    libs = [
+      "hitrace_ndk.z",
+      "hilog_ndk.z",
+    ]
   }
 
   cflags += [
@@ -3197,7 +3248,7 @@ template("run_mksnapshot") {
 
         # Replace this with --warn-about-builtin-profile-data to see the full
         # list of builtins with incompatible profiles.
-        "--abort-on-bad-builtin-profile-data",
+        "--warn-about-builtin-profile-data",
       ]
 
       if (!v8_enable_builtins_profiling && v8_enable_builtins_reordering) {
@@ -4408,7 +4459,6 @@ v8_header_set("v8_internal_headers") {
     "src/diagnostics/disassembler.h",
     "src/diagnostics/eh-frame.h",
     "src/diagnostics/gdb-jit.h",
-    "src/diagnostics/perf-jit.h",
     "src/diagnostics/unwinder.h",
     "src/execution/arguments-inl.h",
     "src/execution/arguments.h",
@@ -4648,6 +4698,7 @@ v8_header_set("v8_internal_headers") {
     "src/logging/runtime-call-stats-scope.h",
     "src/logging/runtime-call-stats.h",
     "src/logging/tracing-flags.h",
+    "//arkweb/chromium_ext/v8/ohlog.h",
     "src/numbers/conversions-inl.h",
     "src/numbers/conversions.h",
     "src/numbers/hash-seed-inl.h",
@@ -5463,7 +5514,7 @@ v8_header_set("v8_internal_headers") {
     if (v8_enable_webassembly) {
       # iOS Xcode simulator builds run on an x64 target. iOS and macOS are both
       # based on Darwin and thus POSIX-compliant to a similar degree.
-      if (is_linux || is_chromeos || is_mac || is_ios ||
+      if (is_linux || is_chromeos || is_mac || is_ios || is_ohos ||
           target_os == "freebsd") {
         sources += [ "src/trap-handler/handler-inside-posix.h" ]
       } else if (is_win) {
@@ -5531,7 +5582,7 @@ v8_header_set("v8_internal_headers") {
       # Trap handling is enabled on arm64 Mac and Linux and in simulators on
       # x64 on Linux and Mac.
       if ((current_cpu == "arm64" &&
-           (is_linux || is_chromeos || is_mac || is_ios)) ||
+           (is_linux || is_chromeos || is_mac || is_ios || is_ohos)) ||
           (current_cpu == "x64" && (is_linux || is_chromeos || is_mac))) {
         sources += [ "src/trap-handler/handler-inside-posix.h" ]
       }
@@ -6231,6 +6282,9 @@ v8_cluster_source_set("v8_compiler") {
 }
 
 group("v8_compiler_for_mksnapshot") {
+  if (use_llvm_backend) {
+    deps = [ ":v8_compiler_for_mksnapshot_source_set" ]
+  } else {
   if ((is_debug && !v8_optimized_debug && v8_enable_fast_mksnapshot) ||
       !v8_enable_turbofan) {
     # mksnapshot needs its own version of the compiler, either because
@@ -6242,6 +6296,7 @@ group("v8_compiler_for_mksnapshot") {
   } else {
     deps = [ ":v8_compiler" ]
   }
+}
 }
 
 # Any target using trace events must directly or indirectly depend on
@@ -6403,7 +6458,6 @@ v8_cluster_source_set("v8_base_without_compiler") {
     "src/diagnostics/gdb-jit.cc",
     "src/diagnostics/objects-debug.cc",
     "src/diagnostics/objects-printer.cc",
-    "src/diagnostics/perf-jit.cc",
     "src/diagnostics/unwinder.cc",
     "src/execution/arguments.cc",
     "src/execution/clobber-registers.cc",
@@ -7010,7 +7064,7 @@ v8_cluster_source_set("v8_base_without_compiler") {
     if (v8_enable_webassembly) {
       # iOS Xcode simulator builds run on an x64 target. iOS and macOS are both
       # based on Darwin and thus POSIX-compliant to a similar degree.
-      if (is_linux || is_chromeos || is_mac || is_ios ||
+      if (is_linux || is_chromeos || is_mac || is_ios || is_ohos ||
           target_os == "freebsd") {
         sources += [
           "src/trap-handler/handler-inside-posix.cc",
@@ -7062,7 +7116,7 @@ v8_cluster_source_set("v8_base_without_compiler") {
     ]
     if (v8_enable_webassembly) {
       # Trap handling is enabled on arm64 and x64, on Linux, Mac and Windows.
-      if ((current_cpu == "arm64" && (is_linux || is_chromeos || is_apple)) ||
+      if ((current_cpu == "arm64" && (is_linux || is_chromeos || is_apple || is_ohos)) ||
           (current_cpu == "x64" && (is_linux || is_chromeos || is_mac))) {
         sources += [
           "src/trap-handler/handler-inside-posix.cc",
@@ -7709,7 +7763,7 @@ v8_component("v8_libbase") {
 
   defines = []
 
-  if (is_component_build) {
+  if (is_component_build || v8_component_build) {
     defines = [ "BUILDING_V8_BASE_SHARED" ]
   }
 
@@ -7726,7 +7780,7 @@ v8_component("v8_libbase") {
     }
   }
 
-  if (is_linux || is_chromeos) {
+  if (is_linux || is_chromeos || is_ohos) {
     sources += [
       "src/base/debug/stack_trace_posix.cc",
       "src/base/platform/platform-linux.cc",
@@ -7904,7 +7958,7 @@ v8_component("v8_libplatform") {
   v8_add_configs += [ "//build/config/compiler:thinlto_optimize_max" ]
   v8_remove_configs += [ "//build/config/compiler:thinlto_optimize_default" ]
 
-  if (is_component_build) {
+  if (is_component_build || v8_component_build) {
     defines = [ "BUILDING_V8_PLATFORM_SHARED" ]
   }
 
@@ -8276,6 +8330,11 @@ v8_cluster_source_set("cppgc_base") {
       "src/tracing/trace-categories.h",
     ]
   }
+
+  if (is_arkweb && !v8_component_build) {
+    include_dirs = [ "../ohos_nweb/src" ]
+    deps = [ "../ohos_nweb:nweb_hilog" ]
+  }
 }
 
 if (v8_check_header_includes) {
@@ -8390,10 +8449,17 @@ if (current_toolchain == v8_generator_toolchain) {
       ":v8_shared_internal_headers",
       "//build/win:default_exe_manifest",
     ]
+    ldflags = [ 
+      "-pie",
+      "-lgcc_s", 
+    ]
   }
 }
 
 if (current_toolchain == v8_snapshot_toolchain) {
+  if (use_llvm_backend) {
+    exec_script("//arkweb/chromium_ext/v8/build_llvm.py", ["$is_debug"], "string")
+  }
   v8_executable("mksnapshot") {
     sources = [
       "src/snapshot/builtins-effects-dummy.cc",
@@ -8480,6 +8546,10 @@ if (current_toolchain == v8_snapshot_toolchain) {
       "//build/config/compiler:no_exceptions",
       "//build/config/compiler:no_rtti",
     ]
+    ldflags = [ 
+      "-pie",
+      "-lgcc_s", 
+    ]
   }
 }
 
@@ -8527,6 +8597,10 @@ if (v8_enable_i18n_support) {
       ]
 
       configs = [ ":internal_config" ]
+      ldflags = [ 
+        "-pie",
+        "-lgcc_s", 
+      ]
     }
   }
 
@@ -8991,6 +9065,61 @@ v8_executable("d8") {
   configs += [ "//build/config/compiler:no_exit_time_destructors" ]
 }
 
+v8_executable("translate") {
+  sources = [
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/translate/translate.cc",
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/translate/translate.h",
+  ]
+
+  if (v8_ohos_enable_heapdump) {
+    sources += heap_dump_base_include
+    if (enable_heap_dump) {
+      sources += heap_dump_include
+    }
+    if (enable_heap_dump_translate) {
+      sources += heap_dump_translator_include
+    }
+  }
+
+  configs = [
+    # Note: don't use :internal_config here because this target will get
+    # the :external_config applied to it by virtue of depending on :v8, and
+    # you can't have both applied to the same target.
+    ":internal_config_base",
+  ]
+
+  deps = [
+    ":v8",
+    ":v8_libbase",
+  ]
+
+  # TODO(crbug.com/40031409): Fix code that adds exit-time destructors and
+  # enable the diagnostic by removing this line.
+  configs += [ "//build/config/compiler:no_exit_time_destructors" ]
+}
+
+v8_executable("js_rawheap_translator") {
+  sources = [
+    "//arkweb/chromium_ext/v8/dfx/heap_dump/translate/js_rawheap_translator.cc",
+  ]
+
+  if (v8_ohos_enable_heapdump) {
+    sources += heap_dump_base_include
+    if (enable_heap_dump) {
+      sources += heap_dump_include
+    }
+    if (enable_heap_dump_translate) {
+      sources += heap_dump_translator_include
+    }
+  }
+
+  configs = []
+  deps = [
+    ":v8",
+    ":translate",
+  ]
+}
+
 v8_executable("v8_hello_world") {
   sources = [ "samples/hello-world.cc" ]
 
@@ -9061,6 +9190,10 @@ if (want_v8_shell) {
     if (current_os == "zos" && is_component_build) {
       deps += [ ":zoslib" ]
     }
+    ldflags = [ 
+      "-pie",
+      "-lgcc_s", 
+    ]
   }
 }
 
