@@ -1224,6 +1224,9 @@ V8_OBJECT class SlicedString : public String {
   friend class TorqueGeneratedSlicedStringAsserts;
 
   friend Tagged<String> String::GetUnderlying() const;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+#endif
 
   TaggedMember<String> parent_;
   TaggedMember<Smi> offset_;

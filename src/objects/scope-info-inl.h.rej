@@ -1,0 +1,24 @@
+diff a/src/objects/scope-info-inl.h b/src/objects/scope-info-inl.h	(rejected hunks)
+@@ -29,14 +29,22 @@ bool ScopeInfo::IsAsmModule() const { return IsAsmModuleBit::decode(Flags()); }
+ 
+ bool ScopeInfo::HasSimpleParameters() const {
+   return HasSimpleParametersBit::decode(Flags());
+ }
+ 
++
+ bool ScopeInfo::HasContextCells() const {
+   return HasContextCellsBit::decode(Flags());
+ }
+ 
++#ifdef OHOS_JS_ENGINE
++bool ScopeInfo::HasNeverHideBaseStdHint() const {
++  DCHECK(scope_type() == ScopeType::WITH_SCOPE);
++  return IsAsmModuleBit::decode(Flags());
++}
++#endif
++
+ uint32_t ScopeInfo::Flags() const { return flags(kRelaxedLoad); }
+ int ScopeInfo::ParameterCount() const { return parameter_count(); }
+ int ScopeInfo::ContextLocalCount() const { return context_local_count(); }
+ 
+ Tagged<DependentCode> ScopeInfo::dependent_code() const {

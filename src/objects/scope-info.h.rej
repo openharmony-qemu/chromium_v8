@@ -1,0 +1,16 @@
+diff a/src/objects/scope-info.h b/src/objects/scope-info.h	(rejected hunks)
+@@ -134,10 +134,14 @@ class ScopeInfo : public TorqueGeneratedScopeInfo<ScopeInfo, HeapObject> {
+ 
+   inline bool HasSimpleParameters() const;
+ 
+   inline bool HasContextCells() const;
+ 
++#ifdef OHOS_JS_ENGINE
++  inline bool HasNeverHideBaseStdHint() const;
++#endif
++
+   // Return the function_name if present.
+   V8_EXPORT_PRIVATE Tagged<UnionOf<Smi, String>> FunctionName() const;
+ 
+   // The function's name if it is non-empty, otherwise the inferred name or an
+   // empty string.
