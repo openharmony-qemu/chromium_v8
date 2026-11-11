@@ -104,6 +104,10 @@ class AsyncEventDelegate;
 }  // namespace debug
 
 namespace internal {
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+MaybeHandle<JSPromise> TryGetPromiseFromTask(Isolate* isolate,
+                                             DirectHandle<Object> microtask);
+#endif
 
 void DefaultWasmAsyncResolvePromiseCallback(
     v8::Isolate* isolate, v8::Local<v8::Context> context,
@@ -493,6 +497,13 @@ V8_EXPORT_PRIVATE void FreeCurrentEmbeddedBlob();
 
 using DebugObjectCache = std::vector<Handle<HeapObject>>;
 
+#ifdef OHOS_JS_ENGINE
+#define ISOLATE_INIT_LIST_JS_ENGINE(V)  \
+  V(OOMErrorCallbackWithIsolate, oom_behavior_with_isolate, nullptr)
+#else
+#define ISOLATE_INIT_LIST_JS_ENGINE(V)
+#endif
+
 #define ISOLATE_INIT_LIST(V)                                                \
   /* Assembler state. */                                                    \
   V(FatalErrorCallback, exception_behavior, nullptr)                        \
@@ -555,6 +566,50 @@ using DebugObjectCache = std::vector<Handle<HeapObject>>;
 #define THREAD_LOCAL_TOP_ADDRESS(type, name) \
   inline type* name##_address() { return &thread_local_top()->name##_; }
 
+#ifdef OHOS_JS_ENGINE
+class EnumTimesCache {
+ public:
+  explicit EnumTimesCache() {}
+  ~EnumTimesCache() = default;
+ 
+  size_t LookUp(uint64_t objPtr, int &objCnt) {
+    for (size_t index = 0; index < cache_deque_.size(); index++) {
+      if (cache_deque_[index].first == objPtr) {
+        objCnt = cache_deque_[index].second;
+        return index;
+      }
+    }
+    return kOperateEnumTimeCacheInvalidPos;
+  }
+
+  void RemoveCurrentElem(uint64_t objPtr) {
+    int objCnt = 0;
+    size_t index = LookUp(objPtr, objCnt);
+    if (index != kOperateEnumTimeCacheInvalidPos) {
+      cache_deque_.erase(cache_deque_.begin() + index);
+    }
+  }
+
+  int Put(uint64_t objPtr) {
+    int objCnt = 0;
+    size_t index = LookUp(objPtr, objCnt);
+    if (index == kOperateEnumTimeCacheInvalidPos) {
+      if (cache_deque_.size() > kSlowEnumTimesCacheCapacity) {
+        cache_deque_.pop_front();
+      }
+      cache_deque_.push_back(std::make_pair(objPtr, 0));
+    } else {
+      objCnt++;
+      cache_deque_[index] = {objPtr, objCnt};
+    }
+    return objCnt;
+  }
+
+ private:
+  std::deque<std::pair<uint64_t, int>> cache_deque_;
+};
+#endif
+
 // Do not use this variable directly, use Isolate::Current() instead.
 // Defined outside of Isolate because Isolate uses V8_EXPORT_PRIVATE.
 __attribute__((tls_model(V8_TLS_MODEL))) extern thread_local Isolate*
@@ -569,6 +624,13 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   // PerIsolateThreadData work on some older versions of gcc.
   class ThreadDataTable;
   class EntryStackItem;
+
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+ public:
+  void DfxSetPromiseId(DirectHandle<JSPromise> promise, uint64_t id);
+  uint64_t DfxGetPromiseId(DirectHandle<JSPromise> promise);
+  bool DfxClearPromiseId(DirectHandle<JSPromise> promise);
+#endif
 
  public:
   Isolate(const Isolate&) = delete;
@@ -1229,6 +1291,9 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   }
   TieringManager* tiering_manager() { return tiering_manager_; }
   CompilationCache* compilation_cache() { return compilation_cache_; }
+#ifdef OHOS_JS_ENGINE
+  EnumTimesCache* enum_times_cache() { return enum_times_cache_; }
+#endif
   V8FileLogger* v8_file_logger() const {
     // Call InitializeLoggingAndCounters() if logging is needed before
     // the isolate is fully initialized.
@@ -2985,6 +3050,10 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   bool etw_trace_interpreted_frames_;
   bool etw_in_rundown_;
 #endif  // V8_ENABLE_ETW_STACK_WALKING
+
+#if defined(OHOS_MEM_USAGE_REPORT)
+  MURCallback mur_callback_ = nullptr;
+#endif  // OHOS_MEM_USAGE_REPORT
 
   // TODO(kenton@cloudflare.com): This mutex can be removed if
   // thread_data_table_ is always accessed under the isolate lock. I do not

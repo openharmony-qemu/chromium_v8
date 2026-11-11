@@ -15,6 +15,10 @@
 #include "src/tracing/trace-event.h"
 #include "src/utils/allocation.h"
 
+#ifdef OHOS_JS_ENGINE
+#include "../../../arkweb/chromium_ext/v8/trace.h"
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -179,7 +183,7 @@ constexpr bool RuntimeFunctionFullNameCanTriggerGC(
   }                                                                        \
                                                                            \
   static InternalType __RT_impl_##Name(RuntimeArguments args, Isolate* isolate)
-
+#endif
 #ifdef DEBUG
 #define BUILTIN_CONVERT_RESULT(x) (isolate->VerifyBuiltinsResult(x)).ptr()
 #define BUILTIN_CONVERT_RESULT_PAIR(x) isolate->VerifyBuiltinsResult(x)
