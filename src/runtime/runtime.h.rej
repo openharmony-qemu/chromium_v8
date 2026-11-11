@@ -1,0 +1,15 @@
+diff a/src/runtime/runtime.h b/src/runtime/runtime.h	(rejected hunks)
+@@ -171,10 +171,13 @@ constexpr bool CanTriggerGC(T... properties) {
+   F(LiveEditPatchScript, 2, 1)                  \
+   F(ProfileCreateSnapshotDataBlob, 0, 1)        \
+   F(ScheduleBreak, 0, 1)                        \
+   F(ScriptLocationFromLine2, 4, 1)              \
+   F(SetGeneratorScopeVariableValue, 4, 1)       \
++  /* Used for OHOS. OpenHarmony OS. */          \
++  F(DfxPromiseThen, 1, 1)                       \
++  /* end */                                     \
+   I(IncBlockCounter, 2, 1)
+ 
+ #define FOR_EACH_INTRINSIC_FORIN(F, I) \
+   F(ForInEnumerate, 1, 1)              \
+   F(ForInHasProperty, 2, 1)
