@@ -87,6 +87,14 @@ class Module : public TorqueGeneratedModule<Module, HeapObject> {
   using BodyDescriptor =
       FixedBodyDescriptor<kExportsOffset, kHeaderSize, kHeaderSize>;
 
+  inline void set_exports(Tagged<ObjectHashTable> value,
+                          WriteBarrierMode mode = UPDATE_WRITE_BARRIER);
+
+  // Once a module namespace has been created in GetModuleNamespace, all star
+  // exports have been fetched and {exports} is finalized. It must not be
+  // mutated or rehashed because ICs index into it.
+  inline bool ExportsFinalized() const;
+
   struct Hash;
 
  protected:

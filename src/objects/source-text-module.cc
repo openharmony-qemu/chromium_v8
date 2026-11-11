@@ -347,11 +347,14 @@ MaybeHandle<Cell> SourceTextModule::ResolveExportUsingStarExports(
 
     if (!unique_cell.is_null()) {
       // Found a unique star export for this name.
-      Handle<ObjectHashTable> exports(module->exports(), isolate);
-      DCHECK(IsTheHole(exports->Lookup(export_name), isolate));
-      exports =
-          ObjectHashTable::Put(isolate, exports, export_name, unique_cell);
-      module->set_exports(*exports);
+      if (module->status() <= kLinking) {
+        DCHECK(!module->ExportsFinalized());
+        Handle<ObjectHashTable> exports(module->exports(), isolate);
+        DCHECK(IsTheHole(exports->Lookup(export_name), isolate));
+        exports =
+            ObjectHashTable::Put(isolate, exports, export_name, unique_cell);
+        module->set_exports(*exports);
+      }
       return unique_cell;
     }
   }
@@ -735,7 +738,7 @@ void SourceTextModule::FetchStarExports(Isolate* isolate,
                                         UnorderedModuleSet* visited) {
   DCHECK_GE(module->status(), Module::kLinking);
 
-  if (IsJSModuleNamespace(module->module_namespace())) return;  // Shortcut.
+  if (module->ExportsFinalized()) return;  // Shortcut.
 
   bool cycle = !visited->insert(module).second;
   if (cycle) return;
