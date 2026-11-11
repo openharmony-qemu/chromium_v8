@@ -1,0 +1,32 @@
+diff a/src/objects/string.h b/src/objects/string.h	(rejected hunks)
+@@ -24,10 +24,16 @@
+ #include "third_party/simdutf/simdutf.h"
+ 
+ // Has to be the last include (doesn't have include guards):
+ #include "src/objects/object-macros.h"
+ 
++#ifdef OH_ENABLE_HEAP_TRANSLATE
++namespace v8::dfx {
++class ObjectTranslator;
++}
++#endif
++
+ namespace v8::internal {
+ 
+ namespace maglev {
+ class CheckedInternalizedString;
+ class BuiltinStringFromCharCode;
+@@ -1121,10 +1127,13 @@ V8_OBJECT class ThinString : public String {
+   friend class maglev::MaglevAssembler;
+   friend class maglev::CheckedInternalizedString;
+   friend class compiler::AccessBuilder;
+   friend class FullStringForwardingTableCleaner;
+   friend class TorqueGeneratedThinStringAsserts;
++#ifdef OH_ENABLE_HEAP_TRANSLATE
++  friend class dfx::ObjectTranslator;
++#endif
+ 
+   friend Tagged<String> String::GetUnderlying() const;
+ 
+   TaggedMember<String> actual_;
+ } V8_OBJECT_END;

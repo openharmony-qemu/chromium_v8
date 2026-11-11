@@ -128,7 +128,15 @@ V8_OBJECT class Module : public HeapObject {
   // If [must_resolve] is true, a null result indicates an exception. If
   // [must_resolve] is false, a null result may or may not indicate an
   // exception (so check manually!).
+#if defined(OS_OHOS)
+#if BUILDFLAG(ARKWEB_ENABLE_PAC)
+  class __attribute__((nopac)) ResolveSet;
+#else
   class ResolveSet;
+#endif  // BUILDFLAG(ARKWEB_ENABLE_PAC)
+#else
+  class ResolveSet;
+#endif
   static V8_WARN_UNUSED_RESULT MaybeHandle<Cell> ResolveExport(
       Isolate* isolate, Handle<Module> module,
       DirectHandle<String> module_specifier, Handle<String> export_name,

@@ -1,0 +1,15 @@
+diff a/src/objects/js-weak-refs.h b/src/objects/js-weak-refs.h	(rejected hunks)
+@@ -163,10 +168,13 @@ V8_OBJECT class WeakCell : public HeapObjectLayout {
+   // `set_unregister_token` for updating references during GC.
+   friend class Scavenger;
+   friend class ScavengerWeakObjectsProcessor;
+   friend class TorqueGeneratedWeakCellAsserts;
+   friend class V8HeapExplorer;
++#ifdef OH_ENABLE_HEAP_TRANSLATE
++  friend class dfx::ObjectTranslator;
++#endif
+ } V8_OBJECT_END;
+ 
+ class JSWeakRef : public TorqueGeneratedJSWeakRef<JSWeakRef, JSObject> {
+  public:
+   DECL_PRINTER(JSWeakRef)

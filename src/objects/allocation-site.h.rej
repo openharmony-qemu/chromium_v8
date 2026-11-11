@@ -1,0 +1,33 @@
+diff a/src/objects/allocation-site.h b/src/objects/allocation-site.h	(rejected hunks)
+@@ -12,10 +12,16 @@
+ 
+ // Has to be the last include (doesn't have include guards):
+ #include "src/objects/object-macros.h"
+ 
+ namespace v8 {
++#ifdef OH_ENABLE_HEAP_TRANSLATE
++namespace dfx {
++class ObjectTranslator;
++class ObjectDetailVisitor;
++}
++#endif
+ namespace internal {
+ 
+ enum InstanceType : uint16_t;
+ 
+ #include "torque-generated/src/objects/allocation-site-tq.inc"
+@@ -183,10 +192,14 @@ V8_OBJECT class AllocationSiteWithWeakNext : public AllocationSite {
+   friend class CodeStubAssembler;
+   friend class AllocationSite::BodyDescriptor;
+   template <typename T>
+   friend struct WeakListVisitor;
+   friend class V8HeapExplorer;
++#ifdef OH_ENABLE_HEAP_TRANSLATE
++  friend class dfx::ObjectTranslator;
++  friend class dfx::ObjectDetailVisitor;
++#endif
+ 
+   TaggedMember<UnionOf<Undefined, AllocationSiteWithWeakNext>> weak_next_;
+ } V8_OBJECT_END;
+ 
+ V8_OBJECT class AllocationMemento : public StructLayout {

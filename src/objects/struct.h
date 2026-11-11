@@ -121,6 +121,9 @@ V8_OBJECT class AccessorPair : public Struct {
   friend class CodeStubAssembler;
   friend class V8HeapExplorer;
   friend class TorqueGeneratedAccessorPairAsserts;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+#endif
 
   TaggedMember<Object> getter_;
   TaggedMember<Object> setter_;

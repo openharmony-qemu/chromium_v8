@@ -1,0 +1,27 @@
+diff a/src/objects/js-number-format.h b/src/objects/js-number-format.h	(rejected hunks)
+@@ -75,11 +75,11 @@ class JSNumberFormat
+                             DirectHandle<JSNumberFormat> number_format,
+                             Handle<Object> x, Handle<Object> y);
+ 
+   V8_WARN_UNUSED_RESULT static MaybeDirectHandle<String> FormatNumeric(
+       Isolate* isolate,
+-      const icu::number::LocalizedNumberFormatter& number_format,
++      std::shared_ptr<icu::number::LocalizedNumberFormatter> lfmt,
+       Handle<Object> numeric_obj);
+ 
+   V8_EXPORT_PRIVATE static const std::set<std::string>& GetAvailableLocales();
+ 
+   // Helper functions shared with JSPluralRules.
+@@ -133,11 +133,11 @@ class V8_NODISCARD IntlMathematicalValue {
+   V8_EXPORT_PRIVATE static Maybe<IntlMathematicalValue> From(
+       Isolate* isolate, Handle<Object> value);
+ 
+   static Maybe<icu::number::FormattedNumber> FormatNumeric(
+       Isolate* isolate,
+-      const icu::number::LocalizedNumberFormatter& number_format,
++      std::shared_ptr<icu::number::LocalizedNumberFormatter> lfmt,
+       const IntlMathematicalValue& x);
+ 
+   static Maybe<icu::number::FormattedNumberRange> FormatRange(
+       Isolate* isolate,
+       const icu::number::LocalizedNumberRangeFormatter& number_range_format,
