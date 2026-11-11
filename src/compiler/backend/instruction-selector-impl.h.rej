@@ -1,0 +1,14 @@
+diff a/src/compiler/backend/instruction-selector-impl.h b/src/compiler/backend/instruction-selector-impl.h	(rejected hunks)
+@@ -255,11 +255,11 @@ class OperandGenerator : public turboshaft::OperationMatcher {
+   }
+ 
+   InstructionOperand DefineSameAsInputForVreg(int vreg, int input_index) {
+     return UnallocatedOperand(vreg, input_index);
+   }
+-
++  
+   InstructionOperand DefineAsRegistertForVreg(int vreg) {
+     return UnallocatedOperand(UnallocatedOperand::MUST_HAVE_REGISTER, vreg);
+   }
+ 
+   InstructionOperand UseRegisterForVreg(int vreg) {

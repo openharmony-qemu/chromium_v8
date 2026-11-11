@@ -26,6 +26,10 @@
 #include "src/objects/code.h"
 #include "src/tracing/trace-event.h"
 
+#ifdef OHOS_JS_ENGINE
+#include "../../../arkweb/chromium_ext/v8/trace.h"
+#endif
+
 #ifdef V8_ENABLE_SPARKPLUG
 #include "src/baseline/baseline-batch-compiler.h"
 #endif  // V8_ENABLE_SPARKPLUG

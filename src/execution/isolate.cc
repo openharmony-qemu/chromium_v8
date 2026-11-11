@@ -4861,6 +4861,7 @@ Isolate::Isolate(IsolateGroup* isolate_group)
 #define ISOLATE_INIT_EXECUTE(type, name, initial_value) \
   name##_ = (initial_value);
   ISOLATE_INIT_LIST(ISOLATE_INIT_EXECUTE)
+  ISOLATE_INIT_LIST_JS_ENGINE(ISOLATE_INIT_EXECUTE)
 #undef ISOLATE_INIT_EXECUTE
 
 #define ISOLATE_INIT_ARRAY_EXECUTE(type, name, length) \
@@ -5432,7 +5433,10 @@ Isolate::~Isolate() {
   compilation_cache_ = nullptr;
   delete bootstrapper_;
   bootstrapper_ = nullptr;
-
+#ifdef OHOS_JS_ENGINE
+  delete enum_times_cache_;
+  enum_times_cache_ = nullptr;
+#endif
   delete thread_manager_;
   thread_manager_ = nullptr;
 
@@ -7151,6 +7155,7 @@ int Isolate::GenerateIdentityHash(uint32_t mask) {
 #define ISOLATE_FIELD_OFFSET(type, name, ignored) \
   const intptr_t Isolate::name##_debug_offset_ = OFFSET_OF(Isolate, name##_);
 ISOLATE_INIT_LIST(ISOLATE_FIELD_OFFSET)
+ISOLATE_INIT_LIST_JS_ENGINE(ISOLATE_FIELD_OFFSET)
 ISOLATE_INIT_ARRAY_LIST(ISOLATE_FIELD_OFFSET)
 #undef ISOLATE_FIELD_OFFSET
 #endif
@@ -7657,6 +7662,27 @@ FilterETWSessionByURLResult Isolate::RunFilterETWSessionByURLCallback(
 }
 
 #endif  // V8_ENABLE_ETW_STACK_WALKING
+
+#if defined(OHOS_MEM_USAGE_REPORT)
+void Isolate::SetMURCallback(
+    MURCallback callback) {
+  mur_callback_ = callback;
+}
+bool Isolate::RunMURCallback(
+    int id) {
+  if (!mur_callback_) {
+    return false;
+  }
+  if (!context().is_null()) {
+    v8::Local<v8::Context> context_mur = Utils::Convert<v8::internal::NativeContext, v8::Context>(native_context());
+    return mur_callback_(context_mur, id);
+  } else {
+    auto context = Handle<Context>::null();
+    v8::Local<v8::Context> context_mur = Utils::Convert<v8::internal::Context, v8::Context>(context);
+    return mur_callback_(context_mur, id);
+  }
+}
+#endif  // OHOS_MEM_USAGE_REPORT
 
 void Isolate::SetAddCrashKeyCallback(AddCrashKeyCallback callback) {
   add_crash_key_callback_ = callback;
@@ -8720,3 +8746,7 @@ void Isolate::PrintNumberStringCacheStats(const char* comment,
 
 }  // namespace internal
 }  // namespace v8
+
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+#include "arkweb/chromium_ext/v8/dfx/async_stack/isolate.cpp"
+#endif

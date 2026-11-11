@@ -1,0 +1,94 @@
+diff a/src/execution/isolate.h b/src/execution/isolate.h	(rejected hunks)
+@@ -5,10 +5,11 @@
+ #ifndef V8_EXECUTION_ISOLATE_H_
+ #define V8_EXECUTION_ISOLATE_H_
+ 
+ #include <atomic>
+ #include <cstddef>
++#include <deque>
+ #include <functional>
+ #include <list>
+ #include <memory>
+ #include <optional>
+ #include <queue>
+@@ -1122,10 +1185,11 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+   inline void set_##name(type value) {                            \
+     DCHECK_EQ(OFFSET_OF(Isolate, name##_), name##_debug_offset_); \
+     name##_ = value;                                              \
+   }
+   ISOLATE_INIT_LIST(GLOBAL_ACCESSOR)
++  ISOLATE_INIT_LIST_JS_ENGINE(GLOBAL_ACCESSOR)
+ #undef GLOBAL_ACCESSOR
+ 
+   void SetDetailedSourcePositionsForProfiling(bool value) {
+     if (value) {
+       CollectSourcePositionsForAllBytecodeArrays();
+@@ -2066,10 +2133,15 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+   bool interpreted_frames_native_stack() const {
+     return v8_flags.interpreted_frames_native_stack;
+   }
+ #endif  // V8_ENABLE_ETW_STACK_WALKING
+ 
++#if defined(OHOS_MEM_USAGE_REPORT)
++  void SetMURCallback(MURCallback callback);
++  bool RunMURCallback(int id);
++#endif  // OHOS_MEM_USAGE_REPORT
++
+   void SetIsLoading(bool is_loading);
+ 
+   void set_code_coverage_mode(debug::CoverageMode coverage_mode) {
+     code_coverage_mode_.store(coverage_mode, std::memory_order_relaxed);
+   }
+@@ -2557,10 +2629,13 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+   StringStream* incomplete_message_ = nullptr;
+   Address isolate_addresses_[kIsolateAddressCount + 1] = {};
+   Bootstrapper* bootstrapper_ = nullptr;
+   TieringManager* tiering_manager_ = nullptr;
+   CompilationCache* compilation_cache_ = nullptr;
++#ifdef OHOS_JS_ENGINE
++  EnumTimesCache* enum_times_cache_ = nullptr;
++#endif
+   std::shared_ptr<Counters> async_counters_;
+   base::RecursiveMutex break_access_;
+   base::Mutex feedback_vector_access_;
+   base::Mutex internalized_string_access_;
+   base::Mutex full_transition_array_access_;
+@@ -2716,10 +2791,11 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+   using InterruptEntry = std::pair<InterruptCallback, void*>;
+   std::queue<InterruptEntry> api_interrupts_queue_;
+ 
+ #define GLOBAL_BACKING_STORE(type, name, initialvalue) type name##_;
+   ISOLATE_INIT_LIST(GLOBAL_BACKING_STORE)
++  ISOLATE_INIT_LIST_JS_ENGINE(GLOBAL_BACKING_STORE)
+ #undef GLOBAL_BACKING_STORE
+ 
+ #define GLOBAL_ARRAY_BACKING_STORE(type, name, length) type name##_[length];
+   ISOLATE_INIT_ARRAY_LIST(GLOBAL_ARRAY_BACKING_STORE)
+ #undef GLOBAL_ARRAY_BACKING_STORE
+@@ -2729,10 +2805,11 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+   // preprocessor defines. Make sure the offsets of these fields agree
+   // between compilation units.
+ #define ISOLATE_FIELD_OFFSET(type, name, ignored) \
+   static const intptr_t name##_debug_offset_;
+   ISOLATE_INIT_LIST(ISOLATE_FIELD_OFFSET)
++  ISOLATE_INIT_LIST_JS_ENGINE(ISOLATE_FIELD_OFFSET)
+   ISOLATE_INIT_ARRAY_LIST(ISOLATE_FIELD_OFFSET)
+ #undef ISOLATE_FIELD_OFFSET
+ #endif
+ 
+   bool detailed_source_positions_for_profiling_;
+@@ -2937,10 +3018,14 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
+ #ifdef V8_ENABLE_CHECKS
+   ThreadId current_thread_id_;
+   int current_thread_counter_ = 0;
+ #endif
+ 
++#ifdef V8_ENABLE_OHOS_ASYNC_STACK
++  std::unordered_map<int, uint64_t> promise_to_dfx_async_id_;
++#endif
++
+   bool is_frozen_ = false;
+ 
+   friend class GlobalSafepoint;
+   friend class heap::HeapTester;
+   friend class IsolateForPointerCompression;
