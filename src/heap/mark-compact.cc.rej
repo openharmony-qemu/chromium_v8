@@ -1,0 +1,21 @@
+diff a/src/heap/mark-compact.cc b/src/heap/mark-compact.cc	(rejected hunks)
+@@ -1668,10 +1672,19 @@ class EvacuateVisitorBase : public HeapObjectVisitor {
+           WritableJitAllocation::ForInstructionStream(
+               TrustedCast<InstructionStream>(src));
+       jit_allocation.WriteHeaderSlot<MapWord, HeapObject::kMapOffset>(
+           MapWord::FromForwardingAddress(src, dst));
+     }
++
++#ifdef OH_ENABLE_RESTRACE
++    // Only Fast Mode needs to call move restrace, Observed Mode will call
++    // heap::OnMoveEvent finally.
++    if (mode == MigrationMode::kFast) {
++      OH_RESTRACE_MOVE(reinterpret_cast<void*>(src_addr),
++                       reinterpret_cast<void*>(dst_addr), size);
++    }
++#endif
+   }
+ 
+   EvacuateVisitorBase(Heap* heap, EvacuationAllocator* local_allocator,
+                       RecordMigratedSlotVisitor* record_visitor)
+       : heap_(heap),

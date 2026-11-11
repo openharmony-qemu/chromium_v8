@@ -118,6 +118,9 @@ size_t PagedSpaceBase::FreeInternal(Address start, size_t size_in_bytes) {
   }
 
   DCHECK_GE(size_in_bytes, wasted);
+#ifdef OH_ENABLE_RESTRACE
+  OH_RESTRACE_FREE_REGION(reinterpret_cast<void*>(start), size_in_bytes);
+#endif
   return size_in_bytes - wasted;
 }
 
