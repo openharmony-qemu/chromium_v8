@@ -43,6 +43,9 @@ class V8_EXPORT Version {
   static int minor_;
   static int build_;
   static int patch_;
+#ifdef OHOS_JS_ENGINE
+  static int inner_;
+#endif
   static const char* embedder_;
   static bool candidate_;
   static const char* soname_;

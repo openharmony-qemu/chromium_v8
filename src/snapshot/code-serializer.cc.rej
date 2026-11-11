@@ -1,0 +1,16 @@
+diff a/src/snapshot/code-serializer.cc b/src/snapshot/code-serializer.cc	(rejected hunks)
+@@ -27,10 +27,14 @@
+ #include "src/snapshot/object-deserializer.h"
+ #include "src/snapshot/snapshot-utils.h"
+ #include "src/snapshot/snapshot.h"
+ #include "src/utils/version.h"
+ 
++#ifdef OHOS_JS_ENGINE
++#include "../../../arkweb/chromium_ext/v8/trace.h"
++#endif
++
+ namespace v8 {
+ namespace internal {
+ 
+ AlignedCachedData::AlignedCachedData(const uint8_t* data, int length)
+     : owns_data_(false), rejected_(false), data_(data), length_(length) {

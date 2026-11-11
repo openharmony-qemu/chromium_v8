@@ -60,6 +60,9 @@ ScriptCompiler::CachedData* CodeSerializer::Serialize(
       isolate->counters()->compile_serialize());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kCompileSerialize);
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.CompileSerialize");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.CompileSerialize");
+#endif
 
   base::ElapsedTimer timer;
   if (v8_flags.profile_deserialization) timer.Start();
@@ -375,6 +378,9 @@ void FinalizeDeserialization(Isolate* isolate,
   // of the following tasks would need to happen normally.
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                "V8.FinalizeDeserialization");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.FinalizeDeserialization");
+#endif
 
   const bool log_code_creation = isolate->IsLoggingCodeCreation();
 
