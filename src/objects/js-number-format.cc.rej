@@ -39,19 +39,6 @@ diff a/src/objects/js-number-format.cc b/src/objects/js-number-format.cc	(reject
    // If it is BigInt, handle it differently.
    UErrorCode status = U_ZERO_ERROR;
    if (IsBigInt(*numeric_obj)) {
-@@ -1545,11 +1544,11 @@ Maybe<icu::number::FormattedNumber> IcuFormatNumber(
-     const String::FlatContent& flat = big_int_string->GetFlatContent(no_gc);
-     int32_t length = SignedStringLength(big_int_string);
-     DCHECK(flat.IsOneByte());
-     const char* char_buffer =
-         reinterpret_cast<const char*>(flat.ToOneByteVector().begin());
--    formatted = number_format.formatDecimal({char_buffer, length}, status);
-+    formatted = lfmt->formatDecimal({char_buffer, length}, status);
-   } else {
-     if (IsString(*numeric_obj)) {
-       // TODO(ftang) Correct the handling of string after the resolution of
-       // https://github.com/tc39/proposal-intl-numberformat-v3/pull/82
-       DirectHandle<String> string =
 @@ -1558,25 +1557,24 @@ Maybe<icu::number::FormattedNumber> IcuFormatNumber(
        const String::FlatContent& flat = string->GetFlatContent(no_gc);
        int32_t length = SignedStringLength(string);

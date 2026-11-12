@@ -32,33 +32,6 @@ diff a/src/objects/map.cc b/src/objects/map.cc	(rejected hunks)
      LOG(isolate, MapEvent("Deprecate", direct_handle(*this, isolate), {}));
    }
    DependentCode::DeoptimizeDependencyGroups(isolate, *this,
-@@ -1572,10 +1577,26 @@ void Map::ConnectTransition(Isolate* isolate, DirectHandle<Map> parent,
- Handle<Map> Map::CopyReplaceDescriptors(
-     Isolate* isolate, DirectHandle<Map> map,
-     DirectHandle<DescriptorArray> descriptors, TransitionFlag flag,
-     MaybeDirectHandle<Name> maybe_name, const char* reason,
-     TransitionKindFlag transition_kind) {
-+  // Special transitions need to pass an InitMap function to initialize the map
-+  // before inserting it into the transition tree.
-+  CHECK_IMPLIES(flag == INSERT_TRANSITION,
-+                transition_kind == PROPERTY_TRANSITION ||
-+                    transition_kind == SIMPLE_PROPERTY_TRANSITION);
-+  return CopyReplaceDescriptors(
-+      isolate, map, descriptors, flag, [&](Handle<Map>) {}, maybe_name, reason,
-+      transition_kind);
-+}
-+
-+template <typename InitMapCb>
-+Handle<Map> Map::CopyReplaceDescriptors(
-+    Isolate* isolate, DirectHandle<Map> map,
-+    DirectHandle<DescriptorArray> descriptors, TransitionFlag flag,
-+    const InitMapCb& InitMap, MaybeDirectHandle<Name> maybe_name,
-+    const char* reason, TransitionKindFlag transition_kind) {
-   DCHECK(descriptors->IsSortedNoDuplicates());
- 
-   Handle<Map> result = CopyDropDescriptors(isolate, map);
-   bool is_connected = false;
- 
 @@ -1583,19 +1604,20 @@ Handle<Map> Map::CopyReplaceDescriptors(
    DirectHandle<Name> name;
    if (maybe_name.ToHandle(&name) && name->IsInteresting(isolate)) {
