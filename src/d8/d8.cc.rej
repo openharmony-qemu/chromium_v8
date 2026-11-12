@@ -73,19 +73,6 @@ diff a/src/d8/d8.cc b/src/d8/d8.cc	(rejected hunks)
    Isolate* isolate(import_data->isolate);
    Global<Context> global_realm;
    Global<Promise::Resolver> global_resolver;
-@@ -5093,11 +5127,11 @@ V8_NOINLINE void FuzzerMonitor::SimulateErrors() {
-   }
- }
- 
- V8_NOINLINE void FuzzerMonitor::ControlFlowViolation() {
-   // Control flow violation caught by CFI.
--  void (*func)() = (void (*)()) & Dummy;
-+  void (*func)() = (void (*)())&Dummy;
-   func();
- }
- 
- V8_NOINLINE void FuzzerMonitor::DCheck() {
-   // Caught in debug builds.
 @@ -7083,10 +7153,15 @@ void ConfigurePartitionAllocIfEnabled() {
  
  int Shell::Main(int argc, char* argv[]) {
