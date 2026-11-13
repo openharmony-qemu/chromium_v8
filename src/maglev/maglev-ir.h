@@ -3106,6 +3106,8 @@ class ValueNode : public Node {
   ValueNode* UnwrapIdentities();
   const ValueNode* UnwrapIdentities() const;
 
+  ValueNode* UnwrapIdentitiesAndReturnedValues();
+
   // Unwrap identities and conversions.
   ValueNode* Unwrap();
 
@@ -3179,6 +3181,14 @@ inline ValueNode* ValueNode::UnwrapIdentities() {
 inline const ValueNode* ValueNode::UnwrapIdentities() const {
   const ValueNode* node = this;
   while (node->Is<Identity>()) node = node->input(0).node();
+  return node;
+}
+
+inline ValueNode* ValueNode::UnwrapIdentitiesAndReturnedValues() {
+  ValueNode* node = this;
+  while (node->Is<Identity>() || node->Is<ReturnedValue>()) {
+    node = node->input(0).node();
+  }
   return node;
 }
 

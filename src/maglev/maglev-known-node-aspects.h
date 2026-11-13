@@ -326,12 +326,10 @@ class KnownNodeAspects {
   }
 
   const NodeInfo* TryGetInfoFor(ValueNode* node) const {
-    node = node->Unwrap();
     return const_cast<KnownNodeAspects*>(this)->TryGetInfoFor(node);
   }
 
   NodeInfo* TryGetInfoFor(ValueNode* node) {
-    node = node->Unwrap();
     auto info_it = FindInfo(node);
     if (!IsValid(info_it)) return nullptr;
     return &info_it->second;
@@ -339,8 +337,8 @@ class KnownNodeAspects {
 
   NodeInfo* GetOrCreateInfoFor(compiler::JSHeapBroker* broker,
                                ValueNode* node) {
-    node = node->Unwrap();
-    auto info_it = FindInfo(node);
+    node = GetCanonical(node);
+    auto info_it = node_infos_.find(node);
     if (IsValid(info_it)) return &info_it->second;
     auto res = &node_infos_.emplace(node, NodeInfo()).first->second;
     res->IntersectType(node->GetStaticType(broker));
@@ -348,7 +346,6 @@ class KnownNodeAspects {
   }
 
   ValueNode* TryGetAlternativeFor(ValueNode* node, UseRepresentation repr) {
-    node = node->Unwrap();
     auto info_it = FindInfo(node);
     if (!IsValid(info_it)) return nullptr;
     return info_it->second.alternative().get(repr);
@@ -775,12 +772,40 @@ class KnownNodeAspects {
     return it->second->UnwrapIdentities();
   }
 
+  // GetCanonical is used to ensure that nodes in the same conversion chain (eg,
+  // a `NumberToInt32` flowing into a `Int32ToFloat64` for instance) share the
+  // same NodeInfo. To do so, GetCanonical Unwraps identities and conversions.
+  // There is a subteltly though: GetCanonical doesn't Unwrap through Tagged
+  // nodes, because information about one tagged node at the end of a
+  // conversion/identity-chain doesn't necessarily apply to tagged nodes at the
+  // beginning of the chain. For instance, consider:
+  //
+  //   n1: Param
+  //   n2: NumberToInt32(n1)
+  //   n3: CheckedSmiTagInt32(n2)
+  //
+  // Here, n3 has NodeType::kSmi, but propagating to n1 would be wrong, since n1
+  // could be a smi-ranged HeapNumber.
+  // TODO(496266449): Simply use `Unwrap` once `kTagged` is split into
+  // `kTaggedSigned` and `kTaggedPointer` representations.
+  static ValueNode* GetCanonical(ValueNode* node) {
+    node = node->UnwrapIdentitiesAndReturnedValues();
+    if (node->is_tagged()) return node;
+    while (node->is_conversion()) {
+      ValueNode* input =
+          node->input_node(0)->UnwrapIdentitiesAndReturnedValues();
+      if (input->is_tagged()) break;
+      node = input;
+    }
+    return node;
+  }
+
   NodeInfos::iterator FindInfo(ValueNode* node) {
-    node = node->Unwrap();
+    node = GetCanonical(node);
     return node_infos_.find(node);
   }
   NodeInfos::const_iterator FindInfo(ValueNode* node) const {
-    node = node->Unwrap();
+    node = GetCanonical(node);
     return node_infos_.find(node);
   }
   bool IsValid(NodeInfos::iterator& it) { return it != node_infos_.end(); }
