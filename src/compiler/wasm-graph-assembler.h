@@ -176,14 +176,8 @@ class WasmGraphAssembler : public GraphAssembler {
                                            ExternalPointerTagRange tag_range,
                                            Node* isolate_root);
 
-  Node* LoadImmutableTrustedPointerFromObject(Node* object, int offset,
-                                              IndirectPointerTag tag);
   Node* LoadTrustedPointerFromObject(Node* object, int offset,
                                      IndirectPointerTag tag);
-  // Returns the load node (where the source position for the trap needs to be
-  // set by the caller) and the result.
-  std::pair<Node*, Node*> LoadTrustedPointerFromObjectTrapOnNull(
-      Node* object, int offset, IndirectPointerTag tag);
   Node* BuildDecodeTrustedPointer(Node* handle, IndirectPointerTag tag);
 
   Node* IsSmi(Node* object);
