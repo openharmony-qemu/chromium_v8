@@ -10180,19 +10180,12 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceFunctionPrototypeCall(
 
 MaybeReduceResult MaglevGraphBuilder::TryReduceFunctionPrototypeApply(
     compiler::JSFunctionRef target, CallArguments& args) {
-  compiler::OptionalHeapObjectRef maybe_receiver;
-  if (current_speculation_feedback().IsValid()) {
-    const compiler::ProcessedFeedback& processed_feedback =
-        broker()->GetFeedbackForCall(current_speculation_feedback());
-    DCHECK_EQ(processed_feedback.kind(), compiler::ProcessedFeedback::kCall);
-    const compiler::CallFeedback& call_feedback = processed_feedback.AsCall();
-    if (call_feedback.call_feedback_content() ==
-        CallFeedbackContent::kReceiver) {
-      maybe_receiver = call_feedback.target();
-    }
-  }
+  // We should have taken the `BuildCallWithFeedback` path for the typical
+  // Function.prototype.apply speculation-based optimization. If we are on this
+  // code path, we must be inside an apply inside another inlining and shouldn't
+  // use the feedback receiver.
   return TryReduceFunctionPrototypeApplyCallWithReceiver(
-      maybe_receiver, args, current_speculation_feedback());
+      {}, args, current_speculation_feedback());
 }
 
 namespace {
@@ -12377,7 +12370,7 @@ MaybeReduceResult MaglevGraphBuilder::TryReduceCallForNewClosure(
 
 MaybeReduceResult
 MaglevGraphBuilder::TryReduceFunctionPrototypeApplyCallWithReceiver(
-    compiler::OptionalHeapObjectRef maybe_receiver, CallArguments& args,
+    compiler::OptionalJSFunctionRef maybe_receiver, CallArguments& args,
     const compiler::FeedbackSource& feedback_source) {
   if (args.mode() != CallArguments::kDefault) return {};
 
@@ -12439,20 +12432,26 @@ ReduceResult MaglevGraphBuilder::BuildCallWithFeedback(
             broker()->target_native_context();
         compiler::JSFunctionRef apply_function =
             native_context.function_prototype_apply(broker());
-        RETURN_IF_ABORT(BuildCheckValueByReference(
-            target_node, apply_function, DeoptimizeReason::kWrongCallTarget));
-        PROCESS_AND_RETURN_IF_DONE(
-            TryReduceFunctionPrototypeApplyCallWithReceiver(
-                feedback_target, args, feedback_source),
-            SetAccumulator);
-        feedback_target = apply_function;
+        if (compiler::OptionalHeapObjectRef target_constant =
+                TryGetConstant<HeapObject>(target_node);
+            !target_constant.has_value() ||
+            target_constant->equals(apply_function)) {
+          RETURN_IF_ABORT(BuildCheckValueByReference(
+              target_node, apply_function, DeoptimizeReason::kWrongCallTarget));
+          PROCESS_AND_RETURN_IF_DONE(
+              TryReduceFunctionPrototypeApplyCallWithReceiver(
+                  feedback_target, args, feedback_source),
+              SetAccumulator);
+        }
       } else {
         DCHECK_EQ(CallFeedbackContent::kTarget, content);
+        RETURN_IF_ABORT(BuildCheckValueByReference(
+            target_node, feedback_target, DeoptimizeReason::kWrongCallTarget));
       }
-      RETURN_IF_ABORT(BuildCheckValueByReference(
-          target_node, feedback_target, DeoptimizeReason::kWrongCallTarget));
     } else if (call_feedback.target()->IsFeedbackCell() &&
                args.mode() == CallArguments::kDefault) {
+      DCHECK_EQ(CallFeedbackContent::kTarget,
+                call_feedback.call_feedback_content());
       compiler::FeedbackCellRef feedback_cell =
           call_feedback.target()->AsFeedbackCell();
       compiler::OptionalSharedFunctionInfoRef shared =
