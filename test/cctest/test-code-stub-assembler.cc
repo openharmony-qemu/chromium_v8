@@ -1312,15 +1312,21 @@ void AddProperties(DirectHandle<JSObject> object, Handle<Name> names[],
   for (size_t i = 0; i < names_count; i++) {
     DirectHandle<Object> value = values[(seed + i) % values_count];
     if (IsAccessorPair(*value)) {
-      DirectHandle<AccessorPair> pair = Cast<AccessorPair>(value);
-      DirectHandle<Object> getter(pair->getter(), isolate);
-      DirectHandle<Object> setter(pair->setter(), isolate);
-      JSObject::DefineOwnAccessorIgnoreAttributes(object, names[i], getter,
-                                                  setter, NONE)
-          .Check();
-    } else {
-      JSObject::AddProperty(isolate, object, names[i], value, NONE);
+      if (names[i]->IsPrivate()) {
+        // Private symbols cannot be accessors; pick the next value.
+        value = values[(seed + i + 1) % values_count];
+        DCHECK(!IsAccessorPair(*value));
+      } else {
+        DirectHandle<AccessorPair> pair = Cast<AccessorPair>(value);
+        DirectHandle<Object> getter(pair->getter(), isolate);
+        DirectHandle<Object> setter(pair->setter(), isolate);
+        JSObject::DefineOwnAccessorIgnoreAttributes(object, names[i], getter,
+                                                    setter, NONE)
+            .Check();
+        continue;
+      }
     }
+    JSObject::AddProperty(isolate, object, names[i], value, NONE);
   }
 }
 
