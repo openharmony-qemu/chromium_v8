@@ -24,6 +24,7 @@ namespace internal {
 
 class ClassLiteral;
 class StructBodyDescriptor;
+class SandboxTesting;
 
 #include "torque-generated/src/objects/literal-objects-tq.inc"
 
@@ -241,6 +242,7 @@ V8_OBJECT class ClassBoilerplate : public StructLayout {
  private:
   friend class Factory;
   friend class TorqueGeneratedClassBoilerplateAsserts;
+  friend class SandboxTesting;
 
   TaggedMember<Smi> arguments_count_;
   TaggedMember<Object> static_properties_template_;
