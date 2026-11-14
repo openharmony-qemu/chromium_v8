@@ -57,6 +57,7 @@ class FreeSpace : public HeapObjectLayout {
 
  private:
   friend class Heap;
+  friend class SandboxTesting;
 
   inline bool IsValid(const Heap* isolate) const;
 

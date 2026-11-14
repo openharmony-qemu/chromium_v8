@@ -38,13 +38,17 @@ Tagged<FreeSpace> FreeListCategory::PickNodeFromList(size_t minimum_size,
   DCHECK(!node.is_null());
   DCHECK(MemoryChunkMetadata::FromHeapObject(Isolate::Current(), node)
              ->CanAllocateOnChunk());
-  if (static_cast<size_t>(node->Size()) < minimum_size) {
+  int size = node->Size();
+  SBXCHECK_GT(size, 0);
+  SBXCHECK_EQ(MemoryChunk::FromHeapObject(node),
+              MemoryChunk::FromAddress(node.address() + size - 1));
+  if (static_cast<size_t>(size) < minimum_size) {
     *node_size = 0;
     return Tagged<FreeSpace>();
   }
   set_top(node->next());
-  *node_size = node->Size();
-  UpdateCountersAfterAllocation(*node_size);
+  *node_size = size;
+  UpdateCountersAfterAllocation(size);
   return node;
 }
 
@@ -56,7 +60,11 @@ Tagged<FreeSpace> FreeListCategory::SearchForNodeInList(const Heap* heap,
        cur_node = cur_node->next()) {
     DCHECK(MemoryChunkMetadata::FromHeapObject(heap->isolate(), cur_node)
                ->CanAllocateOnChunk());
-    size_t size = cur_node->size(kRelaxedLoad);
+    int node_size_int = cur_node->size(kRelaxedLoad);
+    SBXCHECK_GT(node_size_int, 0);
+    size_t size = static_cast<size_t>(node_size_int);
+    SBXCHECK_EQ(MemoryChunk::FromHeapObject(cur_node),
+                MemoryChunk::FromAddress(cur_node.address() + size - 1));
     if (size >= minimum_size) {
       DCHECK_GE(available_, size);
       UpdateCountersAfterAllocation(size);
@@ -123,7 +131,7 @@ void FreeListCategory::RepairFreeList(Heap* heap) {
 }
 
 void FreeListCategory::Relink(FreeList* owner) {
-  DCHECK(!is_linked(owner));
+  CHECK(!is_linked(owner));
   owner->AddCategory(this);
 }
 
