@@ -1,17 +1,4 @@
 diff a/src/d8/d8.cc b/src/d8/d8.cc	(rejected hunks)
-@@ -23,12 +23,10 @@
- #include "third_party/vtune/v8-vtune.h"
- #endif
- 
- #include "include/libplatform/libplatform.h"
- #include "include/libplatform/v8-tracing.h"
--#include "include/v8-data.h"
--#include "include/v8-external.h"
- #include "include/v8-function.h"
- #include "include/v8-initialization.h"
- #include "include/v8-inspector.h"
- #include "include/v8-isolate.h"
- #include "include/v8-json.h"
 @@ -121,10 +119,26 @@
  #include "src/wasm/wasm-js.h"
  #include "src/wasm/wasm-result.h"
@@ -39,40 +26,6 @@ diff a/src/d8/d8.cc b/src/d8/d8.cc	(rejected hunks)
  #endif
  
  #ifndef CHECK
-@@ -1590,13 +1628,11 @@ MaybeLocal<Promise> Shell::HostImportModuleWithPhaseDynamically(
-   } else {
-     DynamicImportData* data =
-         new DynamicImportData(isolate, context, resource_name, specifier, phase,
-                               import_attributes, resolver);
-     PerIsolateData::Get(isolate)->AddDynamicImportData(data);
--    isolate->EnqueueMicrotask(
--        Shell::DoHostImportModuleDynamically,
--        External::New(isolate, data, v8::kExternalPointerTypeTagDefault));
-+    isolate->EnqueueMicrotask(Shell::DoHostImportModuleDynamically, data);
-   }
-   return resolver->GetPromise();
- }
- 
- void Shell::HostInitializeImportMetaObject(Local<Context> context,
-@@ -1684,16 +1720,14 @@ Maybe<bool> ChainDynamicImportPromise(Isolate* isolate, Local<Context> realm,
-   }
-   return Just(true);
- }
- }  // namespace
- 
--void Shell::DoHostImportModuleDynamically(v8::Local<v8::Data> data) {
-+void Shell::DoHostImportModuleDynamically(void* data) {
-   Isolate* current_isolate = reinterpret_cast<Isolate*>(i::Isolate::Current());
--  void* raw_data =
--      data.As<v8::External>()->Value(v8::kExternalPointerTypeTagDefault);
-   DynamicImportData* import_data =
--      PerIsolateData::Get(current_isolate)->LookupImportData(raw_data);
-+      PerIsolateData::Get(current_isolate)->LookupImportData(data);
-   CHECK_EQ(current_isolate, import_data->isolate);
- 
-   Isolate* isolate(import_data->isolate);
-   Global<Context> global_realm;
-   Global<Promise::Resolver> global_resolver;
 @@ -7083,10 +7153,15 @@ void ConfigurePartitionAllocIfEnabled() {
  
  int Shell::Main(int argc, char* argv[]) {
