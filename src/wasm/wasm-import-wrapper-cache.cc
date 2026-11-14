@@ -95,10 +95,10 @@ WasmCode* WasmImportWrapperCache::ModificationScope::AddWrapper(
       DCHECK(!RelocInfo::IsWasmStubCall(it.rinfo()->rmode()));
       it.rinfo()->apply(delta);
     }
+    FlushInstructionCache(code_space.begin(), code_space.size());
     jit_allocation.UpdateWasmCodePointer(wrapper_handle->code_pointer(),
                                          signature_hash);
   }
-  FlushInstructionCache(code_space.begin(), code_space.size());
   const int frame_slot_count = result.frame_slot_count;
   const int ool_spill_count = result.ool_spill_count;
   constexpr bool frame_has_feedback_slot = false;
