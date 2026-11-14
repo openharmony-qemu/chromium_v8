@@ -17,23 +17,6 @@ diff a/src/api/api.cc b/src/api/api.cc	(rejected hunks)
    auto i_isolate = i::Isolate::Current();
    i::PrototypeIterator iter(i_isolate, self);
    if (i::IsJSGlobalProxy(*self)) {
-@@ -10477,16 +10619,10 @@ void Isolate::EnqueueMicrotask(Local<Function> v8_function) {
- void Isolate::EnqueueMicrotask(MicrotaskCallback callback, void* data) {
-   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
-   i_isolate->default_microtask_queue()->EnqueueMicrotask(this, callback, data);
- }
- 
--void Isolate::EnqueueMicrotask(MicrotaskCallbackWithData callback,
--                               v8::Local<v8::Data> data) {
--  i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
--  i_isolate->default_microtask_queue()->EnqueueMicrotask(this, callback, data);
--}
--
- void Isolate::SetMicrotasksPolicy(MicrotasksPolicy policy) {
-   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(this);
-   i_isolate->default_microtask_queue()->set_microtasks_policy(policy);
- }
- 
 @@ -12150,10 +12301,11 @@ void InvokeAccessorGetterCallback(
      v8::Local<v8::Name> property,
      const v8::PropertyCallbackInfo<v8::Value>& info) {
