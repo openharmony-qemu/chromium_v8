@@ -76,7 +76,8 @@ class MaglevCompilationInfo final {
   }
   V8_EXPORT_PRIVATE ~MaglevCompilationInfo();
 
-  Zone* zone() { return &zone_; }
+  Zone* zone() { return zone_ptr_; }
+  void ReleaseBrokerAndZone();
   compiler::JSHeapBroker* broker() const { return broker_; }
   MaglevCompilationUnit* toplevel_compilation_unit() const {
     return toplevel_compilation_unit_;
@@ -157,7 +158,8 @@ class MaglevCompilationInfo final {
   CanonicalHandlesMap* canonical_handles() { return canonical_handles_.get(); }
   friend compiler::JSHeapBroker;
 
-  Zone zone_;
+  std::optional<Zone> zone_;
+  Zone* zone_ptr_;
   compiler::JSHeapBroker* broker_;
   // Must be initialized late since it requires an initialized heap broker.
   MaglevCompilationUnit* toplevel_compilation_unit_ = nullptr;

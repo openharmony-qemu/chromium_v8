@@ -122,6 +122,7 @@ class V8_EXPORT_PRIVATE OptimizedCompilationInfo final {
   ~OptimizedCompilationInfo();
 
   Zone* zone() { return zone_; }
+  void reset_zone() { zone_ = nullptr; }
   bool is_osr() const { return !osr_offset_.IsNone(); }
   IndirectHandle<SharedFunctionInfo> shared_info() const {
     return shared_info_;
@@ -319,7 +320,7 @@ class V8_EXPORT_PRIVATE OptimizedCompilationInfo final {
 
   // The zone from which the compilation pipeline working on this
   // OptimizedCompilationInfo allocates.
-  Zone* const zone_;
+  Zone* zone_;
 
   compiler::NodeObserver* node_observer_ = nullptr;
 

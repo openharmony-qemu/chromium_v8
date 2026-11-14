@@ -171,6 +171,14 @@ class V8_EXPORT_PRIVATE JSHeapBroker {
     set_canonical_handles(info->canonical_handles());
   }
 
+  template <typename CompilationInfoT>
+  void DetachCanonicalHandles(CompilationInfoT* info) {
+    set_canonical_handles(nullptr);
+    if (auto canonical_handles = info->DetachCanonicalHandles()) {
+      canonical_handles->Clear();
+    }
+  }
+
   bool StackHasOverflowed() const;
 
 #ifdef DEBUG
@@ -551,6 +559,14 @@ class V8_NODISCARD UnparkedScopeIfNeeded {
       if (local_isolate != nullptr && local_isolate->heap()->IsParked()) {
         unparked_scope.emplace(local_isolate->heap());
       }
+    }
+  }
+
+  explicit UnparkedScopeIfNeeded(LocalIsolate* local_isolate,
+                                 bool extra_condition = true) {
+    if (extra_condition && local_isolate != nullptr &&
+        local_isolate->heap()->IsParked()) {
+      unparked_scope.emplace(local_isolate->heap());
     }
   }
 
