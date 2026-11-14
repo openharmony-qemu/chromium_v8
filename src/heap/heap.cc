@@ -1374,6 +1374,12 @@ void Heap::CollectAllAvailableGarbage(GarbageCollectionReason gc_reason) {
       v8_flags.heap_snapshot_on_oom && !isolate()->has_active_deserializer()) {
     heap_profiler()->WriteSnapshotToDiskAfterGC();
   }
+#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
+  if (gc_reason == GarbageCollectionReason::kLastResort &&
+      v8_flags.heap_dump_on_oom) {
+    dfx::DumpHeapAfterOOM(this);
+  }
+#endif
 
   collection_barrier_->ResumeThreadsAwaitingCollection(
       RequestedGCKind::kLastResort);

@@ -1,19 +1,4 @@
 diff a/src/heap/heap-allocator-inl.h b/src/heap/heap-allocator-inl.h	(rejected hunks)
-@@ -17,10 +17,14 @@
- #include "src/heap/new-spaces.h"
- #include "src/heap/paged-spaces.h"
- #include "src/heap/read-only-spaces.h"
- #include "src/heap/zapping.h"
- 
-+#ifdef OH_ENABLE_RESTRACE
-+#include "../../../arkweb/chromium_ext/v8/restrace.h"
-+#endif
-+
- namespace v8 {
- namespace internal {
- 
- PagedSpace* HeapAllocator::code_space() const {
-   return static_cast<PagedSpace*>(spaces_[CODE_SPACE]);
 @@ -176,10 +180,13 @@ HeapAllocator::AllocateRaw(int size_in_bytes, AllocationOrigin origin,
      if (heap::ShouldZapGarbage() && AllocationType::kCode == type) {
        heap::ZapCodeBlock(object.address(), size_in_bytes);

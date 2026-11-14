@@ -21,6 +21,10 @@
 #include "src/heap/read-only-spaces.h"
 #include "src/heap/zapping.h"
 
+#ifdef OH_ENABLE_RESTRACE
+#include "../../../arkweb/chromium_ext/v8/restrace.h"
+#endif
+
 namespace v8 {
 namespace internal {
 
