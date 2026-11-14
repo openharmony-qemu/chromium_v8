@@ -1,20 +1,4 @@
 diff a/src/objects/name.h b/src/objects/name.h	(rejected hunks)
-@@ -16,10 +16,15 @@
- 
- // Has to be the last include (doesn't have include guards):
- #include "src/objects/object-macros.h"
- 
- namespace v8 {
-+#ifdef OH_ENABLE_HEAP_TRANSLATE
-+namespace dfx {
-+class ObjectTranslator;
-+}
-+#endif
- namespace internal {
- 
- namespace compiler {
- class WasmGraphBuilder;
- }
 @@ -312,10 +317,13 @@ V8_OBJECT class Symbol : public Name {
    friend struct OffsetsForDebug;
    friend class V8HeapExplorer;

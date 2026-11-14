@@ -27,6 +27,12 @@
 // Has to be the last include (doesn't have include guards):
 #include "src/objects/object-macros.h"
 
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+namespace v8::dfx {
+class ObjectTranslator;
+}
+#endif
+
 namespace v8::internal {
 
 namespace maglev {

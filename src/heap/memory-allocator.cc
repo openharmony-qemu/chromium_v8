@@ -262,6 +262,9 @@ MemoryAllocator::AllocateUninitializedChunkAt(BaseSpace* space,
 void MemoryAllocator::PartialFreeMemory(BasePage* chunk, Address start_free,
                                         size_t bytes_to_free,
                                         Address new_area_end) {
+#ifdef OH_ENABLE_RESTRACE
+  OH_RESTRACE_FREE_REGION(reinterpret_cast<void*>(start_free), bytes_to_free);
+#endif
   VirtualMemory* reservation = chunk->reserved_memory();
   DCHECK(reservation->IsReserved());
   chunk->set_size(chunk->size() - bytes_to_free);
@@ -336,6 +339,10 @@ void MemoryAllocator::UnregisterReadOnlyPage(ReadOnlyPage* page) {
 void MemoryAllocator::FreeReadOnlyPage(ReadOnlyPage* chunk) {
   DCHECK(!chunk->is_pre_freed());
   LOG(isolate_, DeleteEvent("MemoryChunk", chunk));
+#ifdef OH_ENABLE_RESTRACE
+  OH_RESTRACE_FREE_REGION(reinterpret_cast<void*>(chunk->GetAreaStart()),
+                          chunk->area_size());
+#endif
 
   UnregisterSharedMemoryChunk(chunk);
 

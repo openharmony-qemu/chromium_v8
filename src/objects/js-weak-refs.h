@@ -215,6 +215,9 @@ V8_OBJECT class WeakCell : public HeapObject {
   friend class ScavengerWeakObjectsProcessor;
   friend class TorqueGeneratedWeakCellAsserts;
   friend class V8HeapExplorer;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+#endif
 } V8_OBJECT_END;
 
 V8_OBJECT class JSWeakRef : public JSObject {

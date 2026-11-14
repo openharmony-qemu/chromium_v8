@@ -8895,6 +8895,8 @@ if (is_component_build) {
     configs = [ ":internal_config" ]
 
     public_configs = [ ":external_config" ]
+
+    ldflags += [ "-lgcc_s" ]
   }
 
   v8_component("cppgc") {
