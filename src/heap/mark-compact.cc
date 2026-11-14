@@ -1653,6 +1653,15 @@ class EvacuateVisitorBase : public HeapObjectVisitor {
       jit_allocation.WriteHeaderSlot<MapWord, offsetof(HeapObject, map_)>(
           MapWord::FromForwardingAddress(src, dst));
     }
+
+#ifdef OH_ENABLE_RESTRACE
+    // Only Fast Mode needs to call move restrace, Observed Mode will call
+    // heap::OnMoveEvent finally.
+    if (mode == MigrationMode::kFast) {
+      OH_RESTRACE_MOVE(reinterpret_cast<void*>(src_addr),
+                       reinterpret_cast<void*>(dst_addr), size);
+    }
+#endif
   }
 
   EvacuateVisitorBase(Heap* heap, EvacuationAllocator* local_allocator,

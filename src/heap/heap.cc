@@ -3172,6 +3172,10 @@ void Heap::OnMoveEvent(Tagged<HeapObject> source, Tagged<HeapObject> target,
                                      size_in_bytes,
                                      /*is_embedder_object=*/false);
   }
+#ifdef OH_ENABLE_RESTRACE
+  OH_RESTRACE_MOVE(reinterpret_cast<void*>(source.address()),
+                   reinterpret_cast<void*>(target.address()), size_in_bytes);
+#endif
   for (auto& tracker : allocation_trackers_) {
     tracker->MoveEvent(source.address(), target.address(), size_in_bytes);
   }
