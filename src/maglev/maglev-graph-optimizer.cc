@@ -448,6 +448,10 @@ ProcessResult MaglevGraphOptimizer::EmitAbort(AbortReason reason) {
 
 template <typename NodeT>
 ProcessResult MaglevGraphOptimizer::ProcessLoadContextSlot(NodeT* node) {
+  REPLACE_AND_RETURN_IF_DONE(reducer_.TryGetConstantContextValue(
+      node->input_node(0), node->offset(),
+      node->is_const() ? ContextSlotMutability::kImmutable
+                       : ContextSlotMutability::kMutable));
   REPLACE_AND_RETURN_IF_DONE(known_node_aspects().TryGetContextCachedValue(
       node->input_node(0), node->offset(),
       node->is_const() ? ContextSlotMutability::kImmutable
