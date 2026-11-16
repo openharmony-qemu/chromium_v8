@@ -4,6 +4,7 @@
 
 import("../../gni/cluster_build.gni")
 import("../../gni/v8.gni")
+import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 
 v8_executable("cctest") {
   testonly = true
