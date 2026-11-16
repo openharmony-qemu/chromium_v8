@@ -17,15 +17,3 @@ diff a/src/api/api.cc b/src/api/api.cc	(rejected hunks)
    auto i_isolate = i::Isolate::Current();
    i::PrototypeIterator iter(i_isolate, self);
    if (i::IsJSGlobalProxy(*self)) {
-@@ -12150,10 +12301,11 @@ void InvokeAccessorGetterCallback(
-     v8::Local<v8::Name> property,
-     const v8::PropertyCallbackInfo<v8::Value>& info) {
-   // Leaving JavaScript.
-   i::Isolate* i_isolate = reinterpret_cast<i::Isolate*>(info.GetIsolate());
-   RCS_SCOPE(i_isolate, RuntimeCallCounterId::kAccessorGetterCallback);
-+  HITRACE_RCS_SCOPE(i_isolate, RuntimeCallCounterId::kAccessorGetterCallback);
- 
-   v8::AccessorNameGetterCallback getter;
-   {
-     Address arg = i_isolate->isolate_data()->api_callback_thunk_argument();
-     // Currently we don't call InterceptorInfo callbacks via CallApiGetter.

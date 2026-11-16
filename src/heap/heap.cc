@@ -3628,6 +3628,18 @@ void Heap::CheckIneffectiveMarkCompact(size_t old_generation_size,
         !isolate()->has_active_deserializer()) {
       heap_profiler()->WriteSnapshotToDiskAfterGC();
     }
+#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
+    if (v8_flags.heap_dump_on_oom) {
+      dfx::DumpHeapAfterOOM(this);
+    }
+#endif
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+    InvokeOOMMonitorCallback("Ineffective mark-compacts near heap limit",
+                             V8::kHeapOOM);
+#endif
+#ifdef OHOS_JS_ENGINE
+    InvokeJSVMOOMCallback("Ineffective mark-compacts near heap limit");
+#endif
     FatalProcessOutOfMemory("Ineffective mark-compacts near heap limit");
   }
 }

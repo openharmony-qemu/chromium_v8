@@ -142,6 +142,22 @@
 #include "src/wasm/wasm-serialization.h"
 #endif  // V8_ENABLE_WEBASSEMBLY
 
+#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST) || \
+     defined(OH_ENABLE_HEAP_DUMP))
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/binary-writer-base.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/binary-writer.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/dump-heap.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/binary-reader.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/snapshot-generator.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/snapshot-serializer.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/translate-heap.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/translator/translate-objects.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/ut/binary-reader-ut.h"
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/ut/binary-writer-ut.h"
+
+#endif
+
 #ifndef DCHECK
 #define DCHECK(condition) assert(condition)
 #endif

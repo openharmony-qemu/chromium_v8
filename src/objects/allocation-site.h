@@ -14,6 +14,12 @@
 #include "src/objects/object-macros.h"
 
 namespace v8 {
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+namespace dfx {
+class ObjectTranslator;
+class ObjectDetailVisitor;
+}
+#endif
 namespace internal {
 
 enum InstanceType : uint16_t;
