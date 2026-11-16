@@ -33,6 +33,10 @@
 #include "src/utils/memcopy.h"
 #include "src/utils/version.h"
 
+#ifdef OHOS_JS_ENGINE
+#include "../../../arkweb/chromium_ext/v8/trace.h"
+#endif
+
 namespace v8 {
 namespace internal {
 

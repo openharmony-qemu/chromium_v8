@@ -2749,6 +2749,9 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   Bootstrapper* bootstrapper_ = nullptr;
   TieringManager* tiering_manager_ = nullptr;
   CompilationCache* compilation_cache_ = nullptr;
+#ifdef OHOS_JS_ENGINE
+  EnumTimesCache* enum_times_cache_ = nullptr;
+#endif
   std::shared_ptr<Counters> async_counters_;
   base::RecursiveMutex break_access_;
   base::Mutex feedback_vector_access_;
@@ -3138,6 +3141,10 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
 #ifdef V8_ENABLE_CHECKS
   ThreadId current_thread_id_;
   int current_thread_counter_ = 0;
+#endif
+
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+  std::unordered_map<int, uint64_t> promise_to_dfx_async_id_;
 #endif
 
   bool is_frozen_ = false;

@@ -6241,6 +6241,13 @@ v8_cluster_source_set("v8_compiler_for_mksnapshot_source_set") {
     # So we include it, even if this config is not used outside of debug builds.
     configs = [ ":internal_config" ]
   }
+
+  if (use_llvm_backend) {
+    if (v8_current_cpu == "arm64" && !target_is_simulator) {
+      configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config" ]
+      cflags = [ "-DV8_USE_LLVM_BACKEND" ]
+    }
+  }
 }
 
 # The src/compiler files with default behavior.
@@ -8488,6 +8495,14 @@ if (current_toolchain == v8_snapshot_toolchain) {
       ":internal_config",
       ":disable_icf",
     ]
+
+    if (use_llvm_backend) {
+      if (v8_current_cpu == "arm64" && !target_is_simulator) {
+        sources += llvm_backend_ext_sources
+        configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config", ]
+        cflags = [ "-DV8_USE_LLVM_BACKEND" ]
+      }
+    }
 
     deps = [
       ":v8_base_without_compiler",

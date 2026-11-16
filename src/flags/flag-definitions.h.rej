@@ -1,19 +1,4 @@
 diff a/src/flags/flag-definitions.h b/src/flags/flag-definitions.h	(rejected hunks)
-@@ -2760,10 +2760,14 @@ DEFINE_BOOL(sim_abort_on_shadowstack_mismatch, true,
-             "Stop execution when shadowstack match fails in the "
-             "riscv simulator.")
- #endif
- #endif
- 
-+#if defined(OHOS_MEM_USAGE_REPORT)
-+DEFINE_BOOL(mur, false, "")
-+#endif // OHOS_MEM_USAGE_REPORT
-+
- // Controlling source positions for Torque/CSA code.
- DEFINE_BOOL(enable_source_at_csa_bind, false,
-             "Include source information in the binary at CSA bind locations.")
- 
- // Deprecated ARM flags (replaced by arm_arch).
 @@ -3897,10 +3901,18 @@ DEFINE_WEAK_IMPLICATION(future, proto_assign_seq_opt)
  DEFINE_UINT(proto_assign_seq_opt_count, 2,
              "The minimum number of consecutive property assignments on the "

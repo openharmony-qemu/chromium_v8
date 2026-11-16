@@ -13,20 +13,6 @@ diff a/src/maglev/maglev-concurrent-dispatcher.cc b/src/maglev/maglev-concurrent
      LocalIsolate local_isolate(isolate(), ThreadKind::kBackground);
      DCHECK(local_isolate.heap()->IsParked());
  
-@@ -281,10 +288,13 @@ class MaglevConcurrentDispatcher::JobTask final : public v8::JobTask {
-             TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.MaglevBackground",
-             job->trace_id(),
-             TRACE_EVENT_FLAG_FLOW_IN | TRACE_EVENT_FLAG_FLOW_OUT);
-         RCS_SCOPE(&local_isolate,
-                   RuntimeCallCounterId::kOptimizeBackgroundMaglev);
-+#ifdef OHOS_JS_ENGINE
-+        auto trace = HiTrace("RCS_v8.compile_V8.MaglevBackground");
-+#endif
-         CompilationJob::Status status =
-             job->ExecuteJob(local_isolate.runtime_call_stats(), &local_isolate);
-         if (status == CompilationJob::SUCCEEDED) {
-           outgoing_queue()->Enqueue(std::move(job));
-           isolate()->stack_guard()->RequestInstallMaglevCode();
 @@ -297,10 +307,13 @@ class MaglevConcurrentDispatcher::JobTask final : public v8::JobTask {
          // background thread rather than on the main thread.
          DCHECK_NOT_NULL(job);
@@ -41,20 +27,6 @@ diff a/src/maglev/maglev-concurrent-dispatcher.cc b/src/maglev/maglev-concurrent
        } else {
          break;
        }
-@@ -370,10 +383,13 @@ void MaglevConcurrentDispatcher::FinalizeFinishedJobs() {
-     TRACE_EVENT_WITH_FLOW0(
-         TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.MaglevConcurrentFinalize",
-         job->trace_id(), TRACE_EVENT_FLAG_FLOW_IN | TRACE_EVENT_FLAG_FLOW_OUT);
-     RCS_SCOPE(isolate_,
-               RuntimeCallCounterId::kOptimizeConcurrentFinalizeMaglev);
-+#ifdef OHOS_JS_ENGINE
-+    auto trace = HiTrace("RCS_v8.compile_V8.MaglevConcurrentFinalize");
-+#endif
-     Compiler::FinalizeMaglevCompilationJob(job.get(), isolate_);
-     job->DisposeOnMainThread(isolate_);
-     if (v8_flags.maglev_destroy_on_background) {
-       // Maglev jobs aren't cheap to destruct, so re-enqueue them for
-       // destruction on a background thread.
 @@ -381,10 +397,13 @@ void MaglevConcurrentDispatcher::FinalizeFinishedJobs() {
        job_handle_->NotifyConcurrencyIncrease();
      } else {

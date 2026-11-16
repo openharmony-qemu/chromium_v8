@@ -1,19 +1,4 @@
 diff a/src/codegen/compiler.cc b/src/codegen/compiler.cc	(rejected hunks)
-@@ -70,10 +70,14 @@
- #include "src/snapshot/code-serializer.h"
- #include "src/tracing/traced-value.h"
- #include "src/utils/ostreams.h"
- #include "src/zone/zone-list-inl.h"  // crbug.com/v8/8816
- 
-+#ifdef OHOS_JS_ENGINE
-+#include "../../../arkweb/chromium_ext/v8/trace.h"
-+#endif
-+
- #ifdef V8_ENABLE_MAGLEV
- #include "src/maglev/maglev-concurrent-dispatcher.h"
- #include "src/maglev/maglev.h"
- #endif  // V8_ENABLE_MAGLEV
- 
 @@ -1035,10 +1039,13 @@ bool CompileTurbofan_NotConcurrent(Isolate* isolate,
  
    TimerEventScope<TimerEventRecompileSynchronous> timer(isolate);

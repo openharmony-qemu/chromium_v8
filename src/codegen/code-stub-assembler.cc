@@ -219,6 +219,25 @@ void CodeStubAssembler::FastCheck(TNode<BoolT> condition) {
   BIND(&ok);
 }
 
+#if defined(OHOS_MEM_USAGE_REPORT)
+void CodeStubAssembler::MURCheck(TNode<BoolT> condition, int id) {
+  Label ok(this), not_ok(this, Label::kDeferred);
+  Branch(condition, &ok, &not_ok);
+  BIND(&not_ok);
+ 
+  TNode<ExternalReference> mur_check =
+      ExternalConstant(ExternalReference::mur_check_function());
+  TNode<ExternalReference> isolate_ptr =
+      ExternalConstant(ExternalReference::isolate_address(isolate()));
+  CallCFunction(mur_check, MachineType::Int32(),
+      std::make_pair(MachineType::Pointer(), isolate_ptr),
+      std::make_pair(MachineType::Int32(), Int32Constant(id)));
+ 
+  Goto(&ok);
+  BIND(&ok);
+}
+#endif // OHOS_MEM_USAGE_REPORT
+
 void CodeStubAssembler::FailAssert(
     const char* message, const std::vector<FileAndLine>& files_and_lines,
     std::initializer_list<ExtraNode> extra_nodes) {
