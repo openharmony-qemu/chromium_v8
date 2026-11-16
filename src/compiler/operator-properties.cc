@@ -199,6 +199,7 @@ bool OperatorProperties::HasFrameStateInput(const Operator* op) {
     case IrOpcode::kJSCreateObject:
     case IrOpcode::kJSCloneObject:
     case IrOpcode::kJSCreateGeneratorObject:
+    case IrOpcode::kJSGetTemplateObject:
 
     // Property access operations
     case IrOpcode::kJSDeleteProperty:
