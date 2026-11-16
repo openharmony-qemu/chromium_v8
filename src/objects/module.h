@@ -5,6 +5,9 @@
 #ifndef V8_OBJECTS_MODULE_H_
 #define V8_OBJECTS_MODULE_H_
 
+#if defined(OS_OHOS)
+#include "arkweb/build/features/features.h"
+#endif
 #include "include/v8-script.h"
 #include "include/v8-template.h"
 #include "src/objects/js-objects.h"
