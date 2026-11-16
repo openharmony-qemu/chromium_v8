@@ -100,7 +100,7 @@ void EvacuationVerifier::VerifyEvacuation(NewSpace* space) {
 
 void EvacuationVerifier::VerifyEvacuation(PagedSpaceBase* space) {
   for (PageMetadata* p : *space) {
-    if (p->Chunk()->IsEvacuationCandidate()) continue;
+    if (p->is_evacuation_candidate()) continue;
     VerifyEvacuationOnPage(p->area_start(), p->area_end());
   }
 }

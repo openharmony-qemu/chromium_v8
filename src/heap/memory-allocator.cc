@@ -373,14 +373,13 @@ void MemoryAllocator::FreeReadOnlyPage(ReadOnlyPageMetadata* chunk) {
 }
 
 void MemoryAllocator::PreFreeMemory(MutablePageMetadata* chunk_metadata) {
-  MemoryChunk* chunk = chunk_metadata->Chunk();
   DCHECK(!chunk_metadata->is_pre_freed());
   LOG(isolate_, DeleteEvent("MemoryChunk", chunk_metadata));
   RecordMemoryChunkDestroyed(chunk_metadata);
   UnregisterMutableMemoryChunk(chunk_metadata);
   isolate_->heap()->RememberUnmappedPage(
       reinterpret_cast<Address>(chunk_metadata),
-      chunk->IsEvacuationCandidate());
+      chunk_metadata->is_evacuation_candidate());
   chunk_metadata->ReleaseAllAllocatedMemory();
   chunk_metadata->set_is_pre_freed();
 }
@@ -388,7 +387,7 @@ void MemoryAllocator::PreFreeMemory(MutablePageMetadata* chunk_metadata) {
 void MemoryAllocator::PerformFreeMemory(MutablePageMetadata* chunk_metadata) {
   DCHECK(chunk_metadata->is_unregistered());
   DCHECK(chunk_metadata->is_pre_freed());
-  DCHECK(!chunk_metadata->Chunk()->InReadOnlySpace());
+  DCHECK(!chunk_metadata->IsReadOnlyPageMetadata());
 
   DeleteMemoryChunk(chunk_metadata);
 }

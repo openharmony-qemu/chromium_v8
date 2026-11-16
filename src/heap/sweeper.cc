@@ -654,7 +654,7 @@ void Sweeper::LocalSweeper::ParallelIteratePromotedPage(
       page->ReleaseSlotSet(SURVIVOR_TO_EXTERNAL_POINTER);
     } else {
       DCHECK_EQ(OLD_SPACE, page->owner_identity());
-      DCHECK(!page->Chunk()->IsEvacuationCandidate());
+      DCHECK(!page->is_evacuation_candidate());
       const ZappingMode zapping_mode = ShouldZapDeadObjectsOnPage();
       Address dead_start = page->area_start();
       for (auto [object, size] :
@@ -1164,7 +1164,7 @@ void Sweeper::RawSweep(PageMetadata* p,
          space->identity() == TRUSTED_SPACE ||
          space->identity() == SHARED_TRUSTED_SPACE ||
          (space->identity() == NEW_SPACE && v8_flags.minor_ms));
-  DCHECK(!p->Chunk()->IsEvacuationCandidate());
+  DCHECK(!p->is_evacuation_candidate());
   DCHECK(!p->SweepingDone());
   DCHECK(!p->Chunk()->IsBlackAllocatedPage());
   DCHECK_IMPLIES(space->identity() == NEW_SPACE,

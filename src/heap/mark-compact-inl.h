@@ -41,10 +41,11 @@ void MarkCompactCollector::MarkRootObject(
     DCHECK_EQ(root, Root::kStackRoots);
     MemoryChunk* chunk = MemoryChunk::FromHeapObject(obj);
     auto* metadata = MutablePageMetadata::cast(chunk->Metadata());
-    if (chunk->IsEvacuationCandidate()) {
+    if (metadata->is_evacuation_candidate()) {
       DCHECK(!chunk->InYoungGeneration());
       ReportAbortedEvacuationCandidateDueToFlags(PageMetadata::cast(metadata));
-    } else if (chunk->InYoungGeneration() && !chunk->IsLargePage()) {
+    } else if (metadata->owner_identity() == NEW_SPACE) {
+      DCHECK(!metadata->is_large());
       DCHECK(chunk->IsToPage());
       if (!metadata->is_quarantined()) {
         metadata->set_is_quarantined(true);

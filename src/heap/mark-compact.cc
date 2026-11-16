@@ -681,7 +681,6 @@ void MarkCompactCollector::CollectEvacuationCandidates(PagedSpace* space) {
 
   DCHECK(!sweeper_->sweeping_in_progress());
   for (PageMetadata* p : *space) {
-    MemoryChunk* chunk = p->Chunk();
     if (p->never_evacuate() || !p->CanAllocateOnChunk()) {
       continue;
     }
@@ -694,7 +693,7 @@ void MarkCompactCollector::CollectEvacuationCandidates(PagedSpace* space) {
     // started. This means that sweeping has finished. Furthermore, at the end
     // of a GC all evacuation candidates are cleared and their slot buffers are
     // released.
-    CHECK(!chunk->IsEvacuationCandidate());
+    CHECK(!p->is_evacuation_candidate());
     CHECK_NULL(p->slot_set<OLD_TO_OLD>());
     CHECK_NULL(p->typed_slot_set<OLD_TO_OLD>());
     CHECK(p->SweepingDone());
@@ -4535,9 +4534,10 @@ class Evacuator final : public Malloced {
     if (metadata->will_be_promoted()) {
       return kPageNewToOld;
     }
-    if (metadata->Chunk()->InYoungGeneration()) {
+    if (metadata->owner_identity() == NEW_SPACE) {
       return kObjectsNewToOld;
     }
+    DCHECK(metadata->is_evacuation_candidate());
     return kObjectsOldToOld;
   }
 
@@ -4934,10 +4934,10 @@ class PrecisePagePinningVisitor final : public RootVisitor {
       // need to be pinned.
       return;
     }
-    if (!should_pin_in_shared_space_ && chunk->InWritableSharedSpace()) {
+    if (!should_pin_in_shared_space_ && page->is_writable_shared()) {
       return;
     }
-    if (chunk->InYoungGeneration()) {
+    if (page->owner_identity() == NEW_SPACE) {
       // Young gen pages are not considered evacuation candidates. Pinning is
       // done by marking them as quarantined and promoting the page as is.
       DCHECK(v8_flags.minor_ms ? chunk->IsToPage() : chunk->IsFromPage());
@@ -5255,7 +5255,7 @@ class RememberedSetUpdatingItem : public UpdatingItem {
         marking_state_(heap_->non_atomic_marking_state()),
         chunk_(chunk),
         record_old_to_shared_slots_(heap->isolate()->has_shared_space() &&
-                                    !chunk->Chunk()->InWritableSharedSpace()) {}
+                                    !chunk->is_writable_shared()) {}
   ~RememberedSetUpdatingItem() override = default;
 
   void Process() override {
@@ -5588,8 +5588,7 @@ void CollectRememberedSetUpdatingItems(
   for (MutablePageMetadata* page : *space) {
     // No need to update pointers on evacuation candidates. Evacuated pages will
     // be released after this phase.
-    if (page->Chunk()->IsEvacuationCandidate() &&
-        !page->evacuation_was_aborted()) {
+    if (page->is_evacuation_candidate() && !page->evacuation_was_aborted()) {
       continue;
     }
     if (page->ContainsAnySlots()) {
@@ -5713,7 +5712,6 @@ void MarkCompactCollector::UpdatePointersInClientHeap(Isolate* client) {
 
   while (chunk_iterator.HasNext()) {
     MutablePageMetadata* page = chunk_iterator.Next();
-    MemoryChunk* chunk = page->Chunk();
 
     const auto slot_count = RememberedSet<OLD_TO_SHARED>::Iterate(
         page,
@@ -5722,7 +5720,8 @@ void MarkCompactCollector::UpdatePointersInClientHeap(Isolate* client) {
         },
         SlotSet::FREE_EMPTY_BUCKETS);
 
-    if (slot_count == 0 || chunk->InYoungGeneration()) {
+    const AllocationSpace owner = page->owner_identity();
+    if (slot_count == 0 || owner == NEW_SPACE || owner == NEW_LO_SPACE) {
       page->ReleaseSlotSet(OLD_TO_SHARED);
     }
 
@@ -5760,8 +5759,11 @@ void MarkCompactCollector::UpdatePointersInClientHeap(Isolate* client) {
                 return UpdateStrongOldToSharedSlot(cage_base, slot);
               });
         });
-    if (typed_slot_count == 0 || chunk->InYoungGeneration())
+    DCHECK_NE(owner, NEW_SPACE);
+    DCHECK_NE(owner, NEW_LO_SPACE);
+    if (typed_slot_count == 0) {
       page->ReleaseTypedSlotSet(OLD_TO_SHARED);
+    }
   }
 }
 
@@ -6028,7 +6030,7 @@ void MarkCompactCollector::StartSweepSpace(PagedSpace* space) {
     PageMetadata* p = *(it++);
     DCHECK(p->SweepingDone());
 
-    if (p->Chunk()->IsEvacuationCandidate()) {
+    if (p->is_evacuation_candidate()) {
       DCHECK(!p->Chunk()->IsBlackAllocatedPage());
       DCHECK_NE(NEW_SPACE, space->identity());
       // Will be processed in Evacuate.
@@ -6213,8 +6215,8 @@ void RootMarkingVisitor::VisitRunningCode(
     Tagged<InstructionStream> istream =
         TrustedCast<InstructionStream>(istream_or_smi_zero);
     MemoryChunk* chunk = MemoryChunk::FromHeapObject(istream);
-    if (chunk->IsEvacuationCandidate()) {
-      PageMetadata* page = PageMetadata::cast(chunk->Metadata());
+    PageMetadata* page = PageMetadata::cast(chunk->Metadata());
+    if (page->is_evacuation_candidate()) {
       collector_->ReportAbortedEvacuationCandidateDueToRunningCode(page);
     }
 
