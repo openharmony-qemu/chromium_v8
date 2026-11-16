@@ -224,24 +224,6 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    }
  
    if (v8_enable_temporal_support) {
-@@ -5500,10 +5675,17 @@ v8_source_set("v8_compiler_for_mksnapshot_source_set") {
-     # Without this else branch, gn fails to generate build files for non-debug
-     # builds (because we try to remove a config that is not present).
-     # So we include it, even if this config is not used outside of debug builds.
-     configs = [ ":internal_config" ]
-   }
-+
-+  if (use_llvm_backend) {
-+    if (v8_current_cpu == "arm64" && !target_is_simulator) {
-+      configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config" ]
-+      cflags = [ "-DV8_USE_LLVM_BACKEND" ]
-+    }
-+  }
- }
- 
- # The src/compiler files with default behavior.
- v8_source_set("v8_compiler") {
-   visibility = [ ":*" ]  # Only targets in this file can depend on this.
 @@ -5827,10 +6012,11 @@ v8_source_set("v8_base_without_compiler") {
      "src/logging/log-file.cc",
      "src/logging/log.cc",
@@ -343,25 +325,6 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
  v8_source_set("torque_base") {
    visibility = [ ":*" ]  # Only targets in this file can depend on this.
  
-@@ -7644,10 +7891,18 @@ if (current_toolchain == v8_snapshot_toolchain) {
-     configs = [
-       ":internal_config",
-       ":disable_icf",
-     ]
- 
-+    if (use_llvm_backend) {
-+      if (v8_current_cpu == "arm64" && !target_is_simulator) {
-+        sources += llvm_backend_ext_sources
-+        configs += [ "//arkweb/chromium_ext/v8:lib_llvm_for_v8_config", ]
-+        cflags = [ "-DV8_USE_LLVM_BACKEND" ]
-+      }
-+    }
-+
-     deps = [
-       ":v8_base_without_compiler",
-       ":v8_compiler_for_mksnapshot",
-       ":v8_init",
-       ":v8_libbase",
 @@ -8066,10 +8331,20 @@ v8_executable("d8") {
      "src/d8/d8-test.cc",
      "src/d8/d8.cc",

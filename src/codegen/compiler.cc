@@ -65,6 +65,10 @@
 #include "src/snapshot/code-serializer.h"
 #include "src/zone/zone-list-inl.h"  // crbug.com/v8/8816
 
+#ifdef OHOS_JS_ENGINE
+#include "../../../arkweb/chromium_ext/v8/trace.h"
+#endif
+
 #ifdef V8_ENABLE_MAGLEV
 #include "src/maglev/maglev-concurrent-dispatcher.h"
 #include "src/maglev/maglev.h"

@@ -185,6 +185,9 @@ constexpr bool CanTriggerGC(T... properties) {
   F(ScheduleBreak, 0, 1)                        \
   F(ScriptLocationFromLine2, 4, 1)              \
   F(SetGeneratorScopeVariableValue, 4, 1)       \
+  /* Used for OHOS. OpenHarmony OS. */          \
+  F(DfxPromiseThen, 1, 1)                       \
+  /* end */                                     \
   I(IncBlockCounter, 2, 1)
 
 #define FOR_EACH_INTRINSIC_FORIN(F, I) \

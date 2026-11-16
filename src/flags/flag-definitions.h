@@ -3046,6 +3046,10 @@ DEFINE_DEVELOPER_FLAG(trace_shadowstack,
 #endif
 #endif
 
+#if defined(OHOS_MEM_USAGE_REPORT)
+DEFINE_BOOL(mur, false, "")
+#endif // OHOS_MEM_USAGE_REPORT
+
 // Controlling source positions for Torque/CSA code.
 DEFINE_BOOL(enable_source_at_csa_bind, false,
             "Include source information in the binary at CSA bind locations.")

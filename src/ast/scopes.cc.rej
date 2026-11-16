@@ -13,22 +13,6 @@ diff a/src/ast/scopes.cc b/src/ast/scopes.cc	(rejected hunks)
  
    num_stack_slots_ = 0;
    num_heap_slots_ = ContextHeaderLength();
-@@ -456,10 +459,15 @@ Scope* Scope::DeserializeScopeChain(IsolateT* isolate, Zone* zone,
-       } else {
-         // For scope analysis, debug-evaluate is equivalent to a with scope.
-         outer_scope = zone->New<Scope>(zone, WITH_SCOPE, ast_value_factory,
-                                        handle(scope_info, isolate));
-       }
-+#ifdef OHOS_JS_ENGINE
-+      if (scope_info->HasNeverHideBaseStdHint()) {
-+        outer_scope->set_has_never_hide_base_std_hint();
-+      }
-+#endif
-     } else if (scope_info->is_script_scope()) {
-       // If we reach a script scope, it's the outermost scope. Install the
-       // scope info of this script context onto the existing script scope to
-       // avoid nesting script scopes.
-       if (deserialization_mode == DeserializationMode::kIncludingVariables) {
 @@ -2134,17 +2142,32 @@ Variable* Scope::Lookup(VariableProxy* proxy, Scope* scope,
        if (scope->is_declaration_scope() &&
            scope->AsDeclarationScope()->sloppy_eval_can_extend_vars()) {

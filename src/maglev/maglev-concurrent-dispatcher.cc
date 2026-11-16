@@ -304,6 +304,9 @@ class MaglevConcurrentDispatcher::JobTask final : public v8::JobTask {
                     perfetto::Flow::ProcessScoped(job->trace_id()));
         RCS_SCOPE(&local_isolate,
                   RuntimeCallCounterId::kOptimizeBackgroundMaglev);
+#ifdef OHOS_JS_ENGINE
+        auto trace = HiTrace("RCS_v8.compile_V8.MaglevBackground");
+#endif
         CompilationJob::Status status =
             job->ExecuteJob(local_isolate.runtime_call_stats(), &local_isolate);
         // A retry leaves the job in kReadyToExecute, which finalization cannot
@@ -395,6 +398,9 @@ void MaglevConcurrentDispatcher::FinalizeFinishedJobs() {
                 perfetto::Flow::ProcessScoped(job->trace_id()));
     RCS_SCOPE(isolate_,
               RuntimeCallCounterId::kOptimizeConcurrentFinalizeMaglev);
+#ifdef OHOS_JS_ENGINE
+    auto trace = HiTrace("RCS_v8.compile_V8.MaglevConcurrentFinalize");
+#endif
     Compiler::FinalizeMaglevCompilationJob(job.get(), isolate_);
     job->DisposeOnMainThread(isolate_);
     if (v8_flags.maglev_destroy_on_background) {
