@@ -1024,6 +1024,7 @@ bool Debug::CheckBreakPoint(DirectHandle<BreakPoint> break_point,
 
   {
     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
     debug_delegate_->BreakpointConditionEvaluated(
         v8::Utils::ToLocal(isolate_->native_context()), break_point->id(),
         exception_thrown, v8::Utils::ToLocal(maybe_exception));

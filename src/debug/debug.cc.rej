@@ -1,16 +1,4 @@
 diff a/src/debug/debug.cc b/src/debug/debug.cc	(rejected hunks)
-@@ -961,10 +961,11 @@ bool Debug::CheckBreakPoint(DirectHandle<BreakPoint> break_point,
-   CHECK(in_debug_scope());
-   DisableBreak no_recursive_break(this);
- 
-   {
-     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
-+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
-     debug_delegate_->BreakpointConditionEvaluated(
-         v8::Utils::ToLocal(isolate_->native_context()), break_point->id(),
-         exception_thrown, v8::Utils::ToLocal(maybe_exception));
-   }
- 
 @@ -2647,10 +2649,11 @@ void Debug::OnDebugBreak(DirectHandle<FixedArray> break_points_hit,
      Tagged<BreakPoint> break_point = Cast<BreakPoint>(break_points_hit->get(i));
      inspector_break_points_hit.push_back(break_point->id());
