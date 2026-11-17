@@ -13,17 +13,3 @@ diff a/src/objects/scope-info.tq b/src/objects/scope-info.tq	(rejected hunks)
    function_kind: FunctionKind: 5 bit;
    has_outer_scope_info: bool: 1 bit;
    is_debug_evaluate_scope: bool: 1 bit;
-@@ -85,10 +88,13 @@ bitfield struct ScopeFlags extends uint32 {
-   some_context_has_extension: bool: 1 bit;
-   is_hidden: bool: 1 bit;
-   is_empty: bool: 1 bit;
-   is_wrapped_function: bool: 1 bit;
-   has_context_cells: bool: 1 bit;
-+  // Follow-up Processing
-+  // @if(OHOS_JS_ENGINE)
-+  // has_never_hide_base_std_hint: bool: 1 bit;  
- }
- 
- struct PositionInfo {
-   start: Smi;
-   end: Smi;
