@@ -534,6 +534,12 @@ void HeapAllocator::RetryCustomAllocateOrFail(
     CustomAllocationFunction allocate, AllocationType allocation,
     GarbageCollectionReason gc_reason) {
   if (RetryCustomAllocate(allocate, allocation, gc_reason)) return;
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+  heap_->InvokeOOMMonitorCallback("CALL_AND_RETRY_LAST", V8::kHeapOOM);
+#endif
+#ifdef OHOS_JS_ENGINE
+  heap_->InvokeJSVMOOMCallback("CALL_AND_RETRY_LAST");
+#endif
   V8::FatalProcessOutOfMemory(heap_->isolate(), "CALL_AND_RETRY_LAST",
                               V8::kHeapOOM);
 }

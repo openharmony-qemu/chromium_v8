@@ -6240,6 +6240,9 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
   date_cache_ = new DateCache();
   interpreter_ = new interpreter::Interpreter(this);
   bigint_processor_ = bigint::Processor::New(new BigIntPlatform(this));
+#ifdef OHOS_JS_ENGINE
+  enum_times_cache_ = new EnumTimesCache();
+#endif
 
   if (v8_flags.lazy_compile_dispatcher) {
     lazy_compile_dispatcher_ = std::make_unique<LazyCompileDispatcher>(
