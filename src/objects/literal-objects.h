@@ -134,6 +134,9 @@ V8_OBJECT class ArrayBoilerplateDescription : public Struct {
   friend class Factory;
   friend class TorqueGeneratedArrayBoilerplateDescriptionAsserts;
   friend class V8HeapExplorer;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+#endif
 
   const TaggedMember<Smi> flags_;
   const TaggedMember<FixedArrayBase> constant_elements_;

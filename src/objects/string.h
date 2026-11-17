@@ -1175,6 +1175,9 @@ V8_OBJECT class ThinString : public String {
   friend class compiler::AccessBuilder;
   friend class FullStringForwardingTableCleaner;
   friend class TorqueGeneratedThinStringAsserts;
+#ifdef OH_ENABLE_HEAP_TRANSLATE
+  friend class dfx::ObjectTranslator;
+#endif
 
   friend Tagged<String> String::GetUnderlying() const;
 
