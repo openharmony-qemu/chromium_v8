@@ -164,6 +164,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.Maglev.GraphBuilding");
       SYNCHRONIZATION_POINT("MaglevGraphBuilding");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.Maglev.GraphBuilding");
+#endif
       MaglevGraphBuilder graph_builder(
           local_isolate, compilation_info->toplevel_compilation_unit(), graph);
       if (!graph_builder.Build()) return false;
@@ -199,6 +202,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.Maglev.LoopOptimizations");
       SYNCHRONIZATION_POINT("MaglevLoopOptimizations");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.Maglev.LoopOptimizations");
+#endif
       GraphProcessor<LoopOptimizationProcessor> loop_optimizations(
           compilation_info);
       loop_optimizations.ProcessGraph(graph);
@@ -232,6 +238,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
     TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                 "V8.Maglev.DeadCodeMarking");
     SYNCHRONIZATION_POINT("MaglevDeadCodeMarking");
+#ifdef OHOS_JS_ENGINE
+    auto trace = HiTrace("RCS_v8.compile_V8.Maglev.DeadCodeMarking");
+#endif
     if (graph->may_have_unreachable_blocks()) {
       graph->RemoveUnreachableBlocks();
     }

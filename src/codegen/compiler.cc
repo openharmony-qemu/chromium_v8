@@ -4507,6 +4507,9 @@ Compiler::GetSharedFunctionInfoForStreamedScript(
       // Add compiled code to the isolate cache.
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.StreamingFinalization.AddToCache");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.StreamingFinalization.AddToCache");
+#endif
       compilation_cache->PutScript(source, task->flags().outer_language_mode(),
                                    result);
     }
@@ -4514,6 +4517,9 @@ Compiler::GetSharedFunctionInfoForStreamedScript(
 
   TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
               "V8.StreamingFinalization.Release");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.StreamingFinalization.Release");
+#endif
   streaming_data->Release();
   return maybe_result;
 }  // namespace internal

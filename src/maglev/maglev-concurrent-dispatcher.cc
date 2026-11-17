@@ -414,6 +414,9 @@ void MaglevConcurrentDispatcher::FinalizeFinishedJobs() {
     } else {
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.MaglevDestruct",
                   perfetto::TerminatingFlow::ProcessScoped(job->trace_id()));
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.MaglevDestruct");
+#endif
       job.reset();
     }
   }

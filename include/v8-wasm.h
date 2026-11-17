@@ -120,6 +120,20 @@ class V8_EXPORT JSVM_EXPORT WasmModuleObject : public Object {
    */
   CompiledWasmModule GetCompiledModule();
 
+#ifdef OHOS_JS_ENGINE
+  /**
+   * Compile a Wasm function of the specified index with the specified tier.
+   */
+  bool CompileFunction(Isolate* isolate, uint32_t function_index,
+                       WasmExecutionTier tier);
+
+  /**
+   * Deserialize or compile Wasm module.
+   */
+  static MaybeLocal<WasmModuleObject> DeserializeOrCompile(
+      Isolate* isolate, MemorySpan<const uint8_t> wire_bytes,
+      MemorySpan<const uint8_t> wasm_cache, bool& cacheRejected);
+#endif
   /**
    * Options that influence how a Wasm module is compiled. The compile-time
    * import options mirror those accepted by the JS `WebAssembly.Module`
