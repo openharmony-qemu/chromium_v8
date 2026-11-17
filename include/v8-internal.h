@@ -332,7 +332,7 @@ constexpr bool kRequiresTypedArrayAccessMasks =
 
 #ifdef V8_COMPRESS_POINTERS
 
-#ifdef V8_TARGET_OS_ANDROID
+#if defined(V8_TARGET_OS_ANDROID) || defined(V8_TARGET_OS_OHOS)
 // The size of the virtual memory reservation for an external pointer table.
 // This determines the maximum number of entries in a table. Using a maximum
 // size allows omitting bounds checks on table accesses if the indices are
