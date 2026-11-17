@@ -584,6 +584,9 @@ void TieringManager::NotifyICChanged(Tagged<FeedbackVector> vector) {
 TieringManager::OnInterruptTickScope::OnInterruptTickScope() {
   TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
               "V8.MarkCandidatesForOptimization");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.MarkCandidatesForOptimization");
+#endif
 }
 
 void TieringManager::OnInterruptTick(DirectHandle<JSFunction> function,

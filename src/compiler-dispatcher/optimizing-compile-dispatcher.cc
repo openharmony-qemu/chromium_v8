@@ -153,6 +153,9 @@ void OptimizingCompileTaskExecutor::RunCompilationJob(
     LocalIsolate& local_isolate, TurbofanCompilationJob* job) {
   TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.OptimizeBackground",
               perfetto::Flow::ProcessScoped(job->trace_id()));
+#ifdef OHOS_JS_ENGINE
+        auto trace = HiTrace("RCS_v8.compile_V8.OptimizeBackground");
+#endif
   TimerEventScope<TimerEventRecompileConcurrent> timer(isolate);
 
   if (recompilation_delay_ != 0) {
