@@ -7431,6 +7431,38 @@ v8_cluster_source_set("v8_base_without_compiler") {
     sources += [ "src/extensions/vtunedomain-support-extension.cc" ]
     deps += [ "third_party/vtune:v8_vtune_trace_mark" ]
   }
+
+  if (v8_enable_ohos_js_engine) {
+    sources += [
+      "//arkweb/chromium_ext/v8/dfx/heap_profiler/dfx-heap-profiler.cc"
+    ]
+  }
+  if (is_arkweb && v8_ohos_enable_heapdump && enable_heap_dump) {
+    sources += [
+      "//arkweb/chromium_ext/v8/dfx/heap_profiler/heap-profile.h",
+      "//arkweb/chromium_ext/v8/dfx/heap_profiler/heap-profile.cc",
+      "//arkweb/chromium_ext/v8/dfx/heap_profiler/stream-utils.h",
+      "//arkweb/chromium_ext/v8/dfx/heap_profiler/stream-utils.cc",
+    ]
+  }
+  if (v8_ohos_enable_heapdump) {
+    sources += heap_dump_base_source
+    if (enable_heap_dump) {
+      sources += heap_dump_source
+    }
+    if (enable_heap_dump_translate) {
+      sources += heap_dump_translator_source
+    }
+    if (enable_heap_dump_test) {
+      sources += heap_dump_ut_include
+    }
+  }
+
+  if (v8_enable_oom_repoter) {
+    sources += [
+      "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.cc",
+    ]
+  }
 }
 
 group("v8_base") {
@@ -7438,6 +7470,10 @@ group("v8_base") {
     ":v8_base_without_compiler",
     ":v8_compiler",
   ]
+
+  if(is_component_build) {
+    deps = [ "//base" ]
+  }
 }
 
 v8_source_set("torque_base") {
