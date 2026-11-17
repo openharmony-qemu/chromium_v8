@@ -224,18 +224,6 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    }
  
    if (v8_enable_temporal_support) {
-@@ -5827,10 +6012,11 @@ v8_source_set("v8_base_without_compiler") {
-     "src/logging/log-file.cc",
-     "src/logging/log.cc",
-     "src/logging/metrics.cc",
-     "src/logging/runtime-call-stats.cc",
-     "src/logging/tracing-flags.cc",
-+    "//arkweb/chromium_ext/v8/ohlog.cc",
-     "src/numbers/conversions.cc",
-     "src/numbers/ieee754.cc",
-     "src/numbers/math-random.cc",
-     "src/objects/abstract-code.cc",
-     "src/objects/backing-store.cc",
 @@ -6055,10 +6241,16 @@ v8_source_set("v8_base_without_compiler") {
  
    if (v8_enable_snapshot_compression) {
@@ -346,30 +334,3 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      # the :external_config applied to it by virtue of depending on :v8, and
      # you can't have both applied to the same target.
      ":internal_config_base",
-@@ -8495,10 +8829,26 @@ if (!build_with_chromium && v8_use_perfetto) {
-       "//third_party/perfetto/src/tracing:client_api",
-     ]
-   }
- }  # if (!build_with_chromium && v8_use_perfetto)
- 
-+action("copy_v8_include") {
-+  script = "//arkweb/chromium_ext/v8/cp_v8_include.py"
-+  report_file = "$target_gen_dir/v8-include.txt"
-+  outputs = [ report_file ]
-+}
-+
-+v8_shared_library("v8_shared") {
-+  public_deps = [
-+    ":v8_base",
-+    ":v8_snapshot",
-+    ":copy_v8_include",
-+  ]
-+
-+  public_configs = [ ":external_config" ]
-+}
-+
- # GN evaluates each .gn file once per toolchain, so restricting to default
- # toolchain will ensure write_file() is called only once.
- if (current_toolchain == default_toolchain) {
-   import("//build/gn_logs.gni")
- 

@@ -6611,6 +6611,7 @@ v8_cluster_source_set("v8_base_without_compiler") {
     "src/logging/metrics.cc",
     "src/logging/runtime-call-stats.cc",
     "src/logging/tracing-flags.cc",
+    "//arkweb/chromium_ext/v8/ohlog.cc",
     "src/numbers/conversions.cc",
     "src/numbers/hash-seed.cc",
     "src/numbers/ieee754.cc",
@@ -9564,6 +9565,22 @@ if (v8_fuzzilli) {
       ":v8_libbase",
     ]
   }
+}
+
+action("copy_v8_include") {
+  script = "//arkweb/chromium_ext/v8/cp_v8_include.py"
+  report_file = "$target_gen_dir/v8-include.txt"
+  outputs = [ report_file ]
+}
+
+v8_shared_library("v8_shared") {
+  public_deps = [
+    ":v8_base",
+    ":v8_snapshot",
+    ":copy_v8_include",
+  ]
+
+  public_configs = [ ":external_config" ]
 }
 
 # GN evaluates each .gn file once per toolchain, so restricting to default
