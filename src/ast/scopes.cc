@@ -395,6 +395,9 @@ void Scope::SetDefaults() {
            HasContextCellsField::encode(has_context_cells) |
            IsHoistedInContextField::encode(false);
 
+#ifdef OHOS_JS_ENGINE
+  has_never_hide_base_std_hint_ = false;
+#endif
   num_stack_slots_ = 0;
   num_heap_slots_ = 0;
 

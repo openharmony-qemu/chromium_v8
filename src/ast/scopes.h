@@ -408,6 +408,13 @@ class V8_EXPORT_PRIVATE Scope : public NON_EXPORTED_BASE(ZoneObject) {
     return HasAwaitUsingDeclarationField::decode(flags_);
   }
 
+#ifdef OHOS_JS_ENGINE
+  void set_has_never_hide_base_std_hint() {
+    has_never_hide_base_std_hint_ = true;
+  }
+  bool has_never_hide_base_std_hint() { return has_never_hide_base_std_hint_; }
+#endif
+
   bool has_context_cells() const {
     return HasContextCellsField::decode(flags_);
   }
@@ -945,6 +952,10 @@ class V8_EXPORT_PRIVATE Scope : public NON_EXPORTED_BASE(ZoneObject) {
   using IsHoistedInContextField = HasContextCellsField::Next<bool, 1>;
   using LastScopeField = IsHoistedInContextField;
 
+#ifdef OHOS_JS_ENGINE
+  // True if the with scope has @optNeverHideBaseStd compile hint.
+  bool has_never_hide_base_std_hint_ : 1;
+#endif
   uint32_t flags_;
 };
 
