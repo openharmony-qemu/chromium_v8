@@ -150,6 +150,18 @@
 // Has to be the last include (doesn't have include guards):
 #include "src/objects/object-macros.h"
 
+#ifdef OH_ENABLE_RESTRACE
+#include "../../../arkweb/chromium_ext/v8/restrace.h"
+#endif
+
+#if defined(OH_ENABLE_HEAP_DUMP) && defined(USING_OHOS)
+#include "arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.h"
+#endif
+
+#ifdef V8_ENABLE_OHOS_OOM_MONITOR
+#include "arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h"
+#endif
+
 namespace v8::internal {
 
 class Heap::AllocationTrackerForDebugging final
