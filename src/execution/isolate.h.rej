@@ -11,19 +11,3 @@ diff a/src/execution/isolate.h b/src/execution/isolate.h	(rejected hunks)
  #include <memory>
  #include <optional>
  #include <queue>
-@@ -2066,10 +2133,15 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
-   bool interpreted_frames_native_stack() const {
-     return v8_flags.interpreted_frames_native_stack;
-   }
- #endif  // V8_ENABLE_ETW_STACK_WALKING
- 
-+#if defined(OHOS_MEM_USAGE_REPORT)
-+  void SetMURCallback(MURCallback callback);
-+  bool RunMURCallback(int id);
-+#endif  // OHOS_MEM_USAGE_REPORT
-+
-   void SetIsLoading(bool is_loading);
- 
-   void set_code_coverage_mode(debug::CoverageMode coverage_mode) {
-     code_coverage_mode_.store(coverage_mode, std::memory_order_relaxed);
-   }
