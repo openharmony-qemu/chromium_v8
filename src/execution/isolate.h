@@ -2237,6 +2237,11 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   }
 #endif  // V8_ENABLE_ETW_STACK_WALKING
 
+#if defined(OHOS_MEM_USAGE_REPORT)
+  void SetMURCallback(MURCallback callback);
+  bool RunMURCallback(int id);
+#endif  // OHOS_MEM_USAGE_REPORT
+
   void SetIsLoading(bool is_loading);
   void SetIsInputHandling(bool is_input_handling);
 
