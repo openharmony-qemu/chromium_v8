@@ -1274,6 +1274,10 @@ MaybeHandle<Code> CompileMaglev(Isolate* isolate, Handle<JSFunction> function,
                                            ? "V8.MaglevPrepare"
                                            : "V8.MaglevConcurrentPrepare"),
                 perfetto::Flow::ProcessScoped(job->trace_id()));
+#ifdef OHOS_JS_ENGINE
+    auto trace = HiTrace(IsSynchronous(mode) ? "RCS_v8.compile_V8.MaglevPrepare" :
+                                               "RCS_v8.compile_V8.MaglevConcurrentPrepare");
+#endif
     CompilerTracer::TraceStartMaglevCompile(isolate, function, job->is_osr(),
                                             mode);
     CompilationJob::Status status = job->PrepareJob(isolate);
