@@ -631,6 +631,7 @@ class WeakArrayList
   // TODO(jgruber): Remove this once it's no longer needed for compatibility
   // with WeakFixedArray.
   inline Tagged<MaybeObject> get(int index) const;
+  inline Tagged<MaybeObject> get(int index, AcquireLoadTag) const;
 
   // Set the element at index to obj. The underlying array must be large enough.
   // If you need to grow the WeakArrayList, use the static AddToEnd() method
@@ -638,6 +639,8 @@ class WeakArrayList
   inline void Set(int index, Tagged<MaybeObject> value,
                   WriteBarrierMode mode = UPDATE_WRITE_BARRIER);
   inline void Set(int index, Tagged<Smi> value);
+  inline void set(int index, Tagged<MaybeObject> value, ReleaseStoreTag,
+                  WriteBarrierMode mode = UPDATE_WRITE_BARRIER);
 
   using TorqueGeneratedWeakArrayList<WeakArrayList, HeapObject>::capacity;
   inline int capacity(RelaxedLoadTag) const;
