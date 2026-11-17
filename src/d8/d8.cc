@@ -8285,6 +8285,11 @@ int Shell::Main(int argc, char* argv[]) {
   }
 #endif  // V8_ENABLE_HARDWARE_WATCHPOINT_SUPPORT
 
+#if (defined(OH_ENABLE_HEAP_TRANSLATE) || defined(OH_ENABLE_HEAP_DUMP_TEST))
+  if (options.translate_path) {
+    return RunTranslateOnce(options);
+  }
+#endif
   if (!i::v8_flags.fuzzing) d8_install_sigterm_handler();
 
   base::FlushDenormalsScope denormals_scope(options.flush_denormals);
