@@ -526,6 +526,12 @@ void MicrotaskQueueBuiltinsAssembler::RunSingleMicrotask(
   Unreachable();
 
   BIND(&done);
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+  {
+    CallRuntime(Runtime::kClearAsyncTraceOfMicrotask, GetCurrentContext(),
+              microtask);
+  }
+#endif
   {
 #ifdef V8_ENABLE_CONTINUATION_PRESERVED_EMBEDDER_DATA
     ClearContinuationPreservedEmbedderData();

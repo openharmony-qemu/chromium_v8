@@ -28,6 +28,21 @@
 #include <sys/mman.h>
 #endif
 
+#ifdef OH_ENABLE_RESTRACE
+#include "../../../arkweb/chromium_ext/v8/restrace.h"
+#endif
+
+#if V8_OS_LINUX
+#include <sys/prctl.h>  // for prctl
+#endif
+
+#ifdef USING_OHOS
+#define MEMTAG_PREFIX "JSVM_V8_HEAP_"
+#endif
+#ifdef USING_OHOS_WEB
+#define MEMTAG_PREFIX "JS_V8_HEAP_"
+#endif
+
 namespace v8::internal {
 
 size_t MemoryAllocator::commit_page_size_ = 0;
