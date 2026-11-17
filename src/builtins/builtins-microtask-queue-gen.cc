@@ -215,6 +215,11 @@ void MicrotaskQueueBuiltinsAssembler::RunSingleMicrotask(
                           &is_promise_resolve_thenable_job,
                           &is_async_resume};
   static_assert(arraysize(case_values) == arraysize(case_labels), "");
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+  CallRuntime(Runtime::kSetAsyncTraceOfMicrotask, GetCurrentContext(),
+              microtask);
+  // Jump to excute mocrotask.
+#endif
   Switch(microtask_type, &is_unreachable, case_values, case_labels,
          arraysize(case_labels));
 
