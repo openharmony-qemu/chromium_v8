@@ -96,17 +96,3 @@ diff a/src/maglev/maglev-compiler.cc b/src/maglev/maglev-compiler.cc	(rejected h
          std::make_unique<MaglevCodeGenerator>(local_isolate, compilation_info,
                                                graph);
      bool success = code_generator->Assemble();
-@@ -237,10 +262,13 @@ std::pair<MaybeHandle<Code>, BailoutReason> MaglevCompiler::GenerateCode(
-     if (compilation_info->has_graph_labeller()) {
-       current_thread_graph_labeller.emplace(compilation_info->graph_labeller());
-     }
-     TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
-                  "V8.Maglev.CodeGeneration");
-+#ifdef OHOS_JS_ENGINE
-+    auto trace = HiTrace("RCS_v8.compile_V8.Maglev.CodeGeneration");
-+#endif
-     if (compilation_info->is_detached() ||
-         !code_generator->Generate(isolate).ToHandle(&code)) {
-       compilation_info->toplevel_compilation_unit()
-           ->shared_function_info()
-           .object()

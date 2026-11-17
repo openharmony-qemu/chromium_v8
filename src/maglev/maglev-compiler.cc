@@ -334,6 +334,9 @@ std::pair<MaybeHandle<Code>, BailoutReason> MaglevCompiler::GenerateCode(
     TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                 "V8.Maglev.CodeGeneration");
     SYNCHRONIZATION_POINT("MaglevCodeGeneration");
+#ifdef OHOS_JS_ENGINE
+    auto trace = HiTrace("RCS_v8.compile_V8.Maglev.CodeGeneration");
+#endif
     if (compilation_info->is_detached() ||
         !code_generator->Generate(isolate).ToHandle(&code)) {
       compilation_info->toplevel_compilation_unit()
