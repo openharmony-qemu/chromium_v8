@@ -31,6 +31,11 @@
 
 #include "src/builtins/builtins-iterator-inl.h"
 
+#ifdef V8_ENABLE_OHOS_ASYNC_STACK
+#include "src/objects/promise-inl.h"
+#include "../../../arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h"
+#endif // V8_ENABLE_OHOS_ASYNC_STACK
+
 namespace v8 {
 namespace internal {
 
