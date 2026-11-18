@@ -42,6 +42,11 @@ void* BoundedPageAllocator::AllocatePages(size_t size, size_t alignment,
   DCHECK(IsAligned(alignment, region_allocator_.page_size()));
   DCHECK(IsAligned(alignment, allocate_page_size_));
 
+  if (size == 0 || size > region_allocator_.size()) {
+    allocation_status_ = AllocationStatus::kRanOutOfReservation;
+    return nullptr;
+  }
+
   Address address = RegionAllocator::kAllocationFailure;
 
   Address hint_address = reinterpret_cast<Address>(hint.Address());
@@ -101,9 +106,13 @@ bool BoundedPageAllocator::AllocatePagesAt(Address address, size_t size,
                                            PageAllocator::Permission access) {
   MutexGuard guard(&mutex_);
 
+  if (size == 0 || size > region_allocator_.size()) {
+    allocation_status_ = AllocationStatus::kHintedAddressTakenOrNotFound;
+    return false;
+  }
+
   DCHECK(IsAligned(address, allocate_page_size_));
   DCHECK(IsAligned(size, allocate_page_size_));
-
   DCHECK(region_allocator_.contains(address, size));
 
   if (!region_allocator_.AllocateRegionAt(address, size)) {
@@ -132,7 +141,7 @@ bool BoundedPageAllocator::ResizeAllocationAt(
   DCHECK(IsAligned(old_size, commit_page_size_));
   DCHECK(IsAligned(new_size, commit_page_size_));
 
-  if (new_size < old_size) {
+  if (new_size < old_size || new_size > region_allocator_.size()) {
     // Shrinking is not supported at the moment.
     return false;
   } else if (new_size == old_size) {
@@ -173,6 +182,11 @@ bool BoundedPageAllocator::ReserveForSharedMemoryMapping(void* ptr,
                                                          size_t size) {
   MutexGuard guard(&mutex_);
 
+  if (size == 0 || size > region_allocator_.size()) {
+    allocation_status_ = AllocationStatus::kHintedAddressTakenOrNotFound;
+    return false;
+  }
+
   Address address = reinterpret_cast<Address>(ptr);
   DCHECK(IsAligned(address, allocate_page_size_));
   DCHECK(IsAligned(size, commit_page_size_));
@@ -199,6 +213,10 @@ bool BoundedPageAllocator::ReserveForSharedMemoryMapping(void* ptr,
 }
 
 bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
+  if (size == 0 || size > region_allocator_.size()) {
+    return false;
+  }
+
   // Careful: we are not locked here, do not touch BoundedPageAllocator
   // metadata.
   bool success;
@@ -239,6 +257,10 @@ bool BoundedPageAllocator::FreePages(void* raw_address, size_t size) {
 
 bool BoundedPageAllocator::ReleasePages(void* raw_address, size_t size,
                                         size_t new_size) {
+  if (size == 0 || new_size >= size || size > region_allocator_.size()) {
+    return false;
+  }
+
   Address address = reinterpret_cast<Address>(raw_address);
   DCHECK(IsAligned(address, allocate_page_size_));
 

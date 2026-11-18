@@ -17,11 +17,13 @@
 #include "src/heap/combined-heap.h"
 #include "src/heap/factory.h"
 #include "src/objects/backing-store.h"
+#include "src/objects/contexts.h"
 #include "src/objects/foreign.h"
 #include "src/objects/instance-type.h"
 #include "src/objects/js-array-buffer.h"
 #include "src/objects/js-objects.h"
 #include "src/objects/literal-objects.h"
+#include "src/objects/scope-info.h"
 #include "src/objects/tagged-field-inl.h"
 #include "src/objects/templates.h"
 #include "src/sandbox/sandbox.h"
@@ -1178,6 +1180,12 @@ SandboxTesting::InstanceTypeMap& SandboxTesting::GetInstanceTypeMap() {
     types["PROMISE_REACTION"] = PROMISE_REACTION_TYPE;
     types["JS_FUNCTION"] = JS_FUNCTION_TYPE;
     types["SHARED_FUNCTION_INFO"] = SHARED_FUNCTION_INFO_TYPE;
+    for (std::underlying_type_t<InstanceType> context_type = FIRST_CONTEXT_TYPE;
+         context_type <= LAST_CONTEXT_TYPE; ++context_type) {
+      InstanceType instance_type = static_cast<InstanceType>(context_type);
+      types[ToString(instance_type)] = instance_type;
+    }
+    types["SCOPE_INFO_TYPE"] = SCOPE_INFO_TYPE;
     types["MAP_TYPE"] = MAP_TYPE;
     types["CLASS_BOILERPLATE_TYPE"] = CLASS_BOILERPLATE_TYPE;
 #ifdef V8_ENABLE_WEBASSEMBLY
@@ -1206,6 +1214,7 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
     fields[JS_ARRAY_BUFFER_TYPE]["extension"] = JSArrayBuffer::kExtensionOffset;
     fields[JS_FUNCTION_TYPE]["dispatch_handle"] =
         JSFunction::kDispatchHandleOffset;
+    fields[JS_FUNCTION_TYPE]["context"] = JSFunction::kContextOffset;
     fields[JS_FUNCTION_TYPE]["shared_function_info"] =
         JSFunction::kSharedFunctionInfoOffset;
     fields[JS_BOUND_FUNCTION_TYPE]["bound_arguments"] =
@@ -1240,6 +1249,17 @@ SandboxTesting::FieldOffsetMap& SandboxTesting::GetFieldOffsetMap() {
     fields[FREE_SPACE_TYPE]["size_in_tagged"] =
         offsetof(FreeSpace, size_in_tagged_);
     fields[FREE_SPACE_TYPE]["next"] = offsetof(FreeSpace, next_);
+    for (std::underlying_type_t<InstanceType> context_type = FIRST_CONTEXT_TYPE;
+         context_type <= LAST_CONTEXT_TYPE; ++context_type) {
+      InstanceType instance_type = static_cast<InstanceType>(context_type);
+      fields[instance_type]["scope_info"] = Context::kScopeInfoOffset;
+      fields[instance_type]["previous"] = Context::kPreviousOffset;
+    }
+    fields[SCOPE_INFO_TYPE]["flags"] = ScopeInfo::kFlagsOffset;
+    fields[SCOPE_INFO_TYPE]["parameter_count"] =
+        ScopeInfo::kParameterCountOffset;
+    fields[SCOPE_INFO_TYPE]["context_local_count"] =
+        ScopeInfo::kContextLocalCountOffset;
     fields[SHARED_FUNCTION_INFO_TYPE]["trusted_function_data"] =
         SharedFunctionInfo::kTrustedFunctionDataOffset;
     fields[SHARED_FUNCTION_INFO_TYPE]["length"] =

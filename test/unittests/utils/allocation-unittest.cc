@@ -12,6 +12,8 @@
 #include <unistd.h>
 #endif  // V8_OS_POSIX
 
+#include <limits>
+
 #include "testing/gtest/include/gtest/gtest.h"
 
 namespace v8 {
@@ -231,6 +233,52 @@ TEST_F(AllocationTest, ResizeMemory) {
   // Growing the allocation back again should still result in zero-initialized
   // memory.
   CHECK_EQ(*byte_address, 0);
+}
+
+TEST_F(AllocationTest, BoundedPageAllocatorInvalidSizes) {
+  v8::PageAllocator* page_allocator = v8::internal::GetPlatformPageAllocator();
+  constexpr size_t kReservationSize = 10 * PageMetadata::kPageSize;
+
+  VirtualMemory reservation(
+      page_allocator, kReservationSize, v8::PageAllocator::AllocationHint(),
+      PageMetadata::kPageSize, PageAllocator::Permission::kReadWrite);
+
+  base::BoundedPageAllocator bpa(
+      page_allocator, reservation.address(), kReservationSize,
+      PageMetadata::kPageSize,
+      base::PageInitializationMode::kAllocatedPagesMustBeZeroInitialized,
+      base::PageFreeingMode::kMakeInaccessible);
+
+  const size_t invalid_sizes[] = {
+      0, kReservationSize + PageMetadata::kPageSize,
+      std::numeric_limits<size_t>::max(),
+      static_cast<size_t>(-static_cast<intptr_t>(PageMetadata::kPageSize))};
+
+  for (size_t invalid_size : invalid_sizes) {
+    CHECK_NULL(bpa.AllocatePages(nullptr, invalid_size, PageMetadata::kPageSize,
+                                 PageAllocator::Permission::kReadWrite));
+    CHECK(!bpa.AllocatePagesAt(bpa.begin(), invalid_size,
+                               PageAllocator::Permission::kReadWrite));
+    CHECK(!bpa.ReserveForSharedMemoryMapping(
+        reinterpret_cast<void*>(bpa.begin()), invalid_size));
+    CHECK(!bpa.FreePages(reinterpret_cast<void*>(bpa.begin()), invalid_size));
+    CHECK(!bpa.ReleasePages(reinterpret_cast<void*>(bpa.begin()), invalid_size,
+                            0));
+  }
+
+  // ReleasePages with new_size >= size should fail gracefully.
+  CHECK(!bpa.ReleasePages(reinterpret_cast<void*>(bpa.begin()),
+                          PageMetadata::kPageSize, PageMetadata::kPageSize));
+  CHECK(!bpa.ReleasePages(reinterpret_cast<void*>(bpa.begin()),
+                          PageMetadata::kPageSize,
+                          2 * PageMetadata::kPageSize));
+
+  // The allocator should remain fully functional and uncorrupted.
+  void* allocated = bpa.AllocatePages(nullptr, PageMetadata::kPageSize,
+                                      PageMetadata::kPageSize,
+                                      PageAllocator::Permission::kReadWrite);
+  CHECK_NOT_NULL(allocated);
+  CHECK(bpa.FreePages(allocated, PageMetadata::kPageSize));
 }
 }  // namespace internal
 }  // namespace v8
