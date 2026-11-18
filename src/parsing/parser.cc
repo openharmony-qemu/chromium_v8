@@ -3122,6 +3122,9 @@ bool Parser::SkipFunction(int function_literal_id,
   // With no cached data, we partially parse the function, without building an
   // AST. This gathers the data needed to build a lazy function.
   TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.PreParse");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.PreParse");
+#endif
 
   reusable_preparser()->set_max_drift(this->max_drift());
   PreParser::PreParseResult result = reusable_preparser()->PreParseFunction(

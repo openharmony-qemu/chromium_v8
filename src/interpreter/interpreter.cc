@@ -179,6 +179,9 @@ InterpreterCompilationJob::Status InterpreterCompilationJob::ExecuteJobImpl() {
             RuntimeCallStats::kThreadSpecific);
   // TODO(lpy): add support for background compilation RCS trace.
   TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"), "V8.CompileIgnition");
+#ifdef OHOS_JS_ENGINE
+  auto trace = HiTrace("RCS_v8.compile_V8.CompileIgnition");
+#endif
 
   // Print AST if flag is enabled. Note, if compiling on a background thread
   // then ASTs from different functions may be intersperse when printed.
