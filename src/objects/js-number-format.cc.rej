@@ -26,19 +26,6 @@ diff a/src/objects/js-number-format.cc b/src/objects/js-number-format.cc	(reject
  }  // namespace
  
  bool IntlMathematicalValue::IsNaN() const { return i::IsNaN(*value_); }
-@@ -1528,11 +1527,11 @@ MaybeHandle<String> IntlMathematicalValue::ToString(Isolate* isolate) const {
- }
- 
- namespace {
- Maybe<icu::number::FormattedNumber> IcuFormatNumber(
-     Isolate* isolate,
--    const icu::number::LocalizedNumberFormatter& number_format,
-+    std::shared_ptr<icu::number::LocalizedNumberFormatter> lfmt,
-     Handle<Object> numeric_obj) {
-   icu::number::FormattedNumber formatted;
-   // If it is BigInt, handle it differently.
-   UErrorCode status = U_ZERO_ERROR;
-   if (IsBigInt(*numeric_obj)) {
 @@ -1558,25 +1557,24 @@ Maybe<icu::number::FormattedNumber> IcuFormatNumber(
        const String::FlatContent& flat = string->GetFlatContent(no_gc);
        int32_t length = SignedStringLength(string);
@@ -69,35 +56,6 @@ diff a/src/objects/js-number-format.cc b/src/objects/js-number-format.cc	(reject
    if (U_FAILURE(status)) {
      // This happen because of icu data trimming trim out "unit".
      // See https://bugs.chromium.org/p/v8/issues/detail?id=8641
-@@ -1587,25 +1585,25 @@ Maybe<icu::number::FormattedNumber> IcuFormatNumber(
- 
- }  // namespace
- 
- Maybe<icu::number::FormattedNumber> IntlMathematicalValue::FormatNumeric(
-     Isolate* isolate,
--    const icu::number::LocalizedNumberFormatter& number_format,
-+    std::shared_ptr<icu::number::LocalizedNumberFormatter> lfmt,
-     const IntlMathematicalValue& x) {
-   if (IsString(*x.value_)) {
-     Handle<String> string;
-     ASSIGN_RETURN_ON_EXCEPTION(isolate, string, x.ToString(isolate));
-     UErrorCode status = U_ZERO_ERROR;
-     icu::number::FormattedNumber result =
--        FormatDecimalString(isolate, number_format, string, status);
-+        FormatDecimalString(isolate, std::move(lfmt), string, status);
-     if (U_FAILURE(status)) {
-       THROW_NEW_ERROR(isolate, NewTypeError(MessageTemplate::kIcuError));
-     }
-     return Just(std::move(result));
-   }
-   CHECK(IsNumber(*x.value_) || IsBigInt(*x.value_));
--  return IcuFormatNumber(isolate, number_format, x.value_);
-+  return IcuFormatNumber(isolate, std::move(lfmt), x.value_);
- }
- 
- Maybe<icu::number::FormattedNumberRange> IntlMathematicalValue::FormatRange(
-     Isolate* isolate,
-     const icu::number::LocalizedNumberRangeFormatter& number_range_format,
 @@ -1993,14 +1991,14 @@ Maybe<int> Intl::AddNumberElements(Isolate* isolate,
  }
  
