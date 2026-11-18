@@ -287,6 +287,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
     {
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.Maglev.RegisterAllocation");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.Maglev.RegisterAllocation");
+#endif
       SYNCHRONIZATION_POINT("MaglevRegisterAllocation");
       StraightForwardRegisterAllocator allocator(compilation_info, graph,
                                                  &regalloc_info);
@@ -312,6 +315,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
   {
     TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                 "V8.Maglev.CodeAssembly");
+#ifdef OHOS_JS_ENGINE
+    auto trace = HiTrace("RCS_v8.compile_V8.Maglev.CodeAssembly");
+#endif
     SYNCHRONIZATION_POINT("MaglevCodeAssembly");
     compiler::UnparkedScopeIfNeeded unparked_scope(local_isolate);
     std::unique_ptr<MaglevCodeGenerator> code_generator =
