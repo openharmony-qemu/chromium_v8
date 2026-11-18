@@ -86,8 +86,11 @@ TF_BUILTIN(DebugBreakTrampoline, CodeStubAssembler) {
 #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
   auto dispatch_handle =
       UncheckedParameter<JSDispatchHandleT>(Descriptor::kJSDispatchHandle);
+  TNode<Uint16T> expected_parameter_count =
+      LoadParameterCountFromJSDispatchTable(dispatch_handle);
 #else
   auto dispatch_handle = InvalidDispatchHandleConstant();
+  TNode<Uint16T> expected_parameter_count = Uint16Constant(0);
 #endif
   auto function = Parameter<JSFunction>(Descriptor::kJSTarget);
 
@@ -114,7 +117,7 @@ TF_BUILTIN(DebugBreakTrampoline, CodeStubAssembler) {
   // TailCallJSCode will take care of parameter count validation between the
   // code and dispatch handle.
   TailCallJSCode(code, context, function, new_target, arg_count,
-                 dispatch_handle);
+                 dispatch_handle, expected_parameter_count);
 }
 
 class WriteBarrierCodeStubAssembler : public CodeStubAssembler {
@@ -1637,9 +1640,12 @@ TF_BUILTIN(InstantiateAsmJs, JSTrampolineAssembler) {
 #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
   auto dispatch_handle =
       UncheckedParameter<JSDispatchHandleT>(Descriptor::kDispatchHandle);
+  TNode<Uint16T> expected_parameter_count =
+      LoadParameterCountFromJSDispatchTable(dispatch_handle);
 #else
   TNode<JSDispatchHandleT> dispatch_handle = ReinterpretCast<JSDispatchHandleT>(
       LoadJSFunctionDispatchHandle(function));
+  TNode<Uint16T> expected_parameter_count = Uint16Constant(0);
 #endif
 
   // This builtin is used on functions with different parameter counts.
@@ -1668,7 +1674,7 @@ TF_BUILTIN(InstantiateAsmJs, JSTrampolineAssembler) {
       this,
       Word32Equal(DynamicJSParameterCount(),
                   LoadParameterCountFromJSDispatchTable(dispatch_handle)));
-  TailCallJSFunction(function);
+  TailCallJSFunction(function, expected_parameter_count);
 }
 
 TF_BUILTIN(FindNonDefaultConstructorOrConstruct, CodeStubAssembler) {

@@ -1008,6 +1008,36 @@ void MacroAssembler::LoadEntrypointAndParameterCountFromJSDispatchTable(
                                    JSDispatchEntry::kCodeObjectOffset));
 }
 
+void MacroAssembler::PushDispatchHandle(Register dispatch_handle,
+                                        Register scratch) {
+  DCHECK(!AreAliased(dispatch_handle, scratch, kScratchRegister));
+#ifdef V8_ENABLE_SANDBOX
+  AssertZeroExtended(dispatch_handle);
+  andl(dispatch_handle, Immediate(~((1 << kJSDispatchHandleShift) - 1)));
+  LoadParameterCountFromJSDispatchTable(scratch, dispatch_handle);
+  shlq(scratch, Immediate(32));
+  orq(dispatch_handle, scratch);
+#endif
+  Push(dispatch_handle);
+  // No need to SmiTag since dispatch handles always look like Smis.
+  static_assert(kJSDispatchHandleShift > 0);
+  AssertSmi(dispatch_handle);
+}
+
+void MacroAssembler::PopDispatchHandle(Register dispatch_handle,
+                                       Register scratch) {
+  DCHECK(!AreAliased(dispatch_handle, scratch, kScratchRegister));
+  Pop(dispatch_handle);
+#ifdef V8_ENABLE_SANDBOX
+  LoadParameterCountFromJSDispatchTable(scratch, dispatch_handle);
+  movq(kScratchRegister, dispatch_handle);
+  shrq(kScratchRegister, Immediate(32));
+  movl(dispatch_handle, dispatch_handle);
+  cmpq(scratch, kScratchRegister);
+  SbxCheck(equal, AbortReason::kJSSignatureMismatch);
+#endif
+}
+
 void MacroAssembler::LoadProtectedPointerField(Register destination,
                                                Operand field_operand) {
   DCHECK(root_array_available());
@@ -1483,10 +1513,7 @@ void MacroAssembler::GenerateTailCallToReturnedCode(
     SmiTag(kJavaScriptCallArgCountRegister);
     Push(kJavaScriptCallArgCountRegister);
 #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
-    // No need to SmiTag since dispatch handles always look like Smis.
-    static_assert(kJSDispatchHandleShift > 0);
-    AssertSmi(kJavaScriptCallDispatchHandleRegister);
-    Push(kJavaScriptCallDispatchHandleRegister);
+    PushDispatchHandle(kJavaScriptCallDispatchHandleRegister, rcx);
 #endif
     // Function is also the parameter to the runtime call.
     Push(kJavaScriptCallTargetRegister);
@@ -1496,7 +1523,7 @@ void MacroAssembler::GenerateTailCallToReturnedCode(
     // Restore target function, new target, actual argument count, and dispatch
     // handle.
 #ifdef V8_JS_LINKAGE_INCLUDES_DISPATCH_HANDLE
-    Pop(kJavaScriptCallDispatchHandleRegister);
+    PopDispatchHandle(kJavaScriptCallDispatchHandleRegister, rcx);
 #endif
     Pop(kJavaScriptCallArgCountRegister);
     SmiUntagUnsigned(kJavaScriptCallArgCountRegister);
