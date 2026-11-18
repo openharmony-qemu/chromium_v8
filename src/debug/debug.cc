@@ -2745,6 +2745,7 @@ void Debug::OnDebugBreak(DirectHandle<FixedArray> break_points_hit,
   }
   {
     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
     if (lastStepAction != StepAction::StepNone) {
       break_reasons.Add(debug::BreakReason::kStep);
     }
@@ -2914,6 +2915,7 @@ void Debug::ProcessCompileEvent(bool has_compile_error,
   AllowJavascriptExecution allow_script(isolate_);
   {
     RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
+    HITRACE_RCS_SCOPE(isolate_, RuntimeCallCounterId::kDebuggerCallback);
     debug_delegate_->ScriptCompiled(ToApiHandle<debug::Script>(script),
                                     has_compile_error);
   }

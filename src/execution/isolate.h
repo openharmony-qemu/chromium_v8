@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <deque>
 #include <cstdint>
 #include <functional>
 #include <list>

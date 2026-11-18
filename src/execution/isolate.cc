@@ -2609,6 +2609,7 @@ void Isolate::RequestInterrupt(InterruptCallback callback, void* data) {
 
 void Isolate::InvokeApiInterruptCallbacks() {
   RCS_SCOPE(this, RuntimeCallCounterId::kInvokeApiInterruptCallbacks);
+  HITRACE_RCS_SCOPE(this, RuntimeCallCounterId::kInvokeApiInterruptCallbacks);
   struct ApiInterruptScope {
     explicit ApiInterruptScope(Isolate* isolate) : isolate_(isolate) {
       DCHECK_LE(0, isolate_->api_interrupt_depth_);
