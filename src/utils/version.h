@@ -26,6 +26,10 @@ class V8_EXPORT Version {
   static int GetBuild() { return build_; }
   static int GetPatch() { return patch_; }
   static const char* GetEmbedder() { return embedder_; }
+#ifdef OHOS_JS_ENGINE
+  static int GetInner() { return inner_; }
+  static void GetVersionWithInner(base::Vector<char> str);
+#endif
   static bool IsCandidate() { return candidate_; }
   static uint32_t Hash();
 
