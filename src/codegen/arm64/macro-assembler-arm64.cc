@@ -4778,7 +4778,7 @@ void CallApiFunctionAndReturn(MacroAssembler* masm, bool with_profiling,
     __ RecordComment("Check if profiler or side effects check is enabled");
     __ Ldrb(scratch.W(), __ AsMemOperand(IsolateFieldId::kExecutionMode));
     __ Cbnz(scratch.W(), &profiler_or_side_effects_check_enabled);
-#ifdef V8_RUNTIME_CALL_STATS
+#if defined(V8_RUNTIME_CALL_STATS) || defined(HITRACE_RUNTIME_CALL_STATS)
     __ RecordComment("Check if RCS is enabled");
     __ Mov(scratch, ER::address_of_runtime_stats_flag());
     __ Ldrsw(scratch.W(), MemOperand(scratch));

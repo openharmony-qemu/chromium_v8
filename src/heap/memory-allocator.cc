@@ -399,6 +399,10 @@ void MemoryAllocator::PerformFreeMemory(MutablePage* chunk_metadata) {
 
 void MemoryAllocator::Free(MemoryAllocator::FreeMode mode,
                            MutablePage* page_metadata) {
+#if OH_ENABLE_RESTRACE
+  OH_RESTRACE_FREE_REGION(reinterpret_cast<void*>(page_metadata->area_start()),
+                          page_metadata->area_size());
+#endif
   PreFreeMemory(page_metadata);
   switch (mode) {
     case FreeMode::kImmediately:
