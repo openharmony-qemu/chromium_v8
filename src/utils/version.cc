@@ -26,10 +26,16 @@ const char* Version::embedder_ = V8_EMBEDDER_STRING;
 bool Version::candidate_ = (V8_IS_CANDIDATE_VERSION != 0);
 const char* Version::soname_ = SONAME;
 const char* Version::version_string_ = V8_VERSION_STRING;
+#ifdef OHOS_JS_ENGINE
+int Version::inner_ = V8_INNER_VERSION;
+#endif
 
 uint32_t Version::Hash() {
   base::Hasher hasher;
   hasher.Add(major_).Add(minor_).Add(build_).Add(patch_);
+#ifdef OHOS_JS_ENGINE
+  hasher.Add(inner_);
+#endif
   hasher.AddRange(base::OneByteVector(embedder_));
   return static_cast<uint32_t>(hasher.hash());
 }
