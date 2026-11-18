@@ -158,6 +158,7 @@ Tagged<JSAny> FunctionCallbackArguments::CallOrConstruct(
     Isolate* isolate, Tagged<FunctionTemplateInfo> function,
     bool is_construct) {
   RCS_SCOPE(isolate, RuntimeCallCounterId::kFunctionCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kFunctionCallback);
   v8::FunctionCallback f =
       reinterpret_cast<v8::FunctionCallback>(function->callback(isolate));
   if (isolate->should_check_side_effects() &&
@@ -286,6 +287,7 @@ PropertyCallbackArguments::CallNamedEnumerator(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK(interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedEnumeratorCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedEnumeratorCallback);
   return CallPropertyEnumerator(isolate, interceptor);
 }
 
@@ -296,6 +298,7 @@ DirectHandle<Object> PropertyCallbackArguments::CallNamedQuery(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedQueryCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedQueryCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(Smi::FromInt(v8::None));
@@ -314,6 +317,7 @@ DirectHandle<JSAny> PropertyCallbackArguments::CallNamedGetter(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedGetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedGetterCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).undefined_value());
@@ -332,6 +336,7 @@ Handle<JSAny> PropertyCallbackArguments::CallNamedDescriptor(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDescriptorCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDescriptorCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).undefined_value());
@@ -351,6 +356,7 @@ v8::Intercepted PropertyCallbackArguments::CallNamedSetter(
   DCHECK(is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedSetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedSetterCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -371,6 +377,7 @@ v8::Intercepted PropertyCallbackArguments::CallNamedDefiner(
   DCHECK(is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDefinerCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDefinerCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -391,6 +398,7 @@ v8::Intercepted PropertyCallbackArguments::CallNamedDeleter(
   DCHECK(is_setter_definer_deleter_);
   DCHECK_NAME_COMPATIBLE(interceptor, name);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDeleterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedDeleterCallback);
   set_property_key(*name);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -413,6 +421,7 @@ PropertyCallbackArguments::CallIndexedEnumerator(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedEnumeratorCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedEnumeratorCallback);
   return CallPropertyEnumerator(isolate, interceptor);
 }
 
@@ -423,6 +432,7 @@ DirectHandle<Object> PropertyCallbackArguments::CallIndexedQuery(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedQueryCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedQueryCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(Smi::FromInt(v8::None));
@@ -442,6 +452,7 @@ DirectHandle<JSAny> PropertyCallbackArguments::CallIndexedGetter(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedGetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kNamedGetterCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).undefined_value());
@@ -461,6 +472,7 @@ Handle<JSAny> PropertyCallbackArguments::CallIndexedDescriptor(
   DCHECK(!is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDescriptorCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDescriptorCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).undefined_value());
@@ -480,6 +492,7 @@ v8::Intercepted PropertyCallbackArguments::CallIndexedSetter(
   DCHECK(is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedSetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedSetterCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -500,6 +513,7 @@ v8::Intercepted PropertyCallbackArguments::CallIndexedDefiner(
   DCHECK(is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDefinerCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDefinerCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -519,6 +533,7 @@ v8::Intercepted PropertyCallbackArguments::CallIndexedDeleter(
   DCHECK(is_setter_definer_deleter_);
   DCHECK(!interceptor->is_named());
   RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDeleterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kIndexedDeleterCallback);
   set_property_key(index);
   slot_at(kCallbackInfoIndex).store(*interceptor);
   slot_at(kReturnValueIndex).store(ReadOnlyRoots(isolate).true_value());
@@ -606,6 +621,7 @@ DirectHandle<JSAny> PropertyCallbackArguments::CallAccessorGetter(
     DirectHandle<Name> name) {
   DCHECK(!is_setter_definer_deleter_);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kAccessorGetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kAccessorGetterCallback);
   // Unlike interceptor callbacks we know that the property exists, so
   // the callback is allowed to have side effects.
   AcceptSideEffects();
@@ -627,6 +643,7 @@ bool PropertyCallbackArguments::CallAccessorSetter(
     DirectHandle<Name> name, DirectHandle<Object> value) {
   DCHECK(is_setter_definer_deleter_);
   RCS_SCOPE(isolate, RuntimeCallCounterId::kAccessorSetterCallback);
+  HITRACE_RCS_SCOPE(isolate, RuntimeCallCounterId::kAccessorSetterCallback);
   // Unlike interceptor callbacks we know that the property exists, so
   // the callback is allowed to have side effects.
   AcceptSideEffects();
