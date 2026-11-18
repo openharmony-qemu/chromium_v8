@@ -76,32 +76,6 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
        v8_enable_verification_features || v8_dcheck_always_on
  }
  if (v8_enable_verify_heap == "") {
-@@ -1005,10 +1070,11 @@ external_v8_defines = [
-   "V8_TARGET_OS_IOS",
-   "V8_TARGET_OS_LINUX",
-   "V8_TARGET_OS_MACOS",
-   "V8_TARGET_OS_WIN",
-   "V8_TARGET_OS_CHROMEOS",
-+  "V8_TARGET_OS_OHOS",
- ]
- 
- enabled_external_v8_defines = [
-   "V8_ARRAY_BUFFER_INTERNAL_FIELD_COUNT=${v8_array_buffer_internal_field_count}",
-   "V8_ARRAY_BUFFER_VIEW_INTERNAL_FIELD_COUNT=${v8_array_buffer_view_internal_field_count}",
-@@ -1085,10 +1151,13 @@ if (target_os == "android") {
-   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
-   enabled_external_v8_defines += [ "V8_TARGET_OS_WIN" ]
- } else if (target_os == "chromeos") {
-   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
-   enabled_external_v8_defines += [ "V8_TARGET_OS_CHROMEOS" ]
-+} else if (target_os == "ohos") {
-+  enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
-+  enabled_external_v8_defines += [ "V8_TARGET_OS_OHOS" ]
- }
- 
- disabled_external_v8_defines = external_v8_defines - enabled_external_v8_defines
- 
- # Put defines that are used in public headers here; public headers are
 @@ -1491,29 +1563,68 @@ config("features") {
      defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
    }
