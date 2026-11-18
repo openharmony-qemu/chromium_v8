@@ -328,6 +328,9 @@ class MaglevConcurrentDispatcher::JobTask final : public v8::JobTask {
         TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                     "V8.MaglevDestructBackground",
                     perfetto::TerminatingFlow::ProcessScoped(job->trace_id()));
+#ifdef OHOS_JS_ENGINE
+        auto trace = HiTrace("RCS_v8.compile_V8.MaglevDestructBackground");
+#endif
         job.reset();
       } else {
         break;

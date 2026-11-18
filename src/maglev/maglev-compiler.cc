@@ -215,6 +215,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
     if (v8_flags.maglev_untagged_phis) {
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.Maglev.PhiUntagging");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.Maglev.PhiUntagging");
+#endif
       SYNCHRONIZATION_POINT("MaglevPhiUntagging");
       ReachableExceptionHandlerTracker tracker(graph);
       MaglevPhiRepresentationSelector representation_selector(graph);
@@ -265,6 +268,9 @@ bool MaglevCompiler::Compile(LocalIsolate* local_isolate,
       //   - Mark
       TRACE_EVENT(TRACE_DISABLED_BY_DEFAULT("v8.compile"),
                   "V8.Maglev.NodeProcessing");
+#ifdef OHOS_JS_ENGINE
+      auto trace = HiTrace("RCS_v8.compile_V8.Maglev.NodeProcessing");
+#endif
       SYNCHRONIZATION_POINT("MaglevNodeProcessing");
       compiler::UnparkedScopeIfNeeded unparked_scope(local_isolate);
       GraphMultiProcessor<DeadNodeSweepingProcessor,
