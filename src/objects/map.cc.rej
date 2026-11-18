@@ -54,19 +54,6 @@ diff a/src/objects/map.cc b/src/objects/map.cc	(rejected hunks)
                  v8_flags.move_prototype_transitions_first) ||
                 isolate->bootstrapper()->IsActive()) {
        // Prototype transitions are always between root maps. UpdatePrototype
-@@ -1823,11 +1849,11 @@ Handle<Map> Map::Copy(Isolate* isolate, DirectHandle<Map> map,
-   int number_of_own_descriptors = map->NumberOfOwnDescriptors();
-   DirectHandle<DescriptorArray> new_descriptors = DescriptorArray::CopyUpTo(
-       isolate, descriptors, number_of_own_descriptors);
-   auto res =
-       CopyReplaceDescriptors(isolate, map, new_descriptors, OMIT_TRANSITION,
--                             MaybeDirectHandle<Name>(), reason, kind);
-+                             MaybeHandle<Name>(), reason, kind);
-   return res;
- }
- 
- Handle<Map> Map::Create(Isolate* isolate, int inobject_properties) {
-   Handle<Map> copy_handle =
 @@ -1864,72 +1890,74 @@ Handle<Map> Map::CopyForPreventExtensions(
    int num_descriptors = map->NumberOfOwnDescriptors();
    DirectHandle<DescriptorArray> new_desc =
