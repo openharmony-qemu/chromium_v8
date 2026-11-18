@@ -1345,6 +1345,8 @@ void KeyedStoreGenericAssembler::StoreIC_NoFeedback() {
     // checks, strings and string wrappers, proxies) are handled in the runtime.
     GotoIf(IsSpecialReceiverInstanceType(instance_type), &miss);
     {
+      // Named stores use this helper for the no-feedback case, where
+      // kDefineNamedOwn is also sufficient for literal initialization.
       StoreICParameters p(context, receiver, name, value, std::nullopt, {},
                           UndefinedConstant(),
                           IsDefineNamedOwn() ? StoreICMode::kDefineNamedOwn

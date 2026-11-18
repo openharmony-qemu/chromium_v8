@@ -1126,7 +1126,11 @@ void BaselineCompiler::VisitDefineNamedOwnProperty() {
 }
 
 void BaselineCompiler::VisitDefineNamedOwnPropertyInLiteral() {
-  VisitDefineNamedOwnProperty();
+  CallBuiltin<Builtin::kDefineNamedOwnInLiteralICBaseline>(
+      RegisterOperand(0),               // object
+      Constant<Name>(1),                // name
+      kInterpreterAccumulatorRegister,  // value
+      FeedbackSlotAsTagged(2));         // slot
 }
 
 void BaselineCompiler::VisitSetKeyedProperty() {

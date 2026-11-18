@@ -1498,7 +1498,8 @@ void AccessorAssembler::HandleStoreICHandlerCase(
 
       BIND(&data);
       // Handle non-transitioning field stores.
-      HandleStoreICSmiHandlerCase(handler_word, CAST(holder), p->value(), miss);
+      HandleStoreICSmiHandlerCase(handler_word, CAST(holder), p->value(),
+                                   p->mode(), miss);
     }
 
     BIND(&if_proxy);
@@ -1518,7 +1519,7 @@ void AccessorAssembler::HandleStoreICHandlerCase(
                         p->slot(), p->vector(), p->receiver(), p->name());
       } else {
         Runtime::FunctionId id;
-        if (p->IsDefineNamedOwn()) {
+        if (p->IsAnyDefineNamedOwn()) {
           id = Runtime::kDefineNamedOwnIC_Slow;
         } else if (p->IsDefineKeyedOwn()) {
           id = Runtime::kDefineKeyedOwnIC_Slow;
@@ -1581,7 +1582,7 @@ void AccessorAssembler::HandleStoreICHandlerCase(
 
     BIND(&store_global);
     {
-      if (p->IsDefineNamedOwn()) {
+      if (p->IsAnyDefineNamedOwn()) {
         // The global proxy has its attributes set in the global object,
         // which can't be handled by StoreGlobalIC_PropertyCellCase when
         // defining public fields. Handle it in runtime.
@@ -2198,6 +2199,7 @@ void AccessorAssembler::HandleStoreToProxy(const StoreICParameters* p,
 void AccessorAssembler::HandleStoreICSmiHandlerCase(TNode<Word32T> handler_word,
                                                     TNode<JSObject> holder,
                                                     TNode<Object> value,
+                                                    StoreICMode mode,
                                                     Label* miss) {
   Comment("field store");
 #ifdef DEBUG
@@ -2225,17 +2227,18 @@ void AccessorAssembler::HandleStoreICSmiHandlerCase(TNode<Word32T> handler_word,
   {
     Comment("store tagged field");
     HandleStoreFieldAndReturn(handler_word, holder, value, std::nullopt,
-                              Representation::Tagged(), miss);
+                              Representation::Tagged(), mode, miss);
   }
 
   BIND(&if_heap_object_field);
   {
     Comment("heap object field checks");
-    CheckHeapObjectTypeMatchesDescriptor(handler_word, holder, value, miss);
+    CheckHeapObjectTypeMatchesDescriptor(handler_word, holder, value, mode,
+                                         miss);
 
     Comment("store heap object field");
     HandleStoreFieldAndReturn(handler_word, holder, value, std::nullopt,
-                              Representation::HeapObject(), miss);
+                              Representation::HeapObject(), mode, miss);
   }
 
   BIND(&if_smi_field);
@@ -2245,7 +2248,7 @@ void AccessorAssembler::HandleStoreICSmiHandlerCase(TNode<Word32T> handler_word,
 
     Comment("store smi field");
     HandleStoreFieldAndReturn(handler_word, holder, value, std::nullopt,
-                              Representation::Smi(), miss);
+                              Representation::Smi(), mode, miss);
   }
 
   BIND(&if_double_field);
@@ -2262,21 +2265,25 @@ void AccessorAssembler::HandleStoreICSmiHandlerCase(TNode<Word32T> handler_word,
 
     Comment("store double field");
     HandleStoreFieldAndReturn(handler_word, holder, value, double_value,
-                              Representation::Double(), miss);
+                              Representation::Double(), mode, miss);
   }
 }
 
 void AccessorAssembler::CheckHeapObjectTypeMatchesDescriptor(
     TNode<Word32T> handler_word, TNode<JSObject> holder, TNode<Object> value,
-    Label* bailout) {
+    StoreICMode mode, Label* bailout) {
   GotoIf(TaggedIsSmi(value), bailout);
 
   Label done(this);
   // Skip field type check in favor of constant value check when storing
   // to constant field.
-  GotoIf(Word32Equal(DecodeWord32<StoreHandler::KindBits>(handler_word),
-                     STORE_KIND(kConstField)),
-         &done);
+  if (mode != StoreICMode::kDefineNamedOwnInLiteral) {
+    // DefineNamedOwnInLiteral skips the constant value check
+    // when storing, so we need to do this field type check here.
+    GotoIf(Word32Equal(DecodeWord32<StoreHandler::KindBits>(handler_word),
+                       STORE_KIND(kConstField)),
+           &done);
+  }
   TNode<IntPtrT> descriptor =
       Signed(DecodeWordFromWord32<StoreHandler::DescriptorBits>(handler_word));
   TNode<MaybeObject> field_type =
@@ -2344,7 +2351,7 @@ void AccessorAssembler::GotoIfNotSameNumberBitPattern(TNode<Float64T> left,
 void AccessorAssembler::HandleStoreFieldAndReturn(
     TNode<Word32T> handler_word, TNode<JSObject> holder, TNode<Object> value,
     std::optional<TNode<Float64T>> double_value, Representation representation,
-    Label* miss) {
+    StoreICMode mode, Label* miss) {
   bool store_value_as_double = representation.IsDouble();
 
   TNode<BoolT> is_inobject =
@@ -2377,12 +2384,15 @@ void AccessorAssembler::HandleStoreFieldAndReturn(
     offset = actual_offset.value();
   }
 
-  // Do constant value check if necessary.
+  // Literal initialization can use const-field handlers without invalidating
+  // constness. Other call sites must check the current value before storing.
   Label do_store(this);
-  GotoIfNot(Word32Equal(DecodeWord32<StoreHandler::KindBits>(handler_word),
-                        STORE_KIND(kConstField)),
-            &do_store);
-  {
+  if (mode == StoreICMode::kDefineNamedOwnInLiteral) {
+    Goto(&do_store);
+  } else {
+    GotoIfNot(Word32Equal(DecodeWord32<StoreHandler::KindBits>(handler_word),
+                          STORE_KIND(kConstField)),
+              &do_store);
     if (store_value_as_double) {
       TNode<Float64T> current_value =
           LoadObjectField<Float64T>(property_storage, offset);
@@ -4068,17 +4078,18 @@ void AccessorAssembler::StoreIC(const StoreICParameters* p) {
   BIND(&no_feedback);
   {
     // TODO(v8:12548): refactor SetNamedIC as a subclass of StoreIC, which can
-    // be called here and below when !p->IsDefineNamedOwn().
-    auto builtin = p->IsDefineNamedOwn() ? Builtin::kDefineNamedOwnIC_NoFeedback
-                                         : Builtin::kStoreIC_NoFeedback;
+    // be called here and below when !p->IsAnyDefineNamedOwn().
+    auto builtin = p->IsAnyDefineNamedOwn()
+                       ? Builtin::kDefineNamedOwnIC_NoFeedback
+                       : Builtin::kStoreIC_NoFeedback;
     TailCallBuiltin(builtin, p->context(), p->receiver(), p->name(),
                     p->value());
   }
 
   BIND(&miss);
   {
-    auto runtime = p->IsDefineNamedOwn() ? Runtime::kDefineNamedOwnIC_Miss
-                                         : Runtime::kStoreIC_Miss;
+    auto runtime = p->IsAnyDefineNamedOwn() ? Runtime::kDefineNamedOwnIC_Miss
+                                            : Runtime::kStoreIC_Miss;
     TailCallRuntime(runtime, p->context(), p->value(), p->slot(), p->vector(),
                     p->receiver(), p->name());
   }
@@ -5202,7 +5213,7 @@ void AccessorAssembler::GenerateStoreICBaseline() {
                   vector);
 }
 
-void AccessorAssembler::GenerateDefineNamedOwnIC() {
+void AccessorAssembler::GenerateDefineNamedOwnIC(bool in_literal) {
   using Descriptor = StoreWithVectorDescriptor;
 
   auto receiver = Parameter<JSAny>(Descriptor::kReceiver);
@@ -5214,13 +5225,14 @@ void AccessorAssembler::GenerateDefineNamedOwnIC() {
   auto context = Parameter<Context>(Descriptor::kContext);
 
   StoreICParameters p(context, receiver, name, value, flags, slot, vector,
-                      StoreICMode::kDefineNamedOwn);
+                      in_literal ? StoreICMode::kDefineNamedOwnInLiteral
+                                 : StoreICMode::kDefineNamedOwn);
   // StoreIC is a generic helper than handle both set and define own
   // named stores.
   StoreIC(&p);
 }
 
-void AccessorAssembler::GenerateDefineNamedOwnICTrampoline() {
+void AccessorAssembler::GenerateDefineNamedOwnICTrampoline(bool in_literal) {
   using Descriptor = StoreDescriptor;
 
   auto receiver = Parameter<JSAny>(Descriptor::kReceiver);
@@ -5230,11 +5242,12 @@ void AccessorAssembler::GenerateDefineNamedOwnICTrampoline() {
   auto context = Parameter<Context>(Descriptor::kContext);
   TNode<FeedbackVector> vector = LoadFeedbackVectorForStub();
 
-  TailCallBuiltin(Builtin::kDefineNamedOwnIC, context, receiver, name, value,
-                  slot, vector);
+  Builtin builtin = in_literal ? Builtin::kDefineNamedOwnInLiteralIC
+                               : Builtin::kDefineNamedOwnIC;
+  TailCallBuiltin(builtin, context, receiver, name, value, slot, vector);
 }
 
-void AccessorAssembler::GenerateDefineNamedOwnICBaseline() {
+void AccessorAssembler::GenerateDefineNamedOwnICBaseline(bool in_literal) {
   using Descriptor = StoreWithVectorDescriptor;
 
   auto receiver = Parameter<JSAny>(Descriptor::kReceiver);
@@ -5244,8 +5257,9 @@ void AccessorAssembler::GenerateDefineNamedOwnICBaseline() {
   TNode<FeedbackVector> vector = LoadFeedbackVectorFromBaseline();
   TNode<Context> context = LoadContextFromBaseline();
 
-  TailCallBuiltin(Builtin::kDefineNamedOwnIC, context, receiver, name, value,
-                  slot, vector);
+  Builtin builtin = in_literal ? Builtin::kDefineNamedOwnInLiteralIC
+                               : Builtin::kDefineNamedOwnIC;
+  TailCallBuiltin(builtin, context, receiver, name, value, slot, vector);
 }
 
 void AccessorAssembler::GenerateKeyedStoreIC() {

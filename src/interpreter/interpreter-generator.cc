@@ -748,7 +748,8 @@ IGNITION_HANDLER(DefineNamedOwnProperty, InterpreterSetNamedPropertyAssembler) {
 // this.
 IGNITION_HANDLER(DefineNamedOwnPropertyInLiteral,
                  InterpreterSetNamedPropertyAssembler) {
-  SetNamedProperty(Builtin::kDefineNamedOwnIC, NamedPropertyType::kOwn);
+  SetNamedProperty(Builtin::kDefineNamedOwnInLiteralIC,
+                   NamedPropertyType::kOwn);
 }
 
 // SetKeyedProperty <object> <key> <slot>
