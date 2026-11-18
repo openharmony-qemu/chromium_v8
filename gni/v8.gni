@@ -200,6 +200,8 @@ declare_args() {
   # Add fuzzilli fuzzer support.
   v8_fuzzilli = false
 
+  v8_component_build = false
+
   # Force optimizing with -O3 for increased inlining.
   v8_force_optimize_speed = false
 

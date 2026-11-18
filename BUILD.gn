@@ -1169,6 +1169,7 @@ external_v8_defines = [
   "V8_TARGET_OS_MACOS",
   "V8_TARGET_OS_WIN",
   "V8_TARGET_OS_CHROMEOS",
+  "V8_TARGET_OS_OHOS",
   "V8_TARGET_ARCH_ARM64",
   "V8_TARGET_ARCH_PPC64",
   "V8_TARGET_ARCH_MIPS64",
@@ -1261,6 +1262,9 @@ if (target_os == "android") {
 } else if (target_os == "chromeos") {
   enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
   enabled_external_v8_defines += [ "V8_TARGET_OS_CHROMEOS" ]
+} else if (target_os == "ohos") {
+  enabled_external_v8_defines += [ "V8_HAVE_TARGET_OS" ]
+  enabled_external_v8_defines += [ "V8_TARGET_OS_OHOS" ]
 }
 
 # Some V8_TARGET_ARCH_ defines that affect Api constants (see usages of
