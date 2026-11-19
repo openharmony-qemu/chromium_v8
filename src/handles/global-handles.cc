@@ -745,6 +745,7 @@ void GlobalHandles::ProcessWeakYoungObjects(
 
 void GlobalHandles::InvokeSecondPassPhantomCallbacks() {
   DCHECK(!AllowJavascriptExecution::IsAllowed(isolate()));
+  DCHECK(!AllowJSObjectModification::IsAllowed(isolate()));
   DCHECK(AllowGarbageCollection::IsAllowed());
 
   if (second_pass_callbacks_.empty()) return;
@@ -856,6 +857,8 @@ size_t GlobalHandles::InvokeFirstPassWeakCallbacks() {
 
 void GlobalHandles::PendingPhantomCallback::Invoke(Isolate* isolate,
                                                    InvocationType type) {
+  DCHECK(!AllowJavascriptExecution::IsAllowed(isolate));
+  DCHECK(!AllowJSObjectModification::IsAllowed(isolate));
   Data::Callback* callback_addr = nullptr;
   if (type == kFirstPass) {
     callback_addr = &callback_;
@@ -895,6 +898,7 @@ void GlobalHandles::PostGarbageCollectionProcessing(
           DCHECK(second_pass_callbacks_task_posted_);
           second_pass_callbacks_task_posted_ = false;
           DisallowJavascriptExecution no_js(isolate());
+          DisallowJSObjectModification no_js_object_modification(isolate());
           InvokeSecondPassPhantomCallbacks();
         }));
   }
