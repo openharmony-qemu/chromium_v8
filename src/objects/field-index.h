@@ -114,6 +114,12 @@ class FieldIndex final {
   static const int kOffsetBitsSize =
       (kDescriptorIndexBitCount + 1 + kTaggedSizeLog2);
 
+ public:
+  // Maximum byte offset (inclusive of a kTaggedSize access) encodable in a
+  // FieldIndex.
+  static constexpr int kMaxOffset = 1 << kOffsetBitsSize;
+
+ private:
   // Index from beginning of object.
   using OffsetBits = base::BitField64<int, 0, kOffsetBitsSize>;
   using IsInObjectBits = OffsetBits::Next<bool, 1>;

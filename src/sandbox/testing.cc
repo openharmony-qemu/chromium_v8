@@ -26,6 +26,7 @@
 #include "src/objects/scope-info.h"
 #include "src/objects/tagged-field-inl.h"
 #include "src/objects/templates.h"
+#include "src/sandbox/sandbox-zero-segment.h"
 #include "src/sandbox/sandbox.h"
 
 #ifdef V8_OS_LINUX
@@ -960,9 +961,12 @@ void CrashFilter(int signal, siginfo_t* info, void* context) {
         "Exiting process...\n");
   }
 
-  if (faultaddr < 4ULL * GB) {
+  if (faultaddr < kMinZeroSegmentSize) {
     // Currently we also ignore access violations in the first 4GB of the
     // virtual address space. See crbug.com/1470641 for more details.
+    // We need to add some "padding" to the 4GB since we might access a
+    // field of a Smi or i31ref-derived object which lies right at the 4GB
+    // boundary (see src/sandbox/sandbox-zero-segment.h).
     FilterCrash(
         "Caught harmless memory access violation (first 4GB of virtual address "
         "space). Exiting process...\n");

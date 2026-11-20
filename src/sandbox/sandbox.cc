@@ -16,6 +16,7 @@
 #include "src/base/virtual-address-space.h"
 #include "src/flags/flags.h"
 #include "src/sandbox/hardware-support.h"
+#include "src/sandbox/sandbox-zero-segment.h"
 #include "src/sandbox/sandboxed-pointer.h"
 #include "src/utils/allocation.h"
 
@@ -24,7 +25,7 @@ namespace internal {
 
 #ifdef V8_ENABLE_SANDBOX
 
-bool Sandbox::first_four_gb_of_address_space_are_reserved_ = false;
+bool Sandbox::has_zero_segment_ = false;
 
 #ifdef V8_COMPRESS_POINTERS_IN_MULTIPLE_CAGES
 thread_local Sandbox* Sandbox::current_ = nullptr;
@@ -248,15 +249,19 @@ bool Sandbox::Initialize(v8::VirtualAddressSpace* vas, size_t size,
         back, kSandboxGuardRegionSize + kAdditionalTrailingGuardRegionSize));
   }
 
-  // Also try to reserve the first 4GB of the process' address space. This
-  // mitigates Smi<->HeapObject confusion bugs in which we end up treating a
-  // Smi value as a pointer.
-  if (!first_four_gb_of_address_space_are_reserved_) {
-    Address end = 4UL * GB;
+  // Also try to reserve the first 4GB of the process' address space (plus
+  // padding for JS/Wasm object field accesses) as an inaccessible "zero
+  // segment". This mitigates Smi<->HeapObject (and Wasm i31ref<->WasmStruct)
+  // confusion bugs in which we end up treating a 32-bit value as a pointer.
+  // See src/sandbox/sandbox-zero-segment.h.
+  if (!has_zero_segment_) {
+    // kMinZeroSegmentSize is generally not aligned to the allocation
+    // granularity, so round up to also cover the tail of the last page.
+    Address end = RoundUp(kMinZeroSegmentSize, vas->allocation_granularity());
     size_t step = address_space_->allocation_granularity();
     for (Address start = 0; start <= 1 * MB; start += step) {
       if (vas->AllocateGuardRegion(start, end - start)) {
-        first_four_gb_of_address_space_are_reserved_ = true;
+        has_zero_segment_ = true;
         break;
       }
     }

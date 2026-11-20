@@ -110,16 +110,16 @@ class V8_EXPORT_PRIVATE Sandbox {
   bool is_partially_reserved() const { return reservation_size_ < size_; }
 
   /**
-   * Returns true if the first four GB of the address space are inaccessible.
+   * Returns true if the zero segment (the first 4GB of the address space plus
+   * padding) is inaccessible.
    *
    * During initialization, the sandbox will also attempt to create an
-   * inaccessible mapping in the first four GB of the address space. This is
-   * useful to mitigate Smi<->HeapObject confusion issues, in which a (32-bit)
-   * Smi is treated as a pointer and dereferenced.
+   * inaccessible mapping covering the first four GB of the address space, plus
+   * some padding (see src/sandbox/sandbox-zero-segment.h). This is useful to
+   * mitigate Smi<->HeapObject confusion issues, in which a (32-bit) Smi is
+   * treated as a pointer and dereferenced.
    */
-  bool smi_address_range_is_inaccessible() const {
-    return first_four_gb_of_address_space_are_reserved_;
-  }
+  bool has_zero_segment() const { return has_zero_segment_; }
 
   /**
    * The base address of the sandbox.
@@ -325,9 +325,12 @@ class V8_EXPORT_PRIVATE Sandbox {
 
   // Besides the address space reservation for the sandbox, we also try to
   // reserve the first four gigabytes of the virtual address space (with an
-  // inaccessible mapping). This for example mitigates Smi<->HeapObject
+  // inaccessible mapping), plus some padding to also cover field accesses at
+  // offsets past the first 4GB (e.g. through corrupted field offsets or
+  // Wasm struct accesses). This for example mitigates Smi<->HeapObject
   // confusion bugs in which we treat a Smi value as a pointer and access it.
-  static bool first_four_gb_of_address_space_are_reserved_;
+  // See src/sandbox/sandbox-zero-segment.h.
+  static bool has_zero_segment_;
 
 #ifdef V8_COMPRESS_POINTERS_IN_MULTIPLE_CAGES
   thread_local static Sandbox* current_;
