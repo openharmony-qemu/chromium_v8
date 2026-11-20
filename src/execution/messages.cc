@@ -1121,12 +1121,17 @@ bool ErrorUtils::HasErrorStackSymbolOwnProperty(Isolate* isolate,
   // TODO(v8:5962): consider adding object->IsWasmExceptionPackage() here
   // once it's guaranteed that WasmExceptionPackage has |error_stack_symbol|
   // property.
-  DirectHandle<Name> name = isolate->factory()->error_stack_symbol();
+
+  // We are not using JSReceiver::HasOwnProperty() here because we don't want
+  // IsErrorObject() predicate to throw exception upon failed access check
+  // when querying the error_stack_symbol.
   if (IsJSError(*object)) {
-    DCHECK(JSReceiver::HasOwnProperty(isolate, object, name).FromMaybe(false));
+    DCHECK(!ErrorUtils::GetErrorStackProperty(isolate, object)
+                .error_stack_symbol_holder.is_null());
     return true;
   }
-  return JSReceiver::HasOwnProperty(isolate, object, name).FromMaybe(false);
+  return !ErrorUtils::GetErrorStackProperty(isolate, object)
+              .error_stack_symbol_holder.is_null();
 }
 
 // static
@@ -1148,6 +1153,13 @@ ErrorUtils::StackPropertyLookupResult ErrorUtils::GetErrorStackProperty(
 MaybeDirectHandle<Object> ErrorUtils::GetFormattedStack(
     Isolate* isolate, DirectHandle<JSObject> maybe_error_object) {
   TRACE_EVENT0(TRACE_DISABLED_BY_DEFAULT("v8.stack_trace"), __func__);
+
+  if (IsAccessCheckNeeded(*maybe_error_object) &&
+      !isolate->MayAccess(isolate->native_context(), maybe_error_object)) {
+    RETURN_ON_EXCEPTION(isolate,
+                        isolate->ReportFailedAccessCheck(maybe_error_object));
+    UNREACHABLE();
+  }
 
   ErrorUtils::StackPropertyLookupResult lookup =
       ErrorUtils::GetErrorStackProperty(isolate, maybe_error_object);
@@ -1193,6 +1205,12 @@ MaybeDirectHandle<Object> ErrorUtils::GetFormattedStack(
 void ErrorUtils::SetFormattedStack(Isolate* isolate,
                                    DirectHandle<JSObject> maybe_error_object,
                                    DirectHandle<Object> formatted_stack) {
+  if (IsAccessCheckNeeded(*maybe_error_object) &&
+      !isolate->MayAccess(isolate->native_context(), maybe_error_object)) {
+    USE(isolate->ReportFailedAccessCheck(maybe_error_object));
+    return;
+  }
+
   ErrorUtils::StackPropertyLookupResult lookup =
       ErrorUtils::GetErrorStackProperty(isolate, maybe_error_object);
 
