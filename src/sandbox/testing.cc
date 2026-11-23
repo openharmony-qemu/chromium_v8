@@ -14,6 +14,7 @@
 #include "src/builtins/builtins.h"
 #include "src/common/globals.h"
 #include "src/execution/isolate-inl.h"
+#include "src/heap/combined-heap.h"
 #include "src/heap/factory.h"
 #include "src/objects/backing-store.h"
 #include "src/objects/foreign.h"
@@ -513,8 +514,7 @@ bool ResolveObjectField(const v8::FunctionCallbackInfo<v8::Value>& info,
   Tagged<HeapObject> obj;
   if (!GetArgumentObjectPassedAsReference(info, &obj)) return false;
 
-  if (!IsValidHeapObject(obj.address(),
-                         reinterpret_cast<Isolate*>(isolate)->heap()))
+  if (!IsValidHeapObject(reinterpret_cast<Isolate*>(isolate)->heap(), obj))
     return false;
 
   int offset;
