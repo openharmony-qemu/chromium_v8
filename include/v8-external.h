@@ -37,7 +37,7 @@ static_assert(kLastInternalExternalPointerTypeTag ==
  * A JavaScript value that wraps a C++ void*. This type of value is mainly used
  * to associate C++ data structures with JavaScript objects.
  */
-class V8_EXPORT External : public Value {
+class V8_EXPORT JSVM_EXPORT External : public Value {
  public:
   /**
    * Creates a new External object.
