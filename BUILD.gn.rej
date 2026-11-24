@@ -76,27 +76,27 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
        v8_enable_verification_features || v8_dcheck_always_on
  }
  if (v8_enable_verify_heap == "") {
-@@ -1491,32 +1563,68 @@ config("features") {
+@@ -1491,44 +1563,68 @@ config("features") {
      defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
    }
    if (v8_wasm_random_fuzzers) {
      defines += [ "V8_WASM_RANDOM_FUZZERS" ]
    }
-+  if (v8_enable_ohos_js_engine) {
-+    defines += [ "OHOS_JS_ENGINE" ]
-+  }
-+  if (v8_enable_longque_api) {
-+    defines += [ "V8_ENABLE_LONGQUE_API" ]
-+  }
+   if (v8_enable_ohos_js_engine) {
+     defines += [ "OHOS_JS_ENGINE" ]
+   }
+   if (v8_enable_longque_api) {
+     defines += [ "V8_ENABLE_LONGQUE_API" ]
+   }
 +  if (v8_enable_ohos_perf_jit) {
 +    defines += [ "V8_ENABLE_OHOS_PERF_JIT" ]
 +  }
-+  if (v8_enable_ohos_async_stack) {
-+    defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
-+  }
-+  if (v8_enable_restrace) {
-+    defines += [ "OH_ENABLE_RESTRACE" ]
-+  }
+   if (v8_enable_ohos_async_stack) {
+     defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
+   }
+   if (v8_enable_restrace) {
+     defines += [ "OH_ENABLE_RESTRACE" ]
+   }
 +  if (v8_ohos_enable_heapdump) {
 +    if (enable_heap_dump) {
 +      defines += [ "OH_ENABLE_HEAP_DUMP" ]
@@ -145,7 +145,7 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      if (arm_version >= 7) {
        defines += [ "CAN_USE_ARMV7_INSTRUCTIONS" ]
      }
-@@ -4503,10 +4636,52 @@ v8_header_set("v8_internal_headers") {
+@@ -4503,21 +4636,52 @@ v8_header_set("v8_internal_headers") {
      "third_party/rapidhash-v8/secret.h",
      "third_party/siphash/halfsiphash.h",
      "third_party/utf8-decoder/utf8-decoder.h",
@@ -165,17 +165,17 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
 +    ]
 +  }
 +
-+  if (v8_enable_ohos_async_stack) {
-+    sources += [
-+      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h",
-+      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.cpp"
-+    ]
-+  }
-+
-+  if (v8_enable_restrace) {
-+    sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
-+  }
-+
+   if (v8_enable_ohos_async_stack) {
+     sources += [
+       "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h",
+       "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.cpp"
+     ]
+   }
+ 
+   if (v8_enable_restrace) {
+     sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
+   }
+ 
 +  if (v8_enable_oom_repoter) {
 +    sources += [ "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h" ]
 +  }
