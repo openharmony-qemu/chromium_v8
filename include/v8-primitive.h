@@ -123,7 +123,7 @@ enum class NewStringType {
 /**
  * A JavaScript string value (ECMA-262, 4.3.17).
  */
-class V8_EXPORT String : public Name {
+class V8_EXPORT JSVM_EXPORT String : public Name {
  public:
 #ifndef V8_LOWER_LIMITS_MODE
   static constexpr int kMaxLength =
@@ -919,7 +919,7 @@ class V8_EXPORT JSVM_EXPORT Uint32 : public Integer {
 /**
  * A JavaScript BigInt value (https://tc39.es/proposal-bigint)
  */
-class V8_EXPORT BigInt : public Numeric {
+class V8_EXPORT JSVM_EXPORT BigInt : public Numeric {
  public:
   static Local<BigInt> New(Isolate* isolate, int64_t value);
   static Local<BigInt> NewFromUnsigned(Isolate* isolate, uint64_t value);
