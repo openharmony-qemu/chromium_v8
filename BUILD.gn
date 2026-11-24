@@ -22,6 +22,7 @@ import("//third_party/icu/config.gni")
 import("gni/cluster_build.gni")
 import("gni/snapshot_toolchain.gni")
 import("gni/v8.gni")
+import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 
 if (is_clang) {
   import("//build/config/clang/clang.gni")
@@ -600,6 +601,13 @@ assert(v8_metagen_libclang_so == "" == (v8_metagen_libclang_bindings_dir == ""),
 assert(!v8_verify_torque_generation_invariance || !v8_use_metagen,
        "v8_verify_torque_generation_invariance requires " +
            "v8_use_metagen=false.")
+
+declare_args() {
+  # Enable jit memroy W^X protection.
+  v8_enable_jitfort = false
+
+  v8_enable_hitrace_runtime_call_stats = v8_enable_ohos_js_engine
+}
 
 # Derived defaults.
 if (v8_logging_level == "") {
@@ -1746,6 +1754,9 @@ config("features") {
   }
   if (v8_x64_16byte_stack_alignment) {
     defines += [ "V8_X64_16BYTE_STACK_ALIGNMENT" ]
+  }
+  if (is_ohos && v8_enable_jitfort) {
+    defines += [ "V8_ENABLE_JITFORT" ]
   }
 }
 
@@ -7315,6 +7326,13 @@ v8_cluster_source_set("v8_base_without_compiler") {
       "src/diagnostics/etw-isolate-operations-win.cc",
       "src/diagnostics/etw-jit-metadata-win.cc",
       "src/diagnostics/etw-jit-win.cc",
+    ]
+  }
+
+  if (v8_enable_jitfort) {
+    sources += [
+      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.h",
+      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.cc",
     ]
   }
 
