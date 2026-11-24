@@ -386,7 +386,7 @@ struct V8_EXPORT V8EmbedderState {
   std::vector<V8URLBreakpoint> urlBreakpoints;
 };
 
-class V8_EXPORT V8Inspector {
+class V8_EXPORT JSVM_EXPORT V8Inspector {
  public:
   static std::unique_ptr<V8Inspector> create(v8::Isolate*, V8InspectorClient*);
   virtual ~V8Inspector() = default;
