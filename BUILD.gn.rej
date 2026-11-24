@@ -198,23 +198,6 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    }
  
    if (v8_enable_temporal_support) {
-@@ -6055,10 +6241,16 @@ v8_source_set("v8_base_without_compiler") {
- 
-   if (v8_enable_snapshot_compression) {
-     sources += [ "src/snapshot/snapshot-compression.cc" ]
-   }
- 
-+  if (v8_enable_longque_api) {
-+    sources += [
-+      "//arkweb/chromium_ext/v8/builtins-longque.cc",
-+    ]
-+  }
-+
-   if (v8_enable_temporal_support) {
-     sources += [
-       "src/builtins/builtins-temporal.cc",
-       "src/objects/js-temporal-objects.cc",
-       "src/objects/js-temporal-zoneinfo64.cc",
 @@ -6504,10 +6696,17 @@ v8_source_set("v8_base_without_compiler") {
          "src/diagnostics/etw-jit-win.h",
        ]
@@ -233,24 +216,3 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      ":cppgc_base_config",
    ]
  
-@@ -8066,10 +8331,20 @@ v8_executable("d8") {
-     "src/d8/d8-test.cc",
-     "src/d8/d8.cc",
-     "src/d8/d8.h",
-   ]
- 
-+  if (v8_ohos_enable_heapdump) {
-+    sources += heap_dump_base_include
-+    if (enable_heap_dump) {
-+      sources += heap_dump_include
-+    }
-+    if (enable_heap_dump_translate) {
-+      sources += heap_dump_translator_include
-+    }
-+  }
-+
-   configs = [
-     # Note: don't use :internal_config here because this target will get
-     # the :external_config applied to it by virtue of depending on :v8, and
-     # you can't have both applied to the same target.
-     ":internal_config_base",
