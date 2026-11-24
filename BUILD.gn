@@ -1746,6 +1746,18 @@ config("features") {
   if (v8_wasm_random_fuzzers) {
     defines += [ "V8_WASM_RANDOM_FUZZERS" ]
   }
+  if (v8_enable_ohos_js_engine) {
+    defines += [ "OHOS_JS_ENGINE" ]
+  }
+  if (v8_enable_longque_api) {
+    defines += [ "V8_ENABLE_LONGQUE_API" ]
+  }
+  if (v8_enable_ohos_async_stack) {
+    defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
+  }
+  if (v8_enable_restrace) {
+    defines += [ "OH_ENABLE_RESTRACE" ]
+  }
   if (v8_lower_limits_mode) {
     defines += [ "V8_LOWER_LIMITS_MODE" ]
   }
@@ -5163,6 +5175,17 @@ v8_header_set("v8_internal_headers") {
     "third_party/siphash/halfsiphash.h",
     "third_party/utf8-decoder/utf8-decoder.h",
   ]
+
+  if (v8_enable_ohos_async_stack) {
+    sources += [
+      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h",
+      "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.cpp"
+    ]
+  }
+
+  if (v8_enable_restrace) {
+    sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
+  }
 
   if (v8_enable_snapshot_compression) {
     sources += [ "src/snapshot/snapshot-compression.h" ]
