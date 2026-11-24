@@ -52,6 +52,14 @@
 #include "src/sandbox/external-strings-cage.h"
 #endif  // V8_ENABLE_SANDBOX && V8_ENABLE_MEMORY_CORRUPTION_API
 
+#ifdef USING_OHOS_WEB
+#include "../../../arkweb/chromium_ext/v8/ohlog.h"
+#endif
+
+#if V8_HAS_JIT_FORT_PROTECT
+#include "src/base/platform/jitfort.h"
+#endif
+
 namespace v8 {
 namespace internal {
 
@@ -59,6 +67,9 @@ namespace internal {
 v8::Platform* V8::platform_ = nullptr;
 const OOMDetails V8::kNoOOMDetails{false, nullptr};
 const OOMDetails V8::kHeapOOM{true, nullptr};
+#ifdef OHOS_JS_ENGINE
+bool rcs_enable = false;
+#endif
 
 namespace {
 enum class V8StartupState {

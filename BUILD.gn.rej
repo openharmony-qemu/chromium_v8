@@ -1,5 +1,5 @@
 diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
-@@ -1,24 +1,45 @@
+@@ -1,25 +1,45 @@
  # Copyright 2014 The Chromium Authors. All rights reserved.
  # Use of this source code is governed by a BSD-style license that can be
  # found in the LICENSE file.
@@ -39,26 +39,26 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
  import("gni/v8.gni")
 +import("//arkweb/chromium_ext/v8/build.gni")
 +
-+import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
+ import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 +
  
  if (is_clang) {
    import("//build/config/clang/clang.gni")
  }
  
-@@ -500,11 +540,29 @@ declare_args() {
+@@ -500,18 +540,29 @@ declare_args() {
  
    # Enable compilation of riscv32.
    v8_riscv_enable_deprecated_riscv32 = false
  }
  
-+declare_args() {
-+  # Enable jit memroy W^X protection.
-+  v8_enable_jitfort = false
-+
-+  v8_enable_hitrace_runtime_call_stats = v8_enable_ohos_js_engine
-+}
-+
+ declare_args() {
+   # Enable jit memroy W^X protection.
+   v8_enable_jitfort = false
+ 
+   v8_enable_hitrace_runtime_call_stats = v8_enable_ohos_js_engine
+ }
+ 
  # Derived defaults.
 +pgo_exists_flag = false
 +if(is_ohos) {
@@ -76,7 +76,7 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
        v8_enable_verification_features || v8_dcheck_always_on
  }
  if (v8_enable_verify_heap == "") {
-@@ -1491,29 +1563,68 @@ config("features") {
+@@ -1491,32 +1563,68 @@ config("features") {
      defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
    }
    if (v8_wasm_random_fuzzers) {
@@ -123,9 +123,9 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
 +  if (v8_enable_oom_repoter) {
 +    defines += [ "V8_ENABLE_OHOS_OOM_MONITOR" ]
 +  }
-+  if (is_ohos && v8_enable_jitfort) {
-+    defines += [ "V8_ENABLE_JITFORT" ]
-+  }
+   if (is_ohos && v8_enable_jitfort) {
+     defines += [ "V8_ENABLE_JITFORT" ]
+   }
  }
  
  config("toolchain") {
@@ -198,21 +198,3 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    }
  
    if (v8_enable_temporal_support) {
-@@ -6504,10 +6696,17 @@ v8_source_set("v8_base_without_compiler") {
-         "src/diagnostics/etw-jit-win.h",
-       ]
-     }
-   }
- 
-+  if (v8_enable_jitfort) {
-+    sources += [
-+      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.h",
-+      "//arkweb/chromium_ext/v8/src/base/platform/jitfort.cc",
-+    ]
-+  }
-+  
-   configs = [
-     ":internal_config",
-     ":cppgc_base_config",
-   ]
- 
