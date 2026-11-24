@@ -6849,6 +6849,12 @@ v8_cluster_source_set("v8_base_without_compiler") {
     sources += [ "src/snapshot/snapshot-compression.cc" ]
   }
 
+  if (v8_enable_longque_api) {
+    sources += [
+      "//arkweb/chromium_ext/v8/builtins-longque.cc",
+    ]
+  }
+
   if (v8_enable_regexp_diagnostics) {
     sources += [
       "src/regexp/regexp-ast-printer.cc",
@@ -9078,6 +9084,16 @@ v8_executable("d8") {
     "src/d8/memory-access-information.cc",
     "src/d8/memory-access-information.h",
   ]
+
+  if (v8_ohos_enable_heapdump) {
+    sources += heap_dump_base_include
+    if (enable_heap_dump) {
+      sources += heap_dump_include
+    }
+    if (enable_heap_dump_translate) {
+      sources += heap_dump_translator_include
+    }
+  }
 
   configs = [
     # Note: don't use :internal_config here because this target will get
