@@ -1752,6 +1752,9 @@ config("features") {
   if (v8_enable_longque_api) {
     defines += [ "V8_ENABLE_LONGQUE_API" ]
   }
+  if (v8_enable_ohos_perf_jit) {
+    defines += [ "V8_ENABLE_OHOS_PERF_JIT" ]
+  }
   if (v8_enable_ohos_async_stack) {
     defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
   }
@@ -5192,6 +5195,19 @@ v8_header_set("v8_internal_headers") {
     "third_party/siphash/halfsiphash.h",
     "third_party/utf8-decoder/utf8-decoder.h",
   ]
+
+
+  if (v8_enable_ohos_perf_jit) {
+    sources += [
+      "//arkweb/chromium_ext/v8/ohos-perf-jit.h",
+      "//arkweb/chromium_ext/v8/ohos-perf-jit.cc",
+    ]
+  } else {
+    sources += [
+      "src/diagnostics/perf-jit.h",
+      "src/diagnostics/perf-jit.cc"
+    ]
+  }
 
   if (v8_enable_ohos_async_stack) {
     sources += [

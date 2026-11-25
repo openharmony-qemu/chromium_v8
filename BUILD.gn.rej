@@ -76,7 +76,7 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
        v8_enable_verification_features || v8_dcheck_always_on
  }
  if (v8_enable_verify_heap == "") {
-@@ -1491,61 +1563,68 @@ config("features") {
+@@ -1491,64 +1563,68 @@ config("features") {
      defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
    }
    if (v8_wasm_random_fuzzers) {
@@ -88,9 +88,9 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    if (v8_enable_longque_api) {
      defines += [ "V8_ENABLE_LONGQUE_API" ]
    }
-+  if (v8_enable_ohos_perf_jit) {
-+    defines += [ "V8_ENABLE_OHOS_PERF_JIT" ]
-+  }
+   if (v8_enable_ohos_perf_jit) {
+     defines += [ "V8_ENABLE_OHOS_PERF_JIT" ]
+   }
    if (v8_enable_ohos_async_stack) {
      defines += [ "V8_ENABLE_OHOS_ASYNC_STACK" ]
    }
@@ -145,56 +145,3 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      if (arm_version >= 7) {
        defines += [ "CAN_USE_ARMV7_INSTRUCTIONS" ]
      }
-@@ -4503,38 +4636,52 @@ v8_header_set("v8_internal_headers") {
-     "third_party/rapidhash-v8/secret.h",
-     "third_party/siphash/halfsiphash.h",
-     "third_party/utf8-decoder/utf8-decoder.h",
-   ]
- 
-+
-+  if (v8_enable_ohos_perf_jit) {
-+    sources += [
-+      "//arkweb/chromium_ext/v8/ohos-perf-jit.h",
-+      "//arkweb/chromium_ext/v8/ohos-perf-jit.cc",
-+      "//arkweb/chromium_ext/v8/parse-jitcode.cc",
-+    ]
-+  } else {
-+    sources += [
-+      "src/diagnostics/perf-jit.h",
-+      "src/diagnostics/perf-jit.cc"
-+    ]
-+  }
-+
-   if (v8_enable_ohos_async_stack) {
-     sources += [
-       "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.h",
-       "//arkweb/chromium_ext/v8/dfx/async_stack/async_stack.cpp"
-     ]
-   }
- 
-   if (v8_enable_restrace) {
-     sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
-   }
- 
-   if (v8_enable_oom_repoter) {
-     sources += [ "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h" ]
-   }
- 
-   if (v8_ohos_enable_heapdump) {
-     sources += heap_dump_base_include
-     if (enable_heap_dump) {
-       sources += heap_dump_include
-     }
-     if (enable_heap_dump_translate) {
-       sources += heap_dump_translator_include
-     }
-     if (enable_heap_dump_test) {
-       sources += heap_dump_ut_include
-     }
-   }
- 
-   if (v8_enable_snapshot_compression) {
-     sources += [ "src/snapshot/snapshot-compression.h" ]
-   }
- 
-   if (v8_enable_temporal_support) {
