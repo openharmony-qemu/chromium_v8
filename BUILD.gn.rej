@@ -76,7 +76,7 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
        v8_enable_verification_features || v8_dcheck_always_on
  }
  if (v8_enable_verify_heap == "") {
-@@ -1491,44 +1563,68 @@ config("features") {
+@@ -1491,61 +1563,68 @@ config("features") {
      defines += [ "V8_ENABLE_PARTITION_ALLOC" ]
    }
    if (v8_wasm_random_fuzzers) {
@@ -97,20 +97,20 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    if (v8_enable_restrace) {
      defines += [ "OH_ENABLE_RESTRACE" ]
    }
-+  if (v8_ohos_enable_heapdump) {
-+    if (enable_heap_dump) {
-+      defines += [ "OH_ENABLE_HEAP_DUMP" ]
-+    }
-+    if (enable_heap_dump_translate) {
-+      defines += [ "OH_ENABLE_HEAP_TRANSLATE" ]
-+    }
-+    if (enable_heap_dump_test) {
-+      defines += [ "OH_ENABLE_HEAP_DUMP_TEST" ]
-+    }
-+    if (enable_heap_dump_json_metadata) {
-+      defines += [ "OH_ENABLE_HEAP_DUMP_JSON_METADATA" ]
-+    }
-+  }
+   if (v8_ohos_enable_heapdump) {
+     if (enable_heap_dump) {
+       defines += [ "OH_ENABLE_HEAP_DUMP" ]
+     }
+     if (enable_heap_dump_translate) {
+       defines += [ "OH_ENABLE_HEAP_TRANSLATE" ]
+     }
+     if (enable_heap_dump_test) {
+       defines += [ "OH_ENABLE_HEAP_DUMP_TEST" ]
+     }
+     if (enable_heap_dump_json_metadata) {
+       defines += [ "OH_ENABLE_HEAP_DUMP_JSON_METADATA" ]
+     }
+   }
    if (v8_lower_limits_mode) {
      defines += [ "V8_LOWER_LIMITS_MODE" ]
    }
@@ -120,9 +120,9 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
    if (v8_function_arguments_caller_are_own_props) {
      defines += [ "V8_FUNCTION_ARGUMENTS_CALLER_ARE_OWN_PROPS" ]
    }
-+  if (v8_enable_oom_repoter) {
-+    defines += [ "V8_ENABLE_OHOS_OOM_MONITOR" ]
-+  }
+   if (v8_enable_oom_repoter) {
+     defines += [ "V8_ENABLE_OHOS_OOM_MONITOR" ]
+   }
    if (is_ohos && v8_enable_jitfort) {
      defines += [ "V8_ENABLE_JITFORT" ]
    }
@@ -145,7 +145,7 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      if (arm_version >= 7) {
        defines += [ "CAN_USE_ARMV7_INSTRUCTIONS" ]
      }
-@@ -4503,21 +4636,52 @@ v8_header_set("v8_internal_headers") {
+@@ -4503,38 +4636,52 @@ v8_header_set("v8_internal_headers") {
      "third_party/rapidhash-v8/secret.h",
      "third_party/siphash/halfsiphash.h",
      "third_party/utf8-decoder/utf8-decoder.h",
@@ -176,23 +176,23 @@ diff a/BUILD.gn b/BUILD.gn	(rejected hunks)
      sources += [ "//arkweb/chromium_ext/v8/restrace.h" ]
    }
  
-+  if (v8_enable_oom_repoter) {
-+    sources += [ "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h" ]
-+  }
-+
-+  if (v8_ohos_enable_heapdump) {
-+    sources += heap_dump_base_include
-+    if (enable_heap_dump) {
-+      sources += heap_dump_include
-+    }
-+    if (enable_heap_dump_translate) {
-+      sources += heap_dump_translator_include
-+    }
-+    if (enable_heap_dump_test) {
-+      sources += heap_dump_ut_include
-+    }
-+  }
-+
+   if (v8_enable_oom_repoter) {
+     sources += [ "//arkweb/chromium_ext/v8/dfx/oom_mojom/v8-oom-reporter.h" ]
+   }
+ 
+   if (v8_ohos_enable_heapdump) {
+     sources += heap_dump_base_include
+     if (enable_heap_dump) {
+       sources += heap_dump_include
+     }
+     if (enable_heap_dump_translate) {
+       sources += heap_dump_translator_include
+     }
+     if (enable_heap_dump_test) {
+       sources += heap_dump_ut_include
+     }
+   }
+ 
    if (v8_enable_snapshot_compression) {
      sources += [ "src/snapshot/snapshot-compression.h" ]
    }
