@@ -4,7 +4,20 @@
 
 # LINT.IfChange
 
+declare_args() {
+  # build_host = true and build_arkweb = false is used to build d8
+  build_host = false
+  build_arkweb = true
+}
+if (build_host && !build_arkweb) {
+  is_ohos = build_host == false
+  is_arkweb = build_arkweb
+}
+
 import("//build/config/android/config.gni")
+if (is_ohos) {
+  import("//build/config/ohos/config.gni")
+}
 import("//build/config/arm.gni")
 import("//build/config/c++/c++.gni")
 import("//build/config/clang/clang.gni")
@@ -16,12 +29,18 @@ import("//build/config/riscv.gni")
 import("//build/config/sanitizers/sanitizers.gni")
 import("//build/toolchain/kythe.gni")
 import("//build_overrides/build.gni")
-import("//cef/libcef/features/features.gni")
+if (build_host) {
+  enable_cef = false
+} else {
+  import("//cef/libcef/features/features.gni")
+}
 import("//third_party/icu/config.gni")
 
 import("gni/cluster_build.gni")
 import("gni/snapshot_toolchain.gni")
 import("gni/v8.gni")
+import("//arkweb/chromium_ext/v8/build.gni")
+
 import("//arkweb/chromium_ext/v8/dfx/heap_dump/heap-dump.gni")
 
 if (is_clang) {
@@ -610,6 +629,17 @@ declare_args() {
 }
 
 # Derived defaults.
+pgo_exists_flag = false
+if(is_ohos) {
+  pgo_exists_flag = exec_script("tools/builtins-pgo/check_pgo.py", ["--pgo_path", "profiles/ohos.profile"], "value")
+}
+if (pgo_exists_flag) {
+  v8_builtins_profiling_log_file = "tools/builtins-pgo/profiles/ohos.profile"
+} else {
+  v8_builtins_profiling_log_file = "default"
+}
+print("Using v8_builtins_profiling from: ")
+print(v8_builtins_profiling_log_file)
 if (v8_logging_level == "") {
   if (v8_enable_verification_features || v8_dcheck_always_on) {
     v8_logging_level = 2
@@ -1799,6 +1829,10 @@ config("toolchain") {
   defines = []
   cflags = []
   ldflags = []
+
+  if (build_host) {
+    cflags += [ "-Wno-extra-tokens" ]
+  }
 
   if (v8_current_cpu == "arm") {
     defines += [
