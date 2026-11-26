@@ -53,6 +53,12 @@ class JSArrayBuffer
   // [extension]: extension object used for GC
   DECL_PRIMITIVE_ACCESSORS(extension, ArrayBufferExtension*)
   inline void init_extension();
+  // Returns the current extension and resets it to nullptr. Expects a witness
+  // DisallowGarbageCollection to make sure the returned extension isn't freed
+  // while a pointer to it is held on stack.
+  inline ArrayBufferExtension* extract_extension(
+      Isolate* isolate,
+      const DisallowGarbageCollection& disallow_gc V8_LIFETIME_BOUND);
 
   // [bit_field]: boolean flags
   DECL_PRIMITIVE_ACCESSORS(bit_field, uint32_t)
@@ -139,9 +145,6 @@ class JSArrayBuffer
   // be only called during setup as it always creates a new extension.
   V8_EXPORT_PRIVATE ArrayBufferExtension* CreateExtension(
       Isolate* isolate, std::shared_ptr<BackingStore> backing_store);
-
-  // Frees the associated ArrayBufferExtension and returns its backing store.
-  std::shared_ptr<BackingStore> RemoveExtension();
 
   // Marks ArrayBufferExtension
   void MarkExtension();
