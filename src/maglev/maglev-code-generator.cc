@@ -1520,16 +1520,14 @@ class MaglevFrameTranslationBuilder {
     DCHECK_NE(opcode, Opcode::kIdentity);
     if (IsConstantNode(opcode)) {
       if (opcode == Opcode::kFloat64Constant) {
-        Float64 value_as_float = value->Cast<Float64Constant>()->value();
-        if (value_as_float.is_hole_nan()) {
-          translation_array_builder_->StoreLiteral(
-              GetDeoptLiteral(ReadOnlyRoots{local_isolate_}.the_hole_value()));
-          return;
-        }
-#ifdef V8_ENABLE_UNDEFINED_DOUBLE
-        // TODO(nicohartmann): Handle is_undefined_nan here.
-        DCHECK(!value_as_float.is_undefined_nan());
-#endif  //  V8_ENABLE_UNDEFINED_DOUBLE
+        translation_array_builder_->StoreDoubleLiteral(
+            value->Cast<Float64Constant>()->value());
+        return;
+      }
+      if (opcode == Opcode::kHoleyFloat64Constant) {
+        translation_array_builder_->StoreHoleyDoubleLiteral(
+            value->Cast<HoleyFloat64Constant>()->value());
+        return;
       }
       translation_array_builder_->StoreLiteral(
           GetDeoptLiteral(*value->Reify(local_isolate_)));
@@ -1608,8 +1606,16 @@ class MaglevFrameTranslationBuilder {
       }
     }
     if (input_location->operand().IsConstant()) {
-      translation_array_builder_->StoreLiteral(
-          GetDeoptLiteral(*value->Reify(local_isolate_)));
+      if (value->opcode() == Opcode::kFloat64Constant) {
+        translation_array_builder_->StoreDoubleLiteral(
+            value->Cast<Float64Constant>()->value());
+      } else if (value->opcode() == Opcode::kHoleyFloat64Constant) {
+        translation_array_builder_->StoreHoleyDoubleLiteral(
+            value->Cast<HoleyFloat64Constant>()->value());
+      } else {
+        translation_array_builder_->StoreLiteral(
+            GetDeoptLiteral(*value->Reify(local_isolate_)));
+      }
     } else {
       const compiler::AllocatedOperand& operand =
           compiler::AllocatedOperand::cast(input_location->operand());

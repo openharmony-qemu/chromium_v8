@@ -18,6 +18,7 @@
 #include "src/objects/tagged.h"
 #include "src/objects/trusted-object.h"
 #include "src/roots/roots.h"
+#include "src/utils/boxed-float.h"
 #include "src/utils/memcopy.h"
 
 // Has to be the last include (doesn't have include guards):
@@ -489,6 +490,7 @@ V8_OBJECT class FixedDoubleArray
   static inline Handle<Object> get(Tagged<FixedDoubleArray> array, int index,
                                    Isolate* isolate);
   inline void set(int index, double value);
+  inline void set_raw(int index, Float64 value);
 #ifdef V8_ENABLE_UNDEFINED_DOUBLE
   inline void set_undefined(int index);
   inline bool is_undefined(int index);
