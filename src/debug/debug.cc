@@ -556,7 +556,8 @@ void DebugInfoCollection::Insert(Tagged<SharedFunctionInfo> sfi,
   HandleLocation location =
       isolate_->global_handles()->Create(debug_info).location();
   list_.push_back(location);
-  map_.emplace(sfi->unique_id(), location);
+  auto [it, inserted] = map_.emplace(sfi->unique_id(), location);
+  SBXCHECK(inserted);
   DCHECK(Contains(sfi));
   DCHECK_EQ(list_.size(), map_.size());
 }
@@ -564,7 +565,7 @@ void DebugInfoCollection::Insert(Tagged<SharedFunctionInfo> sfi,
 bool DebugInfoCollection::Contains(Tagged<SharedFunctionInfo> sfi) const {
   auto it = map_.find(sfi->unique_id());
   if (it == map_.end()) return false;
-  DCHECK_EQ(Cast<DebugInfo>(Tagged<Object>(*it->second))->shared(), sfi);
+  SBXCHECK_EQ(Cast<DebugInfo>(Tagged<Object>(*it->second))->shared(), sfi);
   return true;
 }
 
@@ -573,7 +574,7 @@ std::optional<Tagged<DebugInfo>> DebugInfoCollection::Find(
   auto it = map_.find(sfi->unique_id());
   if (it == map_.end()) return {};
   Tagged<DebugInfo> di = Cast<DebugInfo>(Tagged<Object>(*it->second));
-  DCHECK_EQ(di->shared(), sfi);
+  SBXCHECK_EQ(di->shared(), sfi);
   return di;
 }
 
@@ -601,8 +602,9 @@ void DebugInfoCollection::DeleteIndex(size_t index) {
   DCHECK(Contains(sfi));
 
   auto it = map_.find(sfi->unique_id());
+  SBXCHECK(it != map_.end());
   HandleLocation location = it->second;
-  DCHECK_EQ(location, list_[index]);
+  SBXCHECK_EQ(location, list_[index]);
   map_.erase(it);
 
   list_[index] = list_.back();
