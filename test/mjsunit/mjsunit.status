@@ -2492,6 +2492,7 @@
 
 ################################################################################
 ['single_generation', {
+  'regress/wasm/regress-561660149': [SKIP],
   # These tests rely on allocation site tracking which only works in the young generation.
   'array-constructor-feedback': [SKIP],
   'wasm/generic-wrapper': [SKIP],

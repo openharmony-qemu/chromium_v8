@@ -3819,9 +3819,7 @@ void CodeGenerator::AssembleArchTrap(Instruction* instr,
       // Just encode the stub index. This will be patched when the code
       // is added to the native module and copied into wasm code space.
       __ Call(static_cast<Address>(trap_id), RelocInfo::WASM_STUB_CALL);
-      ReferenceMap* reference_map =
-          gen_->zone()->New<ReferenceMap>(gen_->zone());
-      gen_->RecordSafepoint(reference_map);
+      gen_->RecordSafepointWithoutTaggedSlots();
       if (v8_flags.debug_code) {
         __ stop();
       }
@@ -4027,8 +4025,7 @@ void CodeGenerator::AssembleConstructFrame() {
         // return in this case.
         // So either way, we can just ignore any references and record an empty
         // safepoint here.
-        ReferenceMap* reference_map = zone()->New<ReferenceMap>(zone());
-        RecordSafepoint(reference_map);
+        RecordSafepointWithoutTaggedSlots();
         __ vldm(ia_w, sp, fp_regs_to_save.first(), fp_regs_to_save.last());
         __ ldm(ia_w, sp, regs_to_save);
       } else {
@@ -4036,8 +4033,7 @@ void CodeGenerator::AssembleConstructFrame() {
                 RelocInfo::WASM_STUB_CALL);
         // The call does not return, hence we can ignore any references and just
         // define an empty safepoint.
-        ReferenceMap* reference_map = zone()->New<ReferenceMap>(zone());
-        RecordSafepoint(reference_map);
+        RecordSafepointWithoutTaggedSlots();
         if (v8_flags.debug_code) __ stop();
       }
 
